@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <title>Ювелирный учёт</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1f2a44">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ювелирка">
 <style>
   body { font-family: Arial, sans-serif; margin: 0; background: #f4f5f7; color: #222; }
   header { background: #1f2a44; color: white; padding: 16px 24px; font-size: 20px; }
@@ -1004,6 +1010,15 @@ async function initApp() {
 }
 
 initApp();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('✅ Service Worker зарегистрирован:', reg.scope))
+        .catch(err => console.error('❌ Ошибка регистрации SW:', err));
+    });
+  }
 </script>
 </body>
 </html>
