@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Проверка Supabase</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 24px; background: #f4f5f7; }
+  h2 { margin-top: 0; }
+  .ok { color: #2f855a; font-weight: bold; }
+  .err { color: #c53030; font-weight: bold; white-space: pre-wrap; }
+  table { border-collapse: collapse; margin-top: 12px; width: 100%; background: white; }
+  th, td { padding: 8px 12px; border-bottom: 1px solid #e3e6ec; text-align: left; }
+  th { background: #eef1f6; }
+  #status { padding: 12px; border-radius: 6px; margin-bottom: 16px; background: white; }
+</style>
+</head>
+<body>
+<h2>Проверка связи с Supabase</h2>
+<div id="status">Загрузка...</div>
+<table id="tbl" style="display:none">
+  <thead><tr><th>ID</th><th>Название</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th></tr></thead>
+  <tbody></tbody>
+</table>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://kjiybjmisztrwymkwwsg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_08SQ7121NYScNVQYffjjyg_mj-VWYv-';
+
+const status = document.getElementById('status');
+const tbl = document.getElementById('tbl');
+
+try {
+  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const { data, error } = await sb.from('materials').select('*');
+
+  if (error) throw error;
+
+  status.innerHTML = '<span class="ok">✅ Связь работает! Получено строк: ' + data.length + '</span>';
+  if (data.length > 0) {
+    tbl.style.display = 'table';
+    tbl.querySelector('tbody').innerHTML = data.map(m => `
+      <tr>
+        <td>${m.id}</td>
+        <td>${m.name}</td>
+        <td>${m.brand || '—'}</td>
+        <td>${m.unit}</td>
+        <td>${m.price} ₽</td>
+        <td>${m.stock}</td>
+      </tr>`).join('');
+  } else {
+    status.innerHTML += '<br>Но таблица пустая — добавь строку через SQL Editor.';
+  }
+} catch (e) {
+  status.innerHTML = '<span class="err">❌ Ошибка: ' + e.message + '</span>';
+}
+</script>
+</body>
+</html>
