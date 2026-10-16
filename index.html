@@ -35,6 +35,13 @@
     flex-shrink: 0;
   }
   /* ============================================================
+     СКРЫТИЕ ДЛЯ МАСТЕРА (роль "master")
+     ============================================================ */
+  body.is-master .master-hidden {
+    display: none !important;
+  }
+
+  /* ============================================================
      ЭКРАН ВХОДА
      ============================================================ */
   .login-screen {
@@ -1442,6 +1449,7 @@ function showApp() {
 function hideApp() {
   document.getElementById("login_screen").classList.remove("hidden");
   document.getElementById("app_main").style.display = "none";
+  document.body.classList.remove("is-master", "is-admin");
 }
 
 /* Выход */
@@ -1468,6 +1476,11 @@ function checkSession() {
 function applyRoleRestrictions(user) {
   const isMaster = user && user.role === "master";
   const isAdmin = user && user.role === "admin";
+
+  // Управляем CSS-классом на <body>
+  document.body.classList.remove("is-master", "is-admin");
+  if (isMaster) document.body.classList.add("is-master");
+  if (isAdmin) document.body.classList.add("is-admin");
 
   // 1. Скрыть СЕРВИС для мастера
   const serviceBtn = document.querySelector(".main-tabs button[onclick*='service']");
