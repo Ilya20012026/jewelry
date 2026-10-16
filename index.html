@@ -895,11 +895,14 @@ function writeOff() {
     channel: document.getElementById("w_channel").value,
     note: document.getElementById("w_note").value.trim(),
     cost: s.costPerUnit * qty,
-    profit: sum - s.costPerUnit * qty,
+        profit: sum - s.costPerUnit * qty,
+    updatedAt: new Date().toISOString(),
   });
   s.remaining -= qty;
   if (s.remaining <= 0) {
-    data.stock = data.stock.filter(x => x.id !== s.id);
+    markDeleted(data, "stock", s.id);
+  } else {
+    s.updatedAt = new Date().toISOString();
   }
   save(); renderStock();
   document.getElementById("w_result").innerHTML =
