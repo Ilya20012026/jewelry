@@ -1806,6 +1806,21 @@ function toggleGroupCollapsed(groupId) {
   save();
   renderBatches();
 }
+/* ---------- Удалить производственное задание со всеми партиями ---------- */
+function deleteGroup(groupId) {
+  if (!confirm("Удалить задание и все партии внутри?")) return;
+  // Собираем партии этой группы
+  const groupBatches = data.batches.filter(b => String(b.groupId) === String(groupId));
+  // Помечаем каждую как удалённую (tombstones для синхронизации)
+  groupBatches.forEach(b => {
+    markDeleted(data, "batches", b.id);
+  });
+  // Удаляем группу
+  markDeleted(data, "groups", groupId);
+  save();
+  renderBatches();
+  showToast("Задание удалено: " + groupBatches.length + " партий", "success");
+}
 
 function renderBatches() {
   const active = data.batches.filter(b => !b.finished);
@@ -1832,7 +1847,12 @@ function renderBatches() {
   Object.keys(groupsMap).forEach(gid => {
     const group = data.groups.find(g => String(g.id) === String(gid));
     const items = groupsMap[gid];
-    if (!group || items.length === 0) return;
+        if (items.length === 0) return;
+    // Если группа удалена, но партии остались — показываем их как обычные
+    if (!group) {
+      items.forEach(b => { html += renderBatchCard(b); });
+      return;
+    }
 
     const title = group.title || ("от " + (group.date_start || ""));
     const responsible = group.responsible || "—";
@@ -1850,6 +1870,7 @@ function renderBatches() {
     html += `    <div class="task-group-meta">Срок: ${escapeHtml(period)}</div>`;
     html += `    <div class="row" style="margin-top:8px">`;
     html += `      <button class="action" onclick="toggleGroupCollapsed('${gid}')">${isCollapsed ? "▸ РАСКРЫТЬ" : "▾ СВЕРНУТЬ"}</button>`;
+html += `      <button class="action danger" onclick="deleteGroup('${gid}')">× Удалить задание</button>`;
     html += `    </div>`;
     html += `  </div>`;
 
