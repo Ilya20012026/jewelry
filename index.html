@@ -1834,7 +1834,6 @@ function renderBatches() {
     const items = groupsMap[gid];
     if (!group || items.length === 0) return;
 
-    // Заголовок задания
     const title = group.title || ("от " + (group.date_start || ""));
     const responsible = group.responsible || "—";
     const period = group.date_start
@@ -1842,21 +1841,26 @@ function renderBatches() {
           ? group.date_start + " — " + group.date_end
           : group.date_start)
       : "—";
+    const isCollapsed = !!group.collapsed;
 
     html += `<div class="task-group">`;
     html += `  <div class="task-group-header">`;
     html += `    <div class="task-group-title">📦 ПРОИЗВОДСТВЕННОЕ ЗАДАНИЕ ${escapeHtml(title)}</div>`;
     html += `    <div class="task-group-meta">Ответственный: ${escapeHtml(responsible)}</div>`;
     html += `    <div class="task-group-meta">Срок: ${escapeHtml(period)}</div>`;
+    html += `    <div class="row" style="margin-top:8px">`;
+    html += `      <button class="action" onclick="toggleGroupCollapsed('${gid}')">${isCollapsed ? "▸ РАСКРЫТЬ" : "▾ СВЕРНУТЬ"}</button>`;
+    html += `    </div>`;
     html += `  </div>`;
-    html += `  <div class="task-group-body">`;
 
-    // Партии внутри задания
-    items.forEach(b => {
-      html += renderBatchCard(b);
-    });
+    if (!isCollapsed) {
+      html += `  <div class="task-group-body">`;
+      items.forEach(b => {
+        html += renderBatchCard(b);
+      });
+      html += `  </div>`;
+    }
 
-    html += `  </div>`;
     html += `</div>`;
   });
 
@@ -1867,7 +1871,7 @@ function renderBatches() {
 
   document.getElementById("active_batches").innerHTML = html || `<p class="hint">Нет активных партий</p>`;
 
-  // Завершённые партии — как раньше
+  // Завершённые партии
   document.getElementById("done_batches").innerHTML = done.map(b => `
     <div class="stage done">
       <div class="stage-title">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></div>
