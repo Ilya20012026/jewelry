@@ -698,28 +698,33 @@
     <div class="card">
       <h3>Добавить сотрудника</h3>
       <p class="hint">Сотрудники будут использоваться при назначении ответственных за задачи.</p>
-      <div class="row">
-        <input id="emp_name" placeholder="Имя и фамилия" style="width:220px">
-        <input id="emp_role" placeholder="Роль (мастер, менеджер...)" style="width:200px">
-        <input id="emp_phone" placeholder="Телефон (опц.)" style="width:160px">
-        <input id="emp_note" placeholder="Комментарий" style="width:200px">
-        <button class="action" onclick="addEmployee()">Добавить</button>
-      </div>
+       <div class="row">
+    <input id="emp_name" placeholder="ФИО" style="width:220px">
+    <select id="emp_role" style="width:180px">
+      <option value="master">Сотрудник</option>
+      <option value="admin">Руководитель</option>
+    </select>
+    <input id="emp_pin" placeholder="PIN (4 цифры)" maxlength="6" style="width:130px">
+    <input id="emp_phone" placeholder="Телефон (опц.)" style="width:150px">
+    <input id="emp_note" placeholder="Комментарий" style="width:180px">
+    <button class="action" onclick="addEmployee()">Добавить</button>
+  </div>
     </div>
 
     <!-- Список сотрудников -->
     <div class="card">
       <h3>Список сотрудников</h3>
       <table>
-        <thead>
-          <tr>
-            <th>Имя</th>
-            <th>Роль</th>
-            <th>Телефон</th>
-            <th>Комментарий</th>
-            <th></th>
-          </tr>
-        </thead>
+       <thead>
+  <tr>
+    <th>ФИО</th>
+    <th>Роль</th>
+    <th>PIN</th>
+    <th>Телефон</th>
+    <th>Комментарий</th>
+    <th></th>
+  </tr>
+</thead>
         <tbody id="employees_table"></tbody>
       </table>
     </div>
@@ -1160,19 +1165,34 @@ function showCompanyTab(id, btn) {
 /* ---------- СОТРУДНИКИ ---------- */
 function addEmployee() {
   const name = document.getElementById("emp_name").value.trim();
-  if (!name) return alert("Введите имя сотрудника");
+  if (!name) return alert("Введите ФИО сотрудника");
+
+  const role = document.getElementById("emp_role").value;
+  const pin = document.getElementById("emp_pin").value.trim();
+
+  if (!pin) return alert("Введите PIN");
+  if (pin.length < 4) return alert("PIN должен быть не короче 4 символов");
+
+  // Проверяем, что PIN не занят другим сотрудником
+  const existing = (data.employees || []).find(e => e.pin && e.pin === pin);
+  if (existing) return alert("Такой PIN уже используется сотрудником: " + existing.name);
 
   data.employees = data.employees || [];
   data.employees.push({
     id: uid(),
     name,
-    role: document.getElementById("emp_role").value.trim(),
+    role: role,
+    pin: pin,
     phone: document.getElementById("emp_phone").value.trim(),
     note: document.getElementById("emp_note").value.trim(),
     updatedAt: new Date().toISOString(),
   });
 
-  ["emp_name","emp_role","emp_phone","emp_note"].forEach(id => document.getElementById(id).value = "");
+  ["emp_name","emp_phone","emp_note","emp_pin"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("emp_role").value = "master";
+
   save();
   renderEmployees();
 }
@@ -1189,17 +1209,22 @@ function renderEmployees() {
   if (!tbody) return;
   const list = data.employees || [];
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Пока нет сотрудников. Добавьте первого.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Пока нет сотрудников. Добавьте первого.</td></tr>`;
     return;
   }
-  tbody.innerHTML = list.map(e => `
+  tbody.innerHTML = list.map(e => {
+    const roleLabel = e.role === "admin" ? "Руководитель" : "Сотрудник";
+    const roleClass = e.role === "admin" ? "badge-done" : "badge-active";
+    return `
     <tr>
       <td>${escapeHtml(e.name)}</td>
-      <td>${escapeHtml(e.role) || "—"}</td>
+      <td><span class="badge ${roleClass}">${roleLabel}</span></td>
+      <td>${e.pin ? escapeHtml(e.pin) : "—"}</td>
       <td>${escapeHtml(e.phone) || "—"}</td>
       <td>${escapeHtml(e.note) || "—"}</td>
       <td><button class="action danger" onclick="delEmployee('${e.id}')">×</button></td>
-    </tr>`).join("");
+    </tr>`;
+  }).join("");
 }
 
 /* ---------- Переключение главных разделов ---------- */
