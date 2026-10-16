@@ -1422,6 +1422,11 @@ function showApp() {
 
   const user = getCurrentUser();
   applyRoleRestrictions(user);
+  // Защита: если мастер — принудительно переключаем на ПРОИЗВОДСТВО
+  if (user && user.role === "master") {
+    const prodBtn = document.querySelector(".main-tabs button[onclick*='production']");
+    if (prodBtn) showMain("production", prodBtn);
+  }
   // Показать имя в шапке
   const nameEl = document.getElementById("current_user_name");
   if (nameEl && user) {
@@ -1461,8 +1466,47 @@ function checkSession() {
 
 /* Заглушка для прав (пока ничего не делает) */
 function applyRoleRestrictions(user) {
-  // Заполним на следующем этапе
-  console.log("Пользователь:", user ? user.name + " (" + user.role + ")" : "нет");
+  const isMaster = user && user.role === "master";
+  const isAdmin = user && user.role === "admin";
+
+  // 1. Скрыть СЕРВИС для мастера
+  const serviceBtn = document.querySelector(".main-tabs button[onclick*='service']");
+  if (serviceBtn) serviceBtn.style.display = isMaster ? "none" : "";
+
+  // 2. Скрыть вкладку "Архив списаний" для мастера (внутри ПРОИЗВОДСТВА)
+  const archiveBtn = document.querySelector("#main-production .tabs button[onclick*='archive']");
+  if (archiveBtn) archiveBtn.style.display = isMaster ? "none" : "";
+
+  // 3. Скрыть вкладки "Сотрудники" и "Контрагенты" для мастера (внутри КОМПАНИИ)
+  const empBtn = document.querySelector("#main-company .tabs button[onclick*='employees']");
+  if (empBtn) empBtn.style.display = isMaster ? "none" : "";
+
+  const counterpartiesBtn = document.querySelector("#main-company .tabs button[onclick*='counterparties']");
+  if (counterpartiesBtn) counterpartiesBtn.style.display = isMaster ? "none" : "";
+
+  // 4. Если мастер был на скрытой вкладке — переключаем на первую доступную
+  if (isMaster) {
+    // Проверяем: если активна СЕРВИС — переключаем на ПРОИЗВОДСТВО
+    const activeMain = document.querySelector(".main-section.active");
+    if (activeMain && activeMain.id === "main-service") {
+      const prodBtn = document.querySelector(".main-tabs button[onclick*='production']");
+      if (prodBtn) showMain("production", prodBtn);
+    }
+
+    // Если активна вкладка "Архив" — переключаем на "Партии"
+    const activeTab = document.querySelector("#main-production .tab.active");
+    if (activeTab && activeTab.id === "archive") {
+      const batchesBtn = document.querySelector("#main-production .tabs button[onclick*='batches']");
+      if (batchesBtn) showTab("batches", batchesBtn);
+    }
+
+    // Если активна вкладка "Сотрудники" — переключаем на "Календарь"
+    const activeCompanyTab = document.querySelector("#main-company .tab.active");
+    if (activeCompanyTab && activeCompanyTab.id === "company-employees") {
+      const calBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
+      if (calBtn) showCompanyTab("calendar", calBtn);
+    }
+  }
 }
 
 /* ---------- Переключение главных разделов ---------- */
