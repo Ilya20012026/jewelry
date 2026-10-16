@@ -534,24 +534,16 @@
 <!-- СКЛАД МАТЕРИАЛОВ -->
 <div id="sku" class="tab active">
   <div class="card master-hidden">
-  <h3>Добавить материал на склад</h3>
-  <p class="hint">Здесь всё, что расходуется: воск, формомасса, вода, металлы, электролит, расходники, упаковка, электроэнергия.</p>
-  <div class="row">
-    <input id="m_name" placeholder="Название" style="width:180px">
-    <input id="m_brand" placeholder="Бренд (опц.)" style="width:120px">
-    <input id="m_unit" placeholder="Ед. (г/мл/шт)" value="г" style="width:90px">
-    <input id="m_price" type="number" step="0.01" placeholder="Цена за ед.">
-    <input id="m_stock" type="number" step="0.01" placeholder="Остаток" value="0">
-    <button class="action" onclick="addMaterial()">Добавить</button>
-  </div>
-</div>
-
-<div class="card">
-  <table>
-    <thead><tr><th>Название</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
-    <tbody id="m_table"></tbody>
-  </table>
-</div>
+    <h3>Добавить материал на склад</h3>
+    <p class="hint">Здесь всё, что расходуется: воск, формомасса, вода, металлы, электролит, расходники, упаковка, электроэнергия.</p>
+    <div class="row">
+      <input id="m_name" placeholder="Название" style="width:180px">
+      <input id="m_brand" placeholder="Бренд (опц.)" style="width:120px">
+      <input id="m_unit" placeholder="Ед. (г/мл/шт)" value="г" style="width:90px">
+      <input id="m_price" type="number" step="0.01" placeholder="Цена за ед.">
+      <input id="m_stock" type="number" step="0.01" placeholder="Остаток" value="0">
+      <button class="action" onclick="addMaterial()">Добавить</button>
+    </div>
     <table>
       <thead><tr><th>Название</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
       <tbody id="m_table"></tbody>
@@ -605,45 +597,39 @@
 </div>
 
 <!-- СПРАВОЧНИКИ -->
-<div class="card master-hidden">
-  <h3>Циклы прокалки</h3>
-  <p class="hint">Время × мощность печи = кВт·ч на цикл. Мастер выберет цикл на этапе прокалки.</p>
-  <div class="row">
-    <input id="c_name" placeholder="Название (Короткий)" style="width:160px">
-    <input id="c_hours" type="number" step="0.1" placeholder="Время, ч">
-    <input id="c_kw" type="number" step="0.1" placeholder="Мощность, кВт">
-    <select id="c_energy_mat"></select>
-    <button class="action" onclick="addCycle()">Добавить</button>
+<div id="refs" class="tab">
+  <div class="card master-hidden">
+    <h3>Циклы прокалки</h3>
+    <p class="hint">Время × мощность печи = кВт·ч на цикл. Мастер выберет цикл на этапе прокалки.</p>
+    <div class="row">
+      <input id="c_name" placeholder="Название (Короткий)" style="width:160px">
+      <input id="c_hours" type="number" step="0.1" placeholder="Время, ч">
+      <input id="c_kw" type="number" step="0.1" placeholder="Мощность, кВт">
+      <select id="c_energy_mat"></select>
+      <button class="action" onclick="addCycle()">Добавить</button>
+    </div>
+    <table>
+      <thead><tr><th>Название</th><th>Время, ч</th><th>Мощность, кВт</th><th>кВт·ч</th><th>Материал</th><th></th></tr></thead>
+      <tbody id="c_table"></tbody>
+    </table>
   </div>
-</div>
-
-<div class="card">
-  <table>
-    <thead><tr><th>Название</th><th>Время, ч</th><th>Мощность, кВт</th><th>кВт·ч</th><th>Материал</th><th></th></tr></thead>
-    <tbody id="c_table"></tbody>
-  </table>
-</div>
 
   <div class="card master-hidden">
- <div class="card master-hidden">
-  <h3>Размеры опок</h3>
-  <p class="hint">На каждый размер — расход формомассы и воды.</p>
-  <div class="row">
-    <input id="o_name" placeholder="Название (Опока №1)" style="width:160px">
-    <input id="o_mass" type="number" step="0.1" placeholder="Формомасса, г">
-    <select id="o_mass_mat_sel"></select>
-    <input id="o_water" type="number" step="0.1" placeholder="Вода, мл">
-    <select id="o_water_mat_sel"></select>
-    <button class="action" onclick="addOpoka()">Добавить</button>
+    <h3>Размеры опок</h3>
+    <p class="hint">На каждый размер — расход формомассы и воды.</p>
+    <div class="row">
+      <input id="o_name" placeholder="Название (Опока №1)" style="width:160px">
+      <input id="o_mass" type="number" step="0.1" placeholder="Формомасса, г">
+      <select id="o_mass_mat_sel"></select>
+      <input id="o_water" type="number" step="0.1" placeholder="Вода, мл">
+      <select id="o_water_mat_sel"></select>
+      <button class="action" onclick="addOpoka()">Добавить</button>
+    </div>
+    <table>
+      <thead><tr><th>Название</th><th>Формомасса</th><th>Материал</th><th>Вода</th><th>Материал</th><th></th></tr></thead>
+      <tbody id="o_table"></tbody>
+    </table>
   </div>
-</div>
-
-<div class="card">
-  <table>
-    <thead><tr><th>Название</th><th>Формомасса</th><th>Материал</th><th>Вода</th><th>Материал</th><th></th></tr></thead>
-    <tbody id="o_table"></tbody>
-  </table>
-</div>
 </div>
 
 <!-- ПАРТИИ -->
