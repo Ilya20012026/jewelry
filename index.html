@@ -588,9 +588,9 @@ function renderBatchProductSelect() {
     `<option value="${p.id}">${escapeHtml(p.name)}${p.article ? " ("+escapeHtml(p.article)+")" : ""}</option>`).join("");
 }
 function createBatch() {
-  const pid = +document.getElementById("b_product").value;
-  const qty = +document.getElementById("b_qty").value || 0;
-  const product = data.products.find(p => p.id === pid);
+const pid = document.getElementById("b_product").value;
+const qty = +document.getElementById("b_qty").value || 0;
+const product = data.products.find(p => String(p.id) === String(pid));
   if (!product) return alert("Сначала добавьте изделие");
   if (qty <= 0) return alert("Укажите количество");
   const batch = {
@@ -654,8 +654,8 @@ function completeStage1(bid) {
 }
 function completeStage2(bid) {
   const b = data.batches.find(x => x.id === bid);
-  const opokaId = +document.getElementById("s2_"+bid).value;
-  const opoka = data.opokas.find(o => o.id === opokaId);
+  const opokaId = document.getElementById("s2_"+bid).value;
+  const opoka = data.opokas.find(o => String(o.id) === String(opokaId));;
   if (!opoka) return alert("Выберите опоку");
   const c1 = writeOffMaterial(opoka.matMass, opoka.mass);
   if (c1 === null) return;
@@ -669,8 +669,8 @@ function completeStage2(bid) {
 }
 function completeStage3(bid) {
   const b = data.batches.find(x => x.id === bid);
-  const cycleId = +document.getElementById("s3_"+bid).value;
-  const cycle = data.cycles.find(c => c.id === cycleId);
+  const cycleId = document.getElementById("s3_"+bid).value;
+  const cycle = data.cycles.find(c => String(c.id) === String(cycleId));
   if (!cycle) return alert("Выберите цикл");
   const kwh = cycle.hours * cycle.kw;
   const cost = writeOffMaterial(cycle.matEnergy, kwh);
@@ -859,7 +859,7 @@ function renderStock() {
 }
 
 function openWriteOff(stockId) {
-  const s = data.stock.find(x => x.id === stockId);
+  const s = data.stock.find(x => String(x.id) === String(stockId));
   if (!s) return;
   writeOffStockId = stockId;
   document.getElementById("writeoff_card").style.display = "block";
@@ -878,7 +878,7 @@ function closeWriteOff() {
 }
 
 function writeOff() {
-  const s = data.stock.find(x => x.id === writeOffStockId);
+  const s = data.stock.find(x => String(x.id) === String(writeOffStockId));
   if (!s) return alert("Выберите изделие");
   const qty = +document.getElementById("w_qty").value || 0;
   const price = +document.getElementById("w_price").value || 0;
