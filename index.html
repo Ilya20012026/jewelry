@@ -35,6 +35,92 @@
     flex-shrink: 0;
   }
   /* ============================================================
+     ЭКРАН ВХОДА
+     ============================================================ */
+  .login-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #000;
+    color: #fff;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .login-screen.hidden {
+    display: none;
+  }
+  .login-box {
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+  }
+  .login-box h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 0 0 30px 0;
+    color: #fff;
+  }
+  .login-box h2 {
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #888;
+    margin: 0 0 30px 0;
+  }
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+  }
+  .login-form label {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: -6px;
+  }
+  .login-form input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 16px;
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin: 0;
+  }
+  .login-form input:focus {
+    outline: none;
+    border-color: #fff;
+  }
+  .login-form button.action {
+    width: 100%;
+    padding: 16px;
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-top: 10px;
+    background: #fff;
+    color: #000;
+    border: 1px solid #fff;
+  }
+  .login-form button.action:hover {
+    background: #ddd;
+  }
+  .login-error {
+    color: #ff5555;
+    font-size: 13px;
+    min-height: 18px;
+    text-align: center;
+  }
+
+  /* ============================================================
      КАЛЕНДАРЬ
      ============================================================ */
   .calendar-header {
@@ -389,9 +475,33 @@
 </head>
 <body>
 
+<!-- ЭКРАН ВХОДА -->
+<div id="login_screen" class="login-screen">
+  <div class="login-box">
+    <h1>ПРОИЗВОДСТВО РУСИЧЪ</h1>
+    <h2>ВХОД</h2>
+
+    <div class="login-form">
+      <label>ФИО:</label>
+      <input id="login_name" type="text" placeholder="Иван Петров" autocomplete="off">
+
+      <label>PIN:</label>
+      <input id="login_pin" type="password" placeholder="••••" inputmode="numeric" maxlength="6" autocomplete="off">
+
+      <div id="login_error" class="login-error"></div>
+
+      <button class="action ok" onclick="doLogin()">ВОЙТИ</button>
+    </div>
+  </div>
+</div>
+<div id="app_main" style="display:none;">
 <header>
   <span>Производство РУСИЧЪ</span>
-  <span id="cloud_dot" title="Облако: офлайн"></span>
+  <span style="display:flex; align-items:center; gap:14px;">
+    <span id="current_user_name" style="font-size:12px; color:#999; letter-spacing:1px; text-transform:uppercase;"></span>
+    <span id="cloud_dot" title="Облако: офлайн"></span>
+    <button onclick="doLogout()" class="action danger" style="padding:5px 10px; font-size:11px;">ВЫЙТИ</button>
+  </span>
 </header>
 <!-- ВЕРХНЕЕ МЕНЮ -->
 <div class="main-tabs">
@@ -763,6 +873,8 @@
   </div>
 </div>
 <!-- /ОБЁРТКА: СЕРВИС -->
+
+</div>
 
 <script src="db.js"></script>
 <script src="cloud.js"></script>
@@ -1225,6 +1337,132 @@ function renderEmployees() {
       <td><button class="action danger" onclick="delEmployee('${e.id}')">×</button></td>
     </tr>`;
   }).join("");
+}
+
+/* ============================================================
+   АВТОРИЗАЦИЯ: вход, выход, сессия
+   ============================================================ */
+
+const AUTH_KEY = "jewelry_auth";
+
+/* Получить текущую сессию из localStorage */
+function getAuthSession() {
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+
+/* Сохранить сессию */
+function setAuthSession(emp) {
+  localStorage.setItem(AUTH_KEY, JSON.stringify({
+    id: emp.id,
+    name: emp.name,
+    role: emp.role,
+    loggedAt: new Date().toISOString(),
+  }));
+}
+
+/* Удалить сессию */
+function clearAuthSession() {
+  localStorage.removeItem(AUTH_KEY);
+}
+
+/* Получить текущего пользователя */
+function getCurrentUser() {
+  const session = getAuthSession();
+  if (!session) return null;
+  // Находим актуальные данные о сотруднике
+  const emp = (data.employees || []).find(e => String(e.id) === String(session.id));
+  if (!emp) {
+    // Сотрудник удалён — выходим
+    clearAuthSession();
+    return null;
+  }
+  return emp;
+}
+
+/* Проверка: админ ли текущий пользователь */
+function isAdmin() {
+  const user = getCurrentUser();
+  return user && user.role === "admin";
+}
+
+/* Вход */
+function doLogin() {
+  const name = (document.getElementById("login_name").value || "").trim();
+  const pin = (document.getElementById("login_pin").value || "").trim();
+  const errEl = document.getElementById("login_error");
+
+  errEl.textContent = "";
+
+  if (!name || !pin) {
+    errEl.textContent = "Введите ФИО и PIN";
+    return;
+  }
+
+  const emp = (data.employees || []).find(e =>
+    e.name && e.name.toLowerCase() === name.toLowerCase() && e.pin === pin
+  );
+
+  if (!emp) {
+    errEl.textContent = "Неверные ФИО или PIN";
+    return;
+  }
+
+  setAuthSession(emp);
+  showApp();
+}
+
+/* Показать приложение (после успешного входа) */
+function showApp() {
+  document.getElementById("login_screen").classList.add("hidden");
+  document.getElementById("app_main").style.display = "block";
+
+  const user = getCurrentUser();
+  applyRoleRestrictions(user);
+  // Показать имя в шапке
+  const nameEl = document.getElementById("current_user_name");
+  if (nameEl && user) {
+    nameEl.textContent = user.name;
+  }
+
+  // Перерисовываем, чтобы применить права
+  if (typeof renderAll === "function") renderAll();
+  if (typeof renderEmployees === "function") renderEmployees();
+}
+
+/* Скрыть приложение (показать экран входа) */
+function hideApp() {
+  document.getElementById("login_screen").classList.remove("hidden");
+  document.getElementById("app_main").style.display = "none";
+}
+
+/* Выход */
+function doLogout() {
+  if (!confirm("Выйти из приложения?")) return;
+  clearAuthSession();
+  document.getElementById("login_name").value = "";
+  document.getElementById("login_pin").value = "";
+  document.getElementById("login_error").textContent = "";
+  hideApp();
+}
+
+/* Проверка сессии при загрузке */
+function checkSession() {
+  const user = getCurrentUser();
+  if (user) {
+    showApp();
+  } else {
+    hideApp();
+  }
+}
+
+/* Заглушка для прав (пока ничего не делает) */
+function applyRoleRestrictions(user) {
+  // Заполним на следующем этапе
+  console.log("Пользователь:", user ? user.name + " (" + user.role + ")" : "нет");
 }
 
 /* ---------- Переключение главных разделов ---------- */
@@ -2175,6 +2413,7 @@ async function initApp() {
     ensureDeletedStruct(data);
   stampUpdatedAt(data);
   renderAll();
+  checkSession();
   renderEmployees();
   checkScheduledTasks();
   renderResponsibleSelect();
