@@ -15,6 +15,7 @@
     font-family: -apple-system, "Segoe UI", Arial, sans-serif;
     margin: 0; background: #fafafa; color: #111;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
   header {
@@ -31,6 +32,7 @@
     border-radius: 50%; background: #666;
     box-shadow: 0 0 0 3px rgba(255,255,255,0.15);
     transition: background .2s;
+    flex-shrink: 0;
   }
 
   .tabs {
@@ -57,6 +59,7 @@
     background: #fff; padding: 24px;
     border: 1px solid #e5e5e5;
     border-radius: 4px; margin-bottom: 20px;
+    overflow-x: auto;
   }
 
   h3 {
@@ -70,6 +73,7 @@
   th, td {
     padding: 10px 12px; border-bottom: 1px solid #eee;
     text-align: left; font-size: 14px;
+    white-space: nowrap;
   }
   th {
     background: #fafafa; text-transform: uppercase;
@@ -83,6 +87,7 @@
     margin: 3px 4px 3px 0;
     background: #fff; color: #111;
     transition: border-color .15s;
+    max-width: 100%;
   }
   input:focus, select:focus {
     outline: none; border-color: #000;
@@ -95,6 +100,7 @@
     cursor: pointer; font-size: 13px;
     text-transform: uppercase; letter-spacing: 0.5px;
     transition: background .15s, color .15s;
+    white-space: nowrap;
   }
   button.action:hover { background: #333; }
 
@@ -158,6 +164,67 @@
   }
   .profit { color: #000; font-weight: 700; }
   .loss { color: #888; font-weight: 700; }
+
+  /* ============================================================
+     МОБИЛЬНАЯ ВЕРСИЯ — для экранов меньше 700px
+     ============================================================ */
+  @media (max-width: 700px) {
+    header {
+      padding: 14px 16px;
+      font-size: 15px;
+      letter-spacing: 1px;
+    }
+
+    .tabs button {
+      padding: 12px 12px;
+      font-size: 11px;
+      letter-spacing: 0;
+    }
+
+    .tab { padding: 12px; }
+
+    .card {
+      padding: 14px;
+      margin-bottom: 12px;
+      border-radius: 3px;
+    }
+
+    h3 { font-size: 12px; padding-bottom: 8px; }
+
+    th, td {
+      padding: 8px 6px;
+      font-size: 12px;
+    }
+    th { font-size: 10px; }
+
+    input, select {
+      padding: 8px 10px;
+      font-size: 13px;
+      margin: 2px 3px 2px 0;
+    }
+    input[type=number] { width: 80px; }
+
+    button.action {
+      padding: 8px 12px;
+      font-size: 11px;
+      letter-spacing: 0;
+    }
+
+    .stage {
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .stage-title { font-size: 13px; }
+    .stage-info { font-size: 12px; }
+
+    .summary .box {
+      padding: 10px 14px;
+      min-width: 110px;
+    }
+    .summary .box .value { font-size: 16px; }
+
+    .hint { font-size: 12px; }
+  }
 </style>
 </head>
 <body>
