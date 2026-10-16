@@ -533,7 +533,7 @@
 
 <!-- СКЛАД МАТЕРИАЛОВ -->
 <div id="sku" class="tab active">
-  <div class="card">
+  <div class="card master-hidden">
     <h3>Добавить материал на склад</h3>
     <p class="hint">Здесь всё, что расходуется: воск, формомасса, вода, металлы, электролит, расходники, упаковка, электроэнергия.</p>
     <div class="row">
@@ -553,7 +553,7 @@
 
 <!-- ИЗДЕЛИЯ -->
 <div id="products" class="tab">
-  <div class="card">
+ <div class="card master-hidden">
     <h3>Добавить изделие</h3>
     <p class="hint">Нормы расхода на 1 изделие — используются системой автоматически на этапах.</p>
     <div class="row">
@@ -598,7 +598,7 @@
 
 <!-- СПРАВОЧНИКИ -->
 <div id="refs" class="tab">
-  <div class="card">
+  <div class="card master-hidden">
     <h3>Циклы прокалки</h3>
     <p class="hint">Время × мощность печи = кВт·ч на цикл. Мастер выберет цикл на этапе прокалки.</p>
     <div class="row">
@@ -614,7 +614,7 @@
     </table>
   </div>
 
-  <div class="card">
+  <div class="card master-hidden">
     <h3>Размеры опок</h3>
     <p class="hint">На каждый размер — расход формомассы и воды.</p>
     <div class="row">
@@ -757,7 +757,7 @@
 <div id="company-calendar" class="tab active">
 
   <!-- ФОРМА ДОБАВЛЕНИЯ ПЛАНА -->
-  <div class="card">
+  <div class="card master-hidden">
     <h3>Добавить план</h3>
     <p class="hint">Пополнение и новая позиция — автоматически создадут партию в производстве, когда наступит дата. Задача — просто напоминание.</p>
     <div class="row">
@@ -1055,8 +1055,8 @@ function renderDayTasks(dateStr) {
         ${t.note ? `<div class="stage-info">💬 ${escapeHtml(t.note)}</div>` : ""}
         ${t.batch_created ? `<div class="stage-info">📦 Партия создана в производстве</div>` : ""}
         <div class="row" style="margin-top:8px">
-          ${!t.done ? `<button class="action ok" onclick="toggleTaskDone('${t.id}')">✔ Выполнено</button>` : `<button class="action" onclick="toggleTaskDone('${t.id}')">↩ Вернуть</button>`}
-          <button class="action danger" onclick="delTask('${t.id}')">× Удалить</button>
+          ${!t.done ? `<button class="action ok master-hidden" onclick="toggleTaskDone('${t.id}')">✔ Выполнено</button>` : `<button class="action master-hidden" onclick="toggleTaskDone('${t.id}')">↩ Вернуть</button>`}
+<button class="action danger master-hidden" onclick="delTask('${t.id}')">× Удалить</button>
         </div>
       </div>`;
     }).join("");
@@ -1609,8 +1609,8 @@ function renderMaterials() {
     <tr>
       <td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.brand) || "—"}</td><td>${escapeHtml(m.unit)}</td>
       <td>${fmt(m.price)} ₽</td><td>${fmt(m.stock,3)}</td>
-      <td><button class="action" onclick="topUp(${m.id})">+</button></td>
-      <td><button class="action danger" onclick="delMaterial(${m.id})">×</button></td>
+      <td><button class="action master-hidden" onclick="topUp(${m.id})">+</button></td>
+<td><button class="action danger master-hidden" onclick="delMaterial(${m.id})">×</button></td>
     </tr>`).join("");
 }
 
@@ -1659,7 +1659,7 @@ function renderProducts() {
   document.getElementById("p_table").innerHTML = data.products.map(p => `
     <tr>
       <td>${escapeHtml(p.article) || "—"}</td><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category) || "—"}</td>
-      <td><button class="action danger" onclick="delProduct(${p.id})">×</button></td>
+      <td><button class="action danger master-hidden" onclick="delProduct(${p.id})">×</button></td>
     </tr>`).join("");
 }
 
@@ -1689,7 +1689,7 @@ function renderCycles() {
       <td>${escapeHtml(c.name)}</td><td>${c.hours}</td><td>${c.kw}</td>
       <td><b>${fmt(kwh,2)}</b></td>
       <td>${m ? escapeHtml(m.name) : "—"}</td>
-      <td><button class="action danger" onclick="delCycle(${c.id})">×</button></td>
+      <td><button class="action danger master-hidden" onclick="delCycle(${c.id})">×</button></td>
     </tr>`;
   }).join("");
 }
@@ -1718,7 +1718,7 @@ function renderOpokas() {
     return `<tr>
       <td>${escapeHtml(o.name)}</td><td>${o.mass} г</td><td>${mm ? escapeHtml(mm.name) : "—"}</td>
       <td>${o.water} мл</td><td>${mw ? escapeHtml(mw.name) : "—"}</td>
-      <td><button class="action danger" onclick="delOpoka(${o.id})">×</button></td>
+      <td><button class="action danger master-hidden" onclick="delOpoka(${o.id})">×</button></td>
     </tr>`;
   }).join("");
 }
@@ -2321,7 +2321,7 @@ function renderArchive() {
       <td class="${profitCls}">${fmt(a.profit)} ₽</td>
       <td>${escapeHtml(a.channel)}</td>
       <td>${escapeHtml(a.note) || "—"}</td>
-      <td><button class="action danger" onclick="delArchive(${a.id})">×</button></td>
+      <td><button class="action danger master-hidden" onclick="delArchive(${a.id})">×</button></td>
     </tr>`;
   }).join("");
 
