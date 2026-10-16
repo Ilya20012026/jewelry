@@ -1544,9 +1544,6 @@ function createBatch() {
   save();
   renderBatches();
 }
-  data.batches.push(batch);
-  save(); renderBatches();
-}
 function deleteBatch(id) {
   if (!confirm("Удалить партию?")) return;
   markDeleted(data, "batches", id);
