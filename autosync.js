@@ -1,13 +1,9 @@
 /* ============================================================
-   autosync.js — автосинхронизация с Supabase
-   Работает поверх cloud.js. Требует: db.js, cloud.js.
-   Настройки:
-   - Задержка после изменения: 5 сек
-   - Разрешение конфликтов: побеждает свежее (по updatedAt)
-   - Уведомления: тост внизу справа
+   autosync.js — автосинхронизация с поддержкой tombstones
+   Требует: db.js, cloud.js
    ============================================================ */
 
-const AUTOSYNC_DELAY_MS = 5000;    // 5 секунд после последнего изменения
+const AUTOSYNC_DELAY_MS = 5000;
 const AUTOSYNC_TABLES = ['materials','products','cycles','opokas','batches','stock','archive'];
 
 let _syncTimer = null;
@@ -61,9 +57,8 @@ function showToast(msg, type) {
   }, 2500);
 }
 
-/* ---------- Обработка статуса ---------- */
+/* ---------- Индикатор облака ---------- */
 function setCloudIndicator(state) {
-  // state: 'online' | 'syncing' | 'offline' | 'error'
   const colors = { online: '#2f855a', syncing: '#b7791f', offline: '#718096', error: '#c53030' };
   const titles = { online: 'Облако: онлайн', syncing: 'Облако: синхронизация…', offline: 'Облако: офлайн', error: 'Облако: ошибка' };
   const el = document.getElementById('cloud_dot');
@@ -72,7 +67,7 @@ function setCloudIndicator(state) {
   el.title = titles[state] || '';
 }
 
-/* ---------- Проставить updatedAt всем объектам ---------- */
+/* ---------- Проставить updatedAt ---------- */
 function stampUpdatedAt(data) {
   const now = new Date().toISOString();
   for (const t of AUTOSYNC_TABLES) {
@@ -84,26 +79,96 @@ function stampUpdatedAt(data) {
   return data;
 }
 
-/* ---------- Основная функция синхронизации ---------- */
+/* ============================================================
+   TOMBSTONES — учёт удалённых объектов
+   ============================================================ */
+
+/* Инициализируем структуру, если её нет */
+function ensureDeletedStruct(data) {
+  if (!data.deleted) {
+    data.deleted = {};
+    for (const t of AUTOSYNC_TABLES) data.deleted[t] = [];
+  }
+  for (const t of AUTOSYNC_TABLES) {
+    if (!Array.isArray(data.deleted[t])) data.deleted[t] = [];
+  }
+  return data;
+}
+
+/* Пометить объект удалённым */
+function markDeleted(data, tableName, id) {
+  ensureDeletedStruct(data);
+  const idStr = String(id);
+  if (!data.deleted[tableName].includes(idStr)) {
+    data.deleted[tableName].push(idStr);
+  }
+  // Также удаляем из основного массива
+  if (data[tableName]) {
+    data[tableName] = data[tableName].filter(x => String(x.id) !== idStr);
+  }
+  return data;
+}
+
+/* Применить tombstones: удалить объекты, которые помечены удалёнными */
+function applyTombstones(data, deletedMap) {
+  ensureDeletedStruct(data);
+  const merged = { ...data.deleted };
+
+  // Объединяем локальные и облачные tombstones
+  for (const t of AUTOSYNC_TABLES) {
+    const local = data.deleted[t] || [];
+    const remote = (deletedMap && deletedMap[t]) || [];
+    const allSet = new Set([...local.map(String), ...remote.map(String)]);
+    merged[t] = [...allSet];
+  }
+  data.deleted = merged;
+
+  // Удаляем объекты с удалёнными ID из основных массивов
+  for (const t of AUTOSYNC_TABLES) {
+    const ids = new Set(merged[t]);
+    if (ids.size === 0) continue;
+    data[t] = (data[t] || []).filter(item => !ids.has(String(item.id)));
+  }
+  return data;
+}
+
+/* ============================================================
+   Основная синхронизация
+   ============================================================ */
 async function runAutosync(dataGetter, dataSetter) {
   if (_syncInProgress) { _syncPending = true; return; }
   _syncInProgress = true;
   setCloudIndicator('syncing');
 
   try {
-    const local = dataGetter();
+    let local = dataGetter();
+    local = ensureDeletedStruct(local);
     stampUpdatedAt(local);
 
-    // 1) push
+    // 0) Чистим старые tombstones (>30 дней) в облаке
+    await cleanupOldTombstones();
+
+    // 1) Push локальных tombstones
+    const delPush = await pushDeleted(local.deleted);
+    if (!delPush.ok) throw new Error('push deleted: ' + delPush.error);
+
+    // 2) Push основных данных
     const pushRes = await pushAll(local);
     if (!pushRes.ok) throw new Error('push: ' + pushRes.error);
 
-    // 2) pull
+    // 3) Pull основных данных
     const pullRes = await pullAll();
     if (!pullRes.ok) throw new Error('pull: ' + pullRes.error);
 
-    // 3) merge — побеждает свежее по updatedAt
-    const merged = mergeByUpdatedAt(local, pullRes.data);
+    // 4) Pull tombstones
+    const delPull = await pullDeleted();
+    if (!delPull.ok) throw new Error('pull deleted: ' + delPull.error);
+
+    // 5) Merge основных данных
+    let merged = mergeByUpdatedAt(local, pullRes.data);
+
+    // 6) Применяем tombstones — удаляем всё, что помечено
+    merged = applyTombstones(merged, delPull.data);
 
     dataSetter(merged);
     await saveData(merged);
@@ -118,7 +183,6 @@ async function runAutosync(dataGetter, dataSetter) {
     _syncInProgress = false;
     if (_syncPending) {
       _syncPending = false;
-      // следующий проход через 1 сек, чтобы не спамить
       setTimeout(() => runAutosync(dataGetter, dataSetter), 1000);
     }
   }
@@ -140,10 +204,12 @@ function mergeByUpdatedAt(local, remote) {
     }
     merged[t] = [...map.values()];
   }
+  // Сохраняем deleted
+  merged.deleted = local.deleted;
   return merged;
 }
 
-/* ---------- Планировщик: вызывается при каждом изменении ---------- */
+/* ---------- Планировщик ---------- */
 function scheduleAutosync(dataGetter, dataSetter) {
   if (_syncTimer) clearTimeout(_syncTimer);
   setCloudIndicator('syncing');
@@ -153,7 +219,7 @@ function scheduleAutosync(dataGetter, dataSetter) {
   }, AUTOSYNC_DELAY_MS);
 }
 
-/* ---------- Слушаем появление/пропажу интернета ---------- */
+/* ---------- Онлайн/офлайн ---------- */
 window.addEventListener('online',  () => {
   setCloudIndicator('online');
   showToast('🌐 Интернет восстановлен — синхронизирую…', 'info');

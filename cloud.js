@@ -1,15 +1,14 @@
 /* ============================================================
-   cloud.js — синхронизация с Supabase
-   Требует: db.js (для локального хранилища)
+   cloud.js — синхронизация с Supabase (с поддержкой tombstones)
+   Требует: db.js
    ============================================================ */
 
 const SUPABASE_URL = 'https://kjiybjmisztrwymkwwsg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_08SQ7121NYScNVQYffjjyg_mj-VWYv-';
 
 const TABLES = ['materials','products','cycles','opokas','batches','stock','archive'];
-
-/* Поля дат Supabase (не отправляем как есть) */
 const SKIP_FIELDS = ['updated_at'];
+const TOMBSTONE_TTL_DAYS = 30;
 
 let _sb = null;
 let _sbReady = false;
@@ -42,7 +41,7 @@ async function cloudStatus() {
   }
 }
 
-/* ---------- Очистка объекта перед отправкой ---------- */
+/* ---------- Очистка строки перед отправкой ---------- */
 function cleanRow(row) {
   const out = {};
   for (const k in row) {
@@ -53,7 +52,69 @@ function cleanRow(row) {
   return out;
 }
 
-/* ---------- Отправить всё локальное в облако ---------- */
+/* ---------- Очистка строки из облака ---------- */
+function stripRow(row) {
+  const out = {};
+  for (const k in row) {
+    if (SKIP_FIELDS.includes(k)) continue;
+    out[k] = row[k];
+  }
+  return out;
+}
+
+/* ============================================================
+   TOMBSTONES — учёт удалённых объектов
+   ============================================================ */
+
+/** Удалить старые tombstones (> TOMBSTONE_TTL_DAYS дней) */
+async function cleanupOldTombstones() {
+  const sb = await initCloud();
+  if (!sb) return;
+  const cutoff = new Date(Date.now() - TOMBSTONE_TTL_DAYS * 86400000).toISOString();
+  const { error } = await sb.from('deleted').delete().lt('deleted_at', cutoff);
+  if (error) console.warn('cleanup tombstones:', error.message);
+}
+
+/** Отправить локальные tombstones в облако */
+async function pushDeleted(deletedList) {
+  const sb = await initCloud();
+  if (!sb) return { ok: false, error: 'Нет клиента' };
+
+  // deletedList: { tableName: [id1, id2, ...], ... }
+  const rows = [];
+  for (const tableName in deletedList) {
+    for (const id of deletedList[tableName]) {
+      rows.push({ table_name: tableName, id: String(id) });
+    }
+  }
+  if (rows.length === 0) return { ok: true, count: 0 };
+
+  const { error } = await sb.from('deleted').upsert(rows, { onConflict: 'table_name,id' });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, count: rows.length };
+}
+
+/** Скачать tombstones из облака */
+async function pullDeleted() {
+  const sb = await initCloud();
+  if (!sb) return { ok: false, error: 'Нет клиента' };
+
+  const { data, error } = await sb.from('deleted').select('table_name, id, deleted_at');
+  if (error) return { ok: false, error: error.message };
+
+  const result = {};
+  for (const t of TABLES) result[t] = [];
+  for (const row of (data || [])) {
+    if (!result[row.table_name]) result[row.table_name] = [];
+    result[row.table_name].push(String(row.id));
+  }
+  return { ok: true, data: result };
+}
+
+/* ============================================================
+   PUSH / PULL основных данных
+   ============================================================ */
+
 async function pushAll(localData) {
   const sb = await initCloud();
   if (!sb) return { ok: false, error: 'Нет клиента' };
@@ -74,7 +135,6 @@ async function pushAll(localData) {
   return { ok: true, summary };
 }
 
-/* ---------- Скачать всё из облака ---------- */
 async function pullAll() {
   const sb = await initCloud();
   if (!sb) return { ok: false, error: 'Нет клиента' };
@@ -86,64 +146,40 @@ async function pullAll() {
       console.error(`❌ pull ${table}:`, error.message);
       return { ok: false, error: `${table}: ${error.message}` };
     }
-    // Убираем поля Supabase (updated_at), чтобы не путались с локальными
-    remote[table] = (data || []).map(r => {
-      const out = {};
-      for (const k in r) {
-        if (SKIP_FIELDS.includes(k)) continue;
-        out[k] = r[k];
-      }
-      return out;
-    });
+    remote[table] = (data || []).map(stripRow);
   }
   console.log('⬇️ Скачано из облака:',
     Object.fromEntries(TABLES.map(t => [t, remote[t].length])));
   return { ok: true, data: remote };
 }
 
-/* ---------- Объединение локальных и облачных данных ---------- */
-/* Правило: побеждает тот, у кого объект новее по времени.
-   Локальные объекты, которых нет в облаке, остаются.
-   Облачные объекты, которых нет локально, добавляются. */
+/* ---------- Merge локальных и облачных данных ---------- */
 function mergeData(localData, remoteData) {
   const merged = {};
   for (const table of TABLES) {
     const localArr = localData[table] || [];
     const remoteArr = remoteData[table] || [];
-
     const map = new Map();
-    // Сначала локальные
-    for (const item of localArr) map.set(String(item.id), { ...item, _src: 'local' });
-    // Затем облачные — если объект уже есть локально, решаем по updated_at (если есть)
+    for (const item of localArr) map.set(String(item.id), item);
     for (const item of remoteArr) {
       const key = String(item.id);
-      if (!map.has(key)) {
-        map.set(key, { ...item, _src: 'cloud' });
-      } else {
-        // Оба есть — берём облачный (Supabase всегда хранит последнюю версию)
-        map.set(key, { ...item, _src: 'merged' });
-      }
+      if (!map.has(key)) map.set(key, item);
     }
-    merged[table] = [...map.values()].map(({ _src, ...rest }) => rest);
+    merged[table] = [...map.values()];
   }
   return merged;
 }
 
-/* ---------- Полная синхронизация: push + pull + merge ---------- */
+/* ---------- Полная синхронизация (старый режим, кнопка в UI) ---------- */
 async function syncAll(localData) {
   console.log('🔄 Синхронизация...');
-
-  // 1. Выгружаем локальное в облако
   const pushRes = await pushAll(localData);
   if (!pushRes.ok) return { ok: false, error: pushRes.error };
 
-  // 2. Скачиваем из облака (уже с учётом выгруженного)
   const pullRes = await pullAll();
   if (!pullRes.ok) return { ok: false, error: pullRes.error };
 
-  // 3. Объединяем
   const merged = mergeData(localData, pullRes.data);
-
   console.log('✅ Синхронизация завершена');
   return { ok: true, data: merged };
 }

@@ -354,7 +354,7 @@ function addMaterial() {
 }
 function delMaterial(id) {
   if (!confirm("Удалить материал?")) return;
-  data.materials = data.materials.filter(m => m.id !== id);
+  markDeleted(data, "materials", id);
   save(); renderMaterials(); renderAllMaterialSelects();
 }
 function topUp(id) {
@@ -413,7 +413,7 @@ function addProduct() {
 }
 function delProduct(id) {
   if (!confirm("Удалить изделие?")) return;
-  data.products = data.products.filter(p => p.id !== id);
+  markDeleted(data, "products", id);
   save(); renderProducts(); renderBatchProductSelect();
 }
 function renderProducts() {
@@ -439,7 +439,7 @@ function addCycle() {
   save(); renderCycles();
 }
 function delCycle(id) {
-  data.cycles = data.cycles.filter(c => c.id !== id);
+  markDeleted(data, "cycles", id);
   save(); renderCycles();
 }
 function renderCycles() {
@@ -469,7 +469,7 @@ function addOpoka() {
   save(); renderOpokas();
 }
 function delOpoka(id) {
-  data.opokas = data.opokas.filter(o => o.id !== id);
+  markDeleted(data, "opokas", id);
   save(); renderOpokas();
 }
 function renderOpokas() {
@@ -520,7 +520,7 @@ function createBatch() {
 }
 function deleteBatch(id) {
   if (!confirm("Удалить партию?")) return;
-  data.batches = data.batches.filter(b => b.id !== id);
+  markDeleted(data, "batches", id);
   save(); renderBatches();
 }
 
@@ -888,7 +888,7 @@ function renderArchive() {
 
 function delArchive(id) {
   if (!confirm("Удалить запись из архива?")) return;
-  data.archive = data.archive.filter(a => a.id !== id);
+  markDeleted(data, "archive", id);
   save(); renderArchive();
 }
 
@@ -990,6 +990,7 @@ async function initApp() {
   let loaded = await migrateFromLocalStorage();
   if (!loaded) loaded = await loadData();
   data = loaded || JSON.parse(JSON.stringify(EMPTY_DATA));
+    ensureDeletedStruct(data);
   stampUpdatedAt(data);
   renderAll();
 
