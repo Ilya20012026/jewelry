@@ -519,11 +519,12 @@
 <div id="batches" class="tab">
   <div class="card">
     <h3>Создать партию</h3>
-    <div class="row">
-      <select id="b_product" style="min-width:220px"></select>
-      <input id="b_qty" type="number" value="1" placeholder="Количество">
-      <button class="action ok" onclick="createBatch()">Создать партию</button>
-    </div>
+   <div class="row">
+  <select id="b_product" style="min-width:220px"></select>
+  <input id="b_qty" type="number" value="1" placeholder="Количество">
+  <select id="b_responsible" style="min-width:180px"></select>
+  <button class="action ok" onclick="createBatch()">Создать партию</button>
+</div>
   </div>
 
   <div class="card">
@@ -1371,17 +1372,29 @@ function renderBatchProductSelect() {
   document.getElementById("b_product").innerHTML = data.products.map(p =>
     `<option value="${p.id}">${escapeHtml(p.name)}${p.article ? " ("+escapeHtml(p.article)+")" : ""}</option>`).join("");
 }
+
+/* ---------- Заполнить список ответственных в форме партии ---------- */
+function renderBatchResponsibleSelect() {
+  const sel = document.getElementById("b_responsible");
+  if (!sel) return;
+  const list = data.employees || [];
+  sel.innerHTML = `<option value="">— Без ответственного —</option>` +
+    list.map(e => `<option value="${escapeHtml(e.name)}">${escapeHtml(e.name)}${e.role ? " ("+escapeHtml(e.role)+")" : ""}</option>`).join("");
+}
+
 function createBatch() {
 const pid = document.getElementById("b_product").value;
 const qty = +document.getElementById("b_qty").value || 0;
 const product = data.products.find(p => String(p.id) === String(pid));
   if (!product) return alert("Сначала добавьте изделие");
   if (qty <= 0) return alert("Укажите количество");
+  const responsible = document.getElementById("b_responsible").value;
   const batch = {
     id: uid(),
     productId: pid,
     productName: product.name,
     qty,
+    responsible,
     created: new Date().toLocaleString(),
     stage: 1,
     stages: {
