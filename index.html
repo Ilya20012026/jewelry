@@ -579,7 +579,8 @@
 const KEY = "jewelry_v2";
 const EMPTY_DATA = {
   materials: [], products: [], cycles: [], opokas: [],
-  batches: [], stock: [], archive: []
+  batches: [], stock: [], archive: [],
+  tasks: [], employees: []
 };
 let data = JSON.parse(JSON.stringify(EMPTY_DATA));
 let writeOffStockId = null;
@@ -599,7 +600,62 @@ function save() {
   }
 }
 function uid() { return Date.now() + Math.floor(Math.random()*1000); }
+/* ---------- Переключение вкладок внутри компании ---------- */
+function showCompanyTab(id, btn) {
+  document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
+  document.getElementById("company-" + id).classList.add("active");
+  if (btn) btn.classList.add("active");
+  if (id === "employees") renderEmployees();
+}
+
+/* ---------- СОТРУДНИКИ ---------- */
+function addEmployee() {
+  const name = document.getElementById("emp_name").value.trim();
+  if (!name) return alert("Введите имя сотрудника");
+
+  data.employees = data.employees || [];
+  data.employees.push({
+    id: uid(),
+    name,
+    role: document.getElementById("emp_role").value.trim(),
+    phone: document.getElementById("emp_phone").value.trim(),
+    note: document.getElementById("emp_note").value.trim(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  ["emp_name","emp_role","emp_phone","emp_note"].forEach(id => document.getElementById(id).value = "");
+  save();
+  renderEmployees();
+}
+
+function delEmployee(id) {
+  if (!confirm("Удалить сотрудника?")) return;
+  markDeleted(data, "employees", id);
+  save();
+  renderEmployees();
+}
+
+function renderEmployees() {
+  const tbody = document.getElementById("employees_table");
+  if (!tbody) return;
+  const list = data.employees || [];
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">Пока нет сотрудников. Добавьте первого.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(e => `
+    <tr>
+      <td>${escapeHtml(e.name)}</td>
+      <td>${escapeHtml(e.role) || "—"}</td>
+      <td>${escapeHtml(e.phone) || "—"}</td>
+      <td>${escapeHtml(e.note) || "—"}</td>
+      <td><button class="action danger" onclick="delEmployee('${e.id}')">×</button></td>
+    </tr>`).join("");
+}
+
 /* ---------- Переключение главных разделов ---------- */
+
 function showMain(mainId, btn) {
   // Скрыть все главные разделы
   document.querySelectorAll(".main-section").forEach(s => s.classList.remove("active"));
