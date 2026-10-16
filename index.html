@@ -34,6 +34,36 @@
     transition: background .2s;
     flex-shrink: 0;
   }
+  /* ============================================================
+     ВЕРХНЕЕ МЕНЮ — ПРОИЗВОДСТВО / КОМПАНИЯ / СЕРВИС
+     ============================================================ */
+  .main-tabs {
+    display: flex;
+    background: #000;
+    border-bottom: 2px solid #000;
+  }
+  .main-tabs button {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #666;
+    padding: 18px 24px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: color .15s, background .15s;
+    border-bottom: 3px solid transparent;
+  }
+  .main-tabs button:hover { color: #fff; }
+  .main-tabs button.active {
+    color: #fff;
+    background: #000;
+    border-bottom-color: #fff;
+  }
+  .main-section { display: none; }
+  .main-section.active { display: block; }
 
   .tabs {
     display: flex; background: #111; flex-wrap: wrap;
@@ -181,6 +211,17 @@
       letter-spacing: 0;
     }
 
+    .main-tabs {
+      flex-wrap: wrap;
+    }
+    .main-tabs button {
+      padding: 12px 8px;
+      font-size: 11px;
+      letter-spacing: 1px;
+      flex: 1 1 30%;
+      min-width: 0;
+    }
+
     .tab { padding: 12px; }
 
     .card {
@@ -233,16 +274,26 @@
   <span>Производство РУСИЧЪ</span>
   <span id="cloud_dot" title="Облако: офлайн"></span>
 </header>
+<!-- ВЕРХНЕЕ МЕНЮ -->
+<div class="main-tabs">
+  <button class="active" onclick="showMain('production', this)">ПРОИЗВОДСТВО</button>
+  <button onclick="showMain('company', this)">КОМПАНИЯ</button>
+  <button onclick="showMain('service', this)">СЕРВИС</button>
+</div>
 
+<!-- ОБЁРТКА: ПРОИЗВОДСТВО -->
+<div id="main-production" class="main-section active">
 <div class="tabs">
+
   <button class="active" onclick="showTab('sku', this)">Склад материалов</button>
   <button onclick="showTab('products', this)">Изделия</button>
   <button onclick="showTab('refs', this)">Справочники</button>
   <button onclick="showTab('batches', this)">Партии</button>
   <button onclick="showTab('stock', this)">Склад готовой</button>
   <button onclick="showTab('archive', this)">Архив списаний</button>
-  <button onclick="showTab('data', this)">Данные</button>
+  
 </div>
+
 
 <!-- СКЛАД МАТЕРИАЛОВ -->
 <div id="sku" class="tab active">
@@ -430,34 +481,50 @@
       <thead><tr><th>Канал</th><th>Продано, шт</th><th>Выручка</th><th>Себестоимость</th><th>Прибыль</th><th>Маржа, %</th></tr></thead>
       <tbody id="channel_summary"></tbody>
     </table>
-  </div>
 </div>
+</div>
+</div>
+<!-- /ОБЁРТКА: ПРОИЗВОДСТВО -->
 
-<!-- ДАННЫЕ -->
-<div id="data" class="tab">
+<!-- ОБЁРТКА: КОМПАНИЯ -->
+<div id="main-company" class="main-section">
   <div class="card">
-    <h3>Синхронизация с облаком</h3>
-    <p class="hint">Одна база на всех устройствах: ПК, телефон, планшет.</p>
-    <div class="row">
-      <button class="action" onclick="uiPushToCloud()">⬆️ Отправить в облако</button>
-      <button class="action" onclick="uiPullFromCloud()">⬇️ Скачать из облака</button>
-      <button class="action ok" onclick="uiFullSync()">🔄 Полная синхронизация</button>
-    </div>
-    <div id="sync_status" style="margin-top:12px; font-size:14px; color:#555;"></div>
+    <h3>Компания</h3>
+    <p class="hint">Здесь будут календарь и чат. Раздел в разработке.</p>
   </div>
-  <div class="card">
-    <h3>Резервная копия</h3>
-    <p class="hint">Данные хранятся в этом браузере. Раз в неделю скачивайте копию.</p>
-    <button class="action" onclick="exportData()">Скачать копию</button>
-    <div style="margin-top:14px">
-      <input type="file" id="import_file" accept=".json">
-      <button class="action" onclick="importData()">Загрузить из копии</button>
+</div>
+<!-- /ОБЁРТКА: КОМПАНИЯ -->
+
+<!-- ОБЁРТКА: СЕРВИС -->
+<div id="main-service" class="main-section">
+  <div id="data" class="tab active">
+    <div class="card">
+      <h3>Резервная копия</h3>
+      <p class="hint">Данные хранятся в этом браузере. Раз в неделю скачивайте копию.</p>
+      <button class="action" onclick="exportData()">Скачать копию</button>
+      <div style="margin-top:14px">
+        <input type="file" id="import_file" accept=".json">
+        <button class="action" onclick="importData()">Загрузить из копии</button>
+      </div>
+      <div style="margin-top:14px">
+        <button class="action danger" onclick="clearAll()">Удалить все данные</button>
+      </div>
     </div>
-    <div style="margin-top:14px">
-      <button class="action danger" onclick="clearAll()">Удалить все данные</button>
+
+    <div class="card">
+      <h3>Синхронизация с облаком</h3>
+      <p class="hint">Одна база на всех устройствах: ПК, телефон, планшет.</p>
+      <div class="row">
+        <button class="action" onclick="uiPushToCloud()">⬆️ Отправить в облако</button>
+        <button class="action" onclick="uiPullFromCloud()">⬇️ Скачать из облака</button>
+        <button class="action ok" onclick="uiFullSync()">🔄 Полная синхронизация</button>
+      </div>
+      <div id="sync_status" style="margin-top:12px; font-size:14px; color:#555;"></div>
     </div>
   </div>
 </div>
+<!-- /ОБЁРТКА: СЕРВИС -->
+
 <script src="db.js"></script>
 <script src="cloud.js"></script>
 <script src="autosync.js"></script>
@@ -485,6 +552,27 @@ function save() {
   }
 }
 function uid() { return Date.now() + Math.floor(Math.random()*1000); }
+/* ---------- Переключение главных разделов ---------- */
+function showMain(mainId, btn) {
+  // Скрыть все главные разделы
+  document.querySelectorAll(".main-section").forEach(s => s.classList.remove("active"));
+
+  // Показать нужный
+  const section = document.getElementById("main-" + mainId);
+  if (section) section.classList.add("active");
+
+  // Подсветить активную кнопку верхнего меню
+  document.querySelectorAll(".main-tabs button").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+
+  // Если переключаемся на "Сервис" — обновить состояние
+  if (mainId === "service") {
+    // Здесь позже добавим логику для сервисного раздела
+  }
+  if (mainId === "company") {
+    // Здесь позже добавим календарь и чат
+  }
+}
 
 function showTab(id, btn) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
