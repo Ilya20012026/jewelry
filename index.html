@@ -1226,12 +1226,27 @@ function showMain(mainId, btn) {
 }
 
 function showTab(id, btn) {
+  // Определяем, с какой вкладки уходим
+  const prevActive = document.querySelector(".tabs button.active");
+  let prevTabId = null;
+  if (prevActive) {
+    const match = (prevActive.getAttribute("onclick") || "").match(/showTab\('([^']+)'/);
+    if (match) prevTabId = match[1];
+  }
+
+  // Если уходим с "Партий" — сворачиваем все задания
+  if (prevTabId === "batches" && id !== "batches") {
+    collapseAllGroups();
+  }
+
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   btn.classList.add("active");
+
   if (id === "stock") renderStock();
   if (id === "archive") renderArchive();
+  if (id === "batches") renderBatches();
 }
 
 function fmt(n, d=2) { return (+n || 0).toFixed(d); }
@@ -1765,6 +1780,31 @@ function renderBatchCard(b) {
   html += `<div class="stage-info"><b>Себестоимость партии: ${fmt(Object.values(b.stageCosts).reduce((a,x)=>a+x,0))} ₽</b></div>`;
   html += `</div>`;
   return html;
+}
+
+/* ---------- Свернуть все задания (при уходе с вкладки) ---------- */
+function collapseAllGroups() {
+  if (!data.groups || data.groups.length === 0) return;
+  let changed = false;
+  data.groups.forEach(g => {
+    if (!g.collapsed) {
+      g.collapsed = true;
+      g.updatedAt = new Date().toISOString();
+      changed = true;
+    }
+  });
+  if (changed) save();
+}
+
+/* ---------- Свернуть/развернуть производственное задание ---------- */
+function toggleGroupCollapsed(groupId) {
+  if (!data.groups) return;
+  const g = data.groups.find(x => String(x.id) === String(groupId));
+  if (!g) return;
+  g.collapsed = !g.collapsed;
+  g.updatedAt = new Date().toISOString();
+  save();
+  renderBatches();
 }
 
 function renderBatches() {
