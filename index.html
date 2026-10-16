@@ -489,10 +489,56 @@
 
 <!-- ОБЁРТКА: КОМПАНИЯ -->
 <div id="main-company" class="main-section">
-  <div class="card">
-    <h3>Компания</h3>
-    <p class="hint">Здесь будут календарь и чат. Раздел в разработке.</p>
+
+  <!-- Внутренние вкладки компании -->
+  <div class="tabs">
+    <button class="active" onclick="showCompanyTab('calendar', this)">Календарь</button>
+    <button onclick="showCompanyTab('employees', this)">Сотрудники</button>
   </div>
+
+  <!-- Вкладка: КАЛЕНДАРЬ -->
+  <div id="company-calendar" class="tab active">
+    <div class="card">
+      <h3>Календарь</h3>
+      <p class="hint">Здесь будет календарь планов. Раздел в разработке.</p>
+    </div>
+  </div>
+
+  <!-- Вкладка: СОТРУДНИКИ -->
+  <div id="company-employees" class="tab">
+
+    <!-- Форма добавления -->
+    <div class="card">
+      <h3>Добавить сотрудника</h3>
+      <p class="hint">Сотрудники будут использоваться при назначении ответственных за задачи.</p>
+      <div class="row">
+        <input id="emp_name" placeholder="Имя и фамилия" style="width:220px">
+        <input id="emp_role" placeholder="Роль (мастер, менеджер...)" style="width:200px">
+        <input id="emp_phone" placeholder="Телефон (опц.)" style="width:160px">
+        <input id="emp_note" placeholder="Комментарий" style="width:200px">
+        <button class="action" onclick="addEmployee()">Добавить</button>
+      </div>
+    </div>
+
+    <!-- Список сотрудников -->
+    <div class="card">
+      <h3>Список сотрудников</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Имя</th>
+            <th>Роль</th>
+            <th>Телефон</th>
+            <th>Комментарий</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="employees_table"></tbody>
+      </table>
+    </div>
+
+  </div>
+
 </div>
 <!-- /ОБЁРТКА: КОМПАНИЯ -->
 
