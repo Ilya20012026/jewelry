@@ -3,7 +3,7 @@
    Требует: db.js, cloud.js
    ============================================================ */
 
-const AUTOSYNC_DELAY_MS = 5000;
+const AUTOSYNC_DELAY_MS = 15000;
 const AUTOSYNC_TABLES = ['materials','products','cycles','opokas','batches','stock','archive','tasks','employees'];
 
 let _syncTimer = null;

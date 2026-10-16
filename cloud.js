@@ -125,9 +125,10 @@ async function pushAll(localData) {
     if (rows.length === 0) { summary[table] = 0; continue; }
 
     const { error } = await sb.from(table).upsert(rows, { onConflict: 'id' });
-    if (error) {
+        if (error) {
       console.error(`❌ push ${table}:`, error.message);
-      return { ok: false, error: `${table}: ${error.message}`, summary };
+      summary[table] = `ОШИБКА: ${error.message}`;
+      continue;
     }
     summary[table] = rows.length;
   }
@@ -142,9 +143,10 @@ async function pullAll() {
   const remote = {};
   for (const table of TABLES) {
     const { data, error } = await sb.from(table).select('*');
-    if (error) {
+        if (error) {
       console.error(`❌ pull ${table}:`, error.message);
-      return { ok: false, error: `${table}: ${error.message}` };
+      remote[table] = [];
+      continue;
     }
     remote[table] = (data || []).map(stripRow);
   }
