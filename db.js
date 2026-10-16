@@ -13,7 +13,15 @@ let _db = null;
 
 function openDB() {
   return new Promise((resolve, reject) => {
-    if (_db) return resolve(_db);
+    // Если уже открыта и не закрывается — используем
+    if (_db && !_db._closing) {
+      try {
+        _db.transaction(STORE, "readonly");
+        return resolve(_db);
+      } catch (e) {
+        _db = null;
+      }
+    }
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = e => {
       const db = e.target.result;
@@ -21,7 +29,11 @@ function openDB() {
         db.createObjectStore(STORE);
       }
     };
-    req.onsuccess = e => { _db = e.target.result; resolve(_db); };
+    req.onsuccess = e => {
+      _db = e.target.result;
+      _db.onclose = () => { _db = null; };
+      resolve(_db);
+    };
     req.onerror = e => reject(e.target.error);
   });
 }
@@ -72,7 +84,18 @@ async function loadData() {
 
 /** Сохраняет объект data в IndexedDB */
 async function saveData(data) {
-  await dbSet(DATA_KEY, data);
+  try {
+    await dbSet(DATA_KEY, data);
+  } catch (e) {
+    // Если БД закрылась — пробуем переоткрыть и повторить
+    if (e.name === "InvalidStateError" || /closing|closed/i.test(e.message)) {
+      _db = null;
+      await new Promise(r => setTimeout(r, 100));
+      try { await dbSet(DATA_KEY, data); } catch (e2) { console.warn("Повторная ошибка сохранения:", e2); }
+    } else {
+      console.warn("Ошибка сохранения:", e);
+    }
+  }
 }
 
 /** Удаляет все данные */

@@ -171,7 +171,7 @@ async function runAutosync(dataGetter, dataSetter) {
     merged = applyTombstones(merged, delPull.data);
 
     dataSetter(merged);
-    await saveData(merged);
+    try { await saveData(merged); } catch (e) { console.warn("Autosync: saveData упал, но не критично:", e); }
 
     setCloudIndicator('online');
     showToast('✅ Синхронизировано', 'success');
