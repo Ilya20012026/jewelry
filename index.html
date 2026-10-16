@@ -1525,9 +1525,12 @@ function renderBatches() {
     if (!p) return "";
     const s = b.stages;
     const st = b.stage;
-    let html = `<div class="stage ${st===1?'active':''}">
-      <div class="stage-title">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
-        <span class="badge badge-active">Этап ${st}</span></div>
+       let html = `<div class="stage ${st===1?'active':''}">
+      <div class="stage-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <span>Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
+          <span class="badge badge-active">Этап ${st}</span></span>
+        <button class="action danger" onclick="deleteBatch('${b.id}')">× Удалить</button>
+      </div>
       <div class="stage-info">Создана: ${escapeHtml(b.created)}</div>`;
 
     // Этап 1 — восковки
