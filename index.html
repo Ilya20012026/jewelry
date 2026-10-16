@@ -37,10 +37,10 @@
   /* ============================================================
      ВЕРХНЕЕ МЕНЮ — ПРОИЗВОДСТВО / КОМПАНИЯ / СЕРВИС
      ============================================================ */
-  .main-tabs {
+    .main-tabs {
     display: flex;
     background: #000;
-    border-bottom: 2px solid #000;
+    border-bottom: 3px solid #444;
   }
   .main-tabs button {
     flex: 1;
@@ -65,9 +65,9 @@
   .main-section { display: none; }
   .main-section.active { display: block; }
 
-  .tabs {
-    display: flex; background: #111; flex-wrap: wrap;
-    border-bottom: 1px solid #000;
+    .tabs {
+    display: flex; background: #2a2a2a; flex-wrap: wrap;
+    border-bottom: 1px solid #1a1a1a;
   }
   .tabs button {
     background: none; border: none; color: #999;
@@ -77,10 +77,11 @@
     transition: color .15s, border-color .15s;
   }
   .tabs button:hover { color: #fff; }
-  .tabs button.active {
+   .tabs button.active {
     color: #fff; border-bottom-color: #fff;
     background: #000;
   }
+  .tabs button:hover { color: #fff; }
 
   .tab { display: none; padding: 28px; }
   .tab.active { display: block; }
