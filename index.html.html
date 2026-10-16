@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Производство РУСИЧЪ</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ювелирка">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    margin: 0; background: #fafafa; color: #111;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    background: #000; color: #fff;
+    padding: 20px 28px; font-size: 20px;
+    font-weight: 600; letter-spacing: 1.5px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #000;
+  }
+  header span:first-child { text-transform: uppercase; }
+
+  #cloud_dot {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 50%; background: #666;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.15);
+    transition: background .2s;
+  }
+
+  .tabs {
+    display: flex; background: #111; flex-wrap: wrap;
+    border-bottom: 1px solid #000;
+  }
+  .tabs button {
+    background: none; border: none; color: #999;
+    padding: 14px 22px; cursor: pointer; font-size: 14px;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  .tabs button:hover { color: #fff; }
+  .tabs button.active {
+    color: #fff; border-bottom-color: #fff;
+    background: #000;
+  }
+
+  .tab { display: none; padding: 28px; }
+  .tab.active { display: block; }
+
+  .card {
+    background: #fff; padding: 24px;
+    border: 1px solid #e5e5e5;
+    border-radius: 4px; margin-bottom: 20px;
+  }
+
+  h3 {
+    margin-top: 0; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    font-size: 14px; color: #000;
+    padding-bottom: 10px; border-bottom: 1px solid #eee;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td {
+    padding: 10px 12px; border-bottom: 1px solid #eee;
+    text-align: left; font-size: 14px;
+  }
+  th {
+    background: #fafafa; text-transform: uppercase;
+    font-size: 11px; letter-spacing: 0.5px;
+    color: #666; font-weight: 600;
+  }
+
+  input, select {
+    padding: 9px 12px; border: 1px solid #ccc;
+    border-radius: 3px; font-size: 14px;
+    margin: 3px 4px 3px 0;
+    background: #fff; color: #111;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus {
+    outline: none; border-color: #000;
+  }
+  input[type=number] { width: 110px; }
+
+  button.action {
+    background: #000; color: #fff; border: 1px solid #000;
+    padding: 9px 18px; border-radius: 3px;
+    cursor: pointer; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    transition: background .15s, color .15s;
+  }
+  button.action:hover { background: #333; }
+
+  button.action.ok { background: #000; }
+  button.action.ok:hover { background: #333; }
+
+  button.action.danger {
+    background: #fff; color: #000; border: 1px solid #ccc;
+    padding: 5px 12px; font-size: 12px;
+  }
+  button.action.danger:hover { background: #000; color: #fff; border-color: #000; }
+
+  button.action.warn { background: #000; color: #fff; }
+  button.action.warn:hover { background: #333; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+
+  .result {
+    background: #f5f5f5; border: 1px solid #ddd;
+    padding: 16px; border-radius: 3px; margin-top: 12px;
+  }
+  .warnbox {
+    background: #fafafa; border: 1px solid #ddd;
+    padding: 12px; border-radius: 3px; margin-top: 10px; font-size: 14px;
+  }
+  .hint { color: #888; font-size: 13px; margin-bottom: 10px; }
+
+  .stage {
+    border-left: 3px solid #ddd; padding: 14px 18px;
+    margin-bottom: 10px; background: #fafafa;
+    border-radius: 2px;
+  }
+  .stage.done { border-left-color: #000; background: #f5f5f5; }
+  .stage.active { border-left-color: #000; background: #fff; border: 1px solid #000; }
+  .stage-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .stage-info { font-size: 13px; color: #666; margin-bottom: 6px; }
+
+  .badge {
+    display: inline-block; padding: 2px 8px;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border-radius: 2px;
+  }
+  .badge-done { background: #000; color: #fff; }
+  .badge-active { background: #fff; color: #000; border: 1px solid #000; }
+  .badge-wait { background: #eee; color: #666; }
+
+  .summary { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
+  .summary .box {
+    background: #fafafa; padding: 14px 20px;
+    border: 1px solid #e5e5e5; border-radius: 3px;
+    min-width: 140px;
+  }
+  .summary .box .label {
+    font-size: 11px; color: #888;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .summary .box .value {
+    font-size: 20px; font-weight: 700; color: #000;
+    margin-top: 4px;
+  }
+  .profit { color: #000; font-weight: 700; }
+  .loss { color: #888; font-weight: 700; }
+ </style>
+</head>
+<body>
+
+<header>
+  <span>Производство РУСИЧЪ</span>
+  <span id="cloud_dot" title="Облако: офлайн"></span>
+</header>
+
+<div class="tabs">
+  <button class="active" onclick="showTab('sku', this)">Склад материалов</button>
+  <button onclick="showTab('products', this)">Изделия</button>
+  <button onclick="showTab('refs', this)">Справочники</button>
+  <button onclick="showTab('batches', this)">Партии</button>
+  <button onclick="showTab('stock', this)">Склад готовой</button>
+  <button onclick="showTab('archive', this)">Архив списаний</button>
+  <button onclick="showTab('data', this)">Данные</button>
+</div>
+
+<!-- СКЛАД МАТЕРИАЛОВ -->
+<div id="sku" class="tab active">
+  <div class="card">
+    <h3>Добавить материал на склад</h3>
+    <p class="hint">Здесь всё, что расходуется: воск, формомасса, вода, металлы, электролит, расходники, упаковка, электроэнергия.</p>
+    <div class="row">
+      <input id="m_name" placeholder="Название" style="width:180px">
+      <input id="m_brand" placeholder="Бренд (опц.)" style="width:120px">
+      <input id="m_unit" placeholder="Ед. (г/мл/шт)" value="г" style="width:90px">
+      <input id="m_price" type="number" step="0.01" placeholder="Цена за ед.">
+      <input id="m_stock" type="number" step="0.01" placeholder="Остаток" value="0">
+      <button class="action" onclick="addMaterial()">Добавить</button>
+    </div>
+    <table>
+      <thead><tr><th>Название</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
+      <tbody id="m_table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ИЗДЕЛИЯ -->
+<div id="products" class="tab">
+  <div class="card">
+    <h3>Добавить изделие</h3>
+    <p class="hint">Нормы расхода на 1 изделие — используются системой автоматически на этапах.</p>
+    <div class="row">
+      <input id="p_article" placeholder="Артикул" style="width:120px">
+      <input id="p_name" placeholder="Название" style="width:180px">
+      <input id="p_cat" placeholder="Категория" style="width:140px">
+    </div>
+    <table>
+      <thead><tr><th>Этап / параметр</th><th>Норма на 1 шт</th><th>Ед.</th><th>Материал</th></tr></thead>
+      <tbody>
+        <tr><td>Восковки — норма воска</td>
+          <td><input id="n_wax" type="number" step="0.001" placeholder="3.5"></td>
+          <td>г</td><td><select id="n_wax_mat"></select></td></tr>
+        <tr><td>Обработка — расход</td>
+          <td><input id="n_proc" type="number" step="0.001" placeholder="0.05"></td>
+          <td>—</td><td><select id="n_proc_mat"></select></td></tr>
+        <tr><td>Гальваника — электролит</td>
+          <td><input id="n_galv" type="number" step="0.001" placeholder="0.5"></td>
+          <td>мл</td><td><select id="n_galv_mat"></select></td></tr>
+        <tr><td>Чернение — расходники</td>
+          <td><input id="n_blk" type="number" step="0.001" placeholder="0.3"></td>
+          <td>—</td><td><select id="n_blk_mat"></select></td></tr>
+        <tr><td>Упаковка</td>
+          <td><input id="n_pack" type="number" step="0.001" placeholder="1"></td>
+          <td>шт</td><td><select id="n_pack_mat"></select></td></tr>
+        <tr><td>Литьё — материал (металл)</td>
+          <td colspan="2"></td><td><select id="n_metal_mat"></select></td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px">
+      <button class="action" onclick="addProduct()">Сохранить изделие</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Список изделий</h3>
+    <table>
+      <thead><tr><th>Артикул</th><th>Название</th><th>Категория</th><th></th></tr></thead>
+      <tbody id="p_table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- СПРАВОЧНИКИ -->
+<div id="refs" class="tab">
+  <div class="card">
+    <h3>Циклы прокалки</h3>
+    <p class="hint">Время × мощность печи = кВт·ч на цикл. Мастер выберет цикл на этапе прокалки.</p>
+    <div class="row">
+      <input id="c_name" placeholder="Название (Короткий)" style="width:160px">
+      <input id="c_hours" type="number" step="0.1" placeholder="Время, ч">
+      <input id="c_kw" type="number" step="0.1" placeholder="Мощность, кВт">
+      <select id="c_energy_mat"></select>
+      <button class="action" onclick="addCycle()">Добавить</button>
+    </div>
+    <table>
+      <thead><tr><th>Название</th><th>Время, ч</th><th>Мощность, кВт</th><th>кВт·ч</th><th>Материал</th><th></th></tr></thead>
+      <tbody id="c_table"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Размеры опок</h3>
+    <p class="hint">На каждый размер — расход формомассы и воды.</p>
+    <div class="row">
+      <input id="o_name" placeholder="Название (Опока №1)" style="width:160px">
+      <input id="o_mass" type="number" step="0.1" placeholder="Формомасса, г">
+      <select id="o_mass_mat_sel"></select>
+      <input id="o_water" type="number" step="0.1" placeholder="Вода, мл">
+      <select id="o_water_mat_sel"></select>
+      <button class="action" onclick="addOpoka()">Добавить</button>
+    </div>
+    <table>
+      <thead><tr><th>Название</th><th>Формомасса</th><th>Материал</th><th>Вода</th><th>Материал</th><th></th></tr></thead>
+      <tbody id="o_table"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ПАРТИИ -->
+<div id="batches" class="tab">
+  <div class="card">
+    <h3>Создать партию</h3>
+    <div class="row">
+      <select id="b_product" style="min-width:220px"></select>
+      <input id="b_qty" type="number" value="1" placeholder="Количество">
+      <button class="action ok" onclick="createBatch()">Создать партию</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Активные партии</h3>
+    <div id="active_batches"></div>
+  </div>
+
+  <div class="card">
+    <h3>Завершённые партии</h3>
+    <div id="done_batches"></div>
+  </div>
+</div>
+
+<!-- СКЛАД ГОТОВОЙ -->
+<div id="stock" class="tab">
+  <div class="card">
+    <h3>Склад готовой продукции</h3>
+    <p class="hint">Здесь изделия, прошедшие все этапы. Списывайте их в каналы продаж.</p>
+    <table>
+      <thead><tr><th>Изделие</th><th>Партия</th><th>Осталось, шт</th><th>Себест. 1 шт</th><th></th></tr></thead>
+      <tbody id="stock_table"></tbody>
+    </table>
+  </div>
+
+  <div class="card" id="writeoff_card" style="display:none">
+    <h3>Списать изделия</h3>
+    <div class="row">
+      <select id="w_product" disabled style="min-width:280px"></select>
+    </div>
+    <div class="row">
+      <input id="w_qty" type="number" placeholder="Кол-во, шт" style="width:120px">
+      <input id="w_price" type="number" step="0.01" placeholder="Цена за 1 шт" style="width:130px">
+      <select id="w_channel">
+        <option>ВБ</option><option>Озон</option><option>Авито</option>
+        <option>Опт</option><option>Точка продаж</option><option>Церковь</option>
+        <option>Брак</option><option>Подарок</option><option>Другое</option>
+      </select>
+      <input id="w_note" placeholder="Комментарий" style="width:180px">
+      <button class="action warn" onclick="writeOff()">Списать</button>
+      <button class="action" onclick="closeWriteOff()">Отмена</button>
+    </div>
+    <div id="w_result"></div>
+  </div>
+</div>
+
+<!-- АРХИВ -->
+<div id="archive" class="tab">
+  <div class="card">
+    <h3>Архив списаний</h3>
+    <p class="hint">Куда, когда и за сколько списали готовые изделия.</p>
+    <div class="row">
+      <select id="f_channel" onchange="renderArchive()">
+        <option value="">Все каналы</option>
+        <option>ВБ</option><option>Озон</option><option>Авито</option>
+        <option>Опт</option><option>Точка продаж</option><option>Церковь</option>
+        <option>Брак</option><option>Подарок</option><option>Другое</option>
+      </select>
+      <label style="font-size:13px;color:#555">с <input type="date" id="f_from" onchange="renderArchive()"></label>
+      <label style="font-size:13px;color:#555">по <input type="date" id="f_to" onchange="renderArchive()"></label>
+      <button class="action" onclick="resetFilters()">Сбросить</button>
+    </div>
+
+    <div class="summary" id="archive_summary"></div>
+
+    <table>
+      <thead><tr><th>Дата</th><th>Изделие</th><th>Кол-во</th><th>Цена</th><th>Сумма</th><th>Себест.</th><th>Прибыль</th><th>Канал</th><th>Комментарий</th><th></th></tr></thead>
+      <tbody id="archive_table"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Сводка по каналам</h3>
+    <table>
+      <thead><tr><th>Канал</th><th>Продано, шт</th><th>Выручка</th><th>Себестоимость</th><th>Прибыль</th><th>Маржа, %</th></tr></thead>
+      <tbody id="channel_summary"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ДАННЫЕ -->
+<div id="data" class="tab">
+  <div class="card">
+    <h3>Синхронизация с облаком</h3>
+    <p class="hint">Одна база на всех устройствах: ПК, телефон, планшет.</p>
+    <div class="row">
+      <button class="action" onclick="uiPushToCloud()">⬆️ Отправить в облако</button>
+      <button class="action" onclick="uiPullFromCloud()">⬇️ Скачать из облака</button>
+      <button class="action ok" onclick="uiFullSync()">🔄 Полная синхронизация</button>
+    </div>
+    <div id="sync_status" style="margin-top:12px; font-size:14px; color:#555;"></div>
+  </div>
+  <div class="card">
+    <h3>Резервная копия</h3>
+    <p class="hint">Данные хранятся в этом браузере. Раз в неделю скачивайте копию.</p>
+    <button class="action" onclick="exportData()">Скачать копию</button>
+    <div style="margin-top:14px">
+      <input type="file" id="import_file" accept=".json">
+      <button class="action" onclick="importData()">Загрузить из копии</button>
+    </div>
+    <div style="margin-top:14px">
+      <button class="action danger" onclick="clearAll()">Удалить все данные</button>
+    </div>
+  </div>
+</div>
+<script src="db.js"></script>
+<script src="cloud.js"></script>
+<script src="autosync.js"></script>
+<script>
+const KEY = "jewelry_v2";
+const EMPTY_DATA = {
+  materials: [], products: [], cycles: [], opokas: [],
+  batches: [], stock: [], archive: []
+};
+let data = JSON.parse(JSON.stringify(EMPTY_DATA));
+let writeOffStockId = null;
+
+
+function load() {
+  // Оставлено для совместимости — реальная загрузка происходит в initApp()
+  return EMPTY_DATA;
+}
+function save() {
+  // 1. Сохраняем локально (IndexedDB)
+  saveData(data).catch(err => console.error("Ошибка сохранения:", err));
+
+  // 2. Планируем автосинхронизацию через 5 сек
+  if (window.__scheduleAutosync) {
+    window.__scheduleAutosync();
+  }
+}
+function uid() { return Date.now() + Math.floor(Math.random()*1000); }
+
+function showTab(id, btn) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  btn.classList.add("active");
+  if (id === "stock") renderStock();
+  if (id === "archive") renderArchive();
+}
+
+function fmt(n, d=2) { return (+n || 0).toFixed(d); }
+function matById(id) { return data.materials.find(m => m.id === id); }
+function escapeHtml(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+/* ---------- СКЛАД МАТЕРИАЛОВ ---------- */
+function addMaterial() {
+  const name = document.getElementById("m_name").value.trim();
+  if (!name) return alert("Введите название");
+  data.materials.push({
+    id: uid(),
+    name,
+    brand: document.getElementById("m_brand").value.trim(),
+    unit: document.getElementById("m_unit").value || "г",
+    price: +document.getElementById("m_price").value || 0,
+    stock: +document.getElementById("m_stock").value || 0,
+  });
+  ["m_name","m_brand","m_price","m_stock"].forEach(id => document.getElementById(id).value = "");
+  save(); renderMaterials(); renderAllMaterialSelects();
+}
+function delMaterial(id) {
+  if (!confirm("Удалить материал?")) return;
+  data.materials = data.materials.filter(m => m.id !== id);
+  save(); renderMaterials(); renderAllMaterialSelects();
+}
+function topUp(id) {
+  const v = prompt("Сколько добавить на склад?");
+  if (!v) return;
+  const m = matById(id);
+  if (!m) return;
+  m.stock = (+m.stock || 0) + (+v || 0);
+  save(); renderMaterials();
+}
+function renderMaterials() {
+  document.getElementById("m_table").innerHTML = data.materials.map(m => `
+    <tr>
+      <td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.brand) || "—"}</td><td>${escapeHtml(m.unit)}</td>
+      <td>${fmt(m.price)} ₽</td><td>${fmt(m.stock,3)}</td>
+      <td><button class="action" onclick="topUp(${m.id})">+</button></td>
+      <td><button class="action danger" onclick="delMaterial(${m.id})">×</button></td>
+    </tr>`).join("");
+}
+
+/* ---------- ИЗДЕЛИЯ ---------- */
+function fillSelect(id) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  const v = sel.value;
+  sel.innerHTML = data.materials.map(m =>
+    `<option value="${m.id}">${escapeHtml(m.name)}${m.brand ? " / "+escapeHtml(m.brand) : ""}</option>`).join("");
+  if (v) sel.value = v;
+}
+function renderAllMaterialSelects() {
+  ["n_wax_mat","n_proc_mat","n_galv_mat","n_blk_mat","n_pack_mat","n_metal_mat",
+   "c_energy_mat","o_mass_mat_sel","o_water_mat_sel"].forEach(fillSelect);
+}
+function addProduct() {
+  const name = document.getElementById("p_name").value.trim();
+  if (!name) return alert("Введите название");
+  data.products.push({
+    id: uid(),
+    article: document.getElementById("p_article").value.trim(),
+    name,
+    category: document.getElementById("p_cat").value.trim(),
+    normWax: +document.getElementById("n_wax").value || 0,
+    normProc: +document.getElementById("n_proc").value || 0,
+    normGalv: +document.getElementById("n_galv").value || 0,
+    normBlk: +document.getElementById("n_blk").value || 0,
+    normPack: +document.getElementById("n_pack").value || 0,
+    matWax: +document.getElementById("n_wax_mat").value || null,
+    matProc: +document.getElementById("n_proc_mat").value || null,
+    matGalv: +document.getElementById("n_galv_mat").value || null,
+    matBlk: +document.getElementById("n_blk_mat").value || null,
+    matPack: +document.getElementById("n_pack_mat").value || null,
+    matMetal: +document.getElementById("n_metal_mat").value || null,
+  });
+  ["p_article","p_name","p_cat"].forEach(id => document.getElementById(id).value = "");
+  save(); renderProducts(); renderBatchProductSelect();
+}
+function delProduct(id) {
+  if (!confirm("Удалить изделие?")) return;
+  data.products = data.products.filter(p => p.id !== id);
+  save(); renderProducts(); renderBatchProductSelect();
+}
+function renderProducts() {
+  document.getElementById("p_table").innerHTML = data.products.map(p => `
+    <tr>
+      <td>${escapeHtml(p.article) || "—"}</td><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category) || "—"}</td>
+      <td><button class="action danger" onclick="delProduct(${p.id})">×</button></td>
+    </tr>`).join("");
+}
+
+/* ---------- СПРАВОЧНИКИ ---------- */
+function addCycle() {
+  const name = document.getElementById("c_name").value.trim();
+  if (!name) return alert("Введите название");
+  data.cycles.push({
+    id: uid(),
+    name,
+    hours: +document.getElementById("c_hours").value || 0,
+    kw: +document.getElementById("c_kw").value || 0,
+    matEnergy: +document.getElementById("c_energy_mat").value || null,
+  });
+  ["c_name","c_hours","c_kw"].forEach(id => document.getElementById(id).value = "");
+  save(); renderCycles();
+}
+function delCycle(id) {
+  data.cycles = data.cycles.filter(c => c.id !== id);
+  save(); renderCycles();
+}
+function renderCycles() {
+  document.getElementById("c_table").innerHTML = data.cycles.map(c => {
+    const m = matById(c.matEnergy);
+    const kwh = c.hours * c.kw;
+    return `<tr>
+      <td>${escapeHtml(c.name)}</td><td>${c.hours}</td><td>${c.kw}</td>
+      <td><b>${fmt(kwh,2)}</b></td>
+      <td>${m ? escapeHtml(m.name) : "—"}</td>
+      <td><button class="action danger" onclick="delCycle(${c.id})">×</button></td>
+    </tr>`;
+  }).join("");
+}
+function addOpoka() {
+  const name = document.getElementById("o_name").value.trim();
+  if (!name) return alert("Введите название");
+  data.opokas.push({
+    id: uid(),
+    name,
+    mass: +document.getElementById("o_mass").value || 0,
+    water: +document.getElementById("o_water").value || 0,
+    matMass: +document.getElementById("o_mass_mat_sel").value || null,
+    matWater: +document.getElementById("o_water_mat_sel").value || null,
+  });
+  ["o_name","o_mass","o_water"].forEach(id => document.getElementById(id).value = "");
+  save(); renderOpokas();
+}
+function delOpoka(id) {
+  data.opokas = data.opokas.filter(o => o.id !== id);
+  save(); renderOpokas();
+}
+function renderOpokas() {
+  document.getElementById("o_table").innerHTML = data.opokas.map(o => {
+    const mm = matById(o.matMass);
+    const mw = matById(o.matWater);
+    return `<tr>
+      <td>${escapeHtml(o.name)}</td><td>${o.mass} г</td><td>${mm ? escapeHtml(mm.name) : "—"}</td>
+      <td>${o.water} мл</td><td>${mw ? escapeHtml(mw.name) : "—"}</td>
+      <td><button class="action danger" onclick="delOpoka(${o.id})">×</button></td>
+    </tr>`;
+  }).join("");
+}
+
+/* ---------- ПАРТИИ ---------- */
+function renderBatchProductSelect() {
+  document.getElementById("b_product").innerHTML = data.products.map(p =>
+    `<option value="${p.id}">${escapeHtml(p.name)}${p.article ? " ("+escapeHtml(p.article)+")" : ""}</option>`).join("");
+}
+function createBatch() {
+  const pid = +document.getElementById("b_product").value;
+  const qty = +document.getElementById("b_qty").value || 0;
+  const product = data.products.find(p => p.id === pid);
+  if (!product) return alert("Сначала добавьте изделие");
+  if (qty <= 0) return alert("Укажите количество");
+  const batch = {
+    id: uid(),
+    productId: pid,
+    productName: product.name,
+    qty,
+    created: new Date().toLocaleString(),
+    stage: 1,
+    stages: {
+      1: { done: false, waxUsed: null },
+      2: { done: false, opokaId: null },
+      3: { done: false, cycleId: null },
+      4: { done: false, metalUsed: null, metalReturned: null },
+      5: { done: false },
+      6: { done: false },
+      7: { done: false },
+      8: { done: false },
+    },
+    stageCosts: {},
+    totalCost: 0,
+  };
+  data.batches.push(batch);
+  save(); renderBatches();
+}
+function deleteBatch(id) {
+  if (!confirm("Удалить партию?")) return;
+  data.batches = data.batches.filter(b => b.id !== id);
+  save(); renderBatches();
+}
+
+/**
+ * Списывает материал, возвращает стоимость.
+ * Проверка остатка: если не хватает — предупреждение, но списание всё равно происходит
+ * (можно легко поменять на строгий режим).
+ */
+function writeOffMaterial(matId, qty, strict = false) {
+  const m = matById(matId);
+  if (!m) return 0;
+  if (strict && (+m.stock || 0) < qty) {
+    alert(`Недостаточно материала "${m.name}": нужно ${fmt(qty,3)}, на складе ${fmt(m.stock,3)}. Списание отменено.`);
+    return null;
+  }
+  const cost = qty * m.price;
+  m.stock = (+m.stock || 0) - qty;
+  return cost;
+}
+
+function completeStage1(bid) {
+  const b = data.batches.find(x => x.id === bid);
+  const p = data.products.find(x => x.id === b.productId);
+  const used = +document.getElementById("s1_"+bid).value || 0;
+  if (used <= 0) return alert("Укажите вес воска");
+  const cost = writeOffMaterial(p.matWax, used);
+  if (cost === null) return;
+  b.stages[1].waxUsed = used;
+  b.stages[1].done = true;
+  b.stageCosts[1] = cost;
+  b.stage = 2;
+  save(); renderBatches();
+}
+function completeStage2(bid) {
+  const b = data.batches.find(x => x.id === bid);
+  const opokaId = +document.getElementById("s2_"+bid).value;
+  const opoka = data.opokas.find(o => o.id === opokaId);
+  if (!opoka) return alert("Выберите опоку");
+  const c1 = writeOffMaterial(opoka.matMass, opoka.mass);
+  if (c1 === null) return;
+  const c2 = writeOffMaterial(opoka.matWater, opoka.water);
+  if (c2 === null) return;
+  b.stages[2].opokaId = opokaId;
+  b.stages[2].done = true;
+  b.stageCosts[2] = c1 + c2;
+  b.stage = 3;
+  save(); renderBatches();
+}
+function completeStage3(bid) {
+  const b = data.batches.find(x => x.id === bid);
+  const cycleId = +document.getElementById("s3_"+bid).value;
+  const cycle = data.cycles.find(c => c.id === cycleId);
+  if (!cycle) return alert("Выберите цикл");
+  const kwh = cycle.hours * cycle.kw;
+  const cost = writeOffMaterial(cycle.matEnergy, kwh);
+  if (cost === null) return;
+  b.stages[3].cycleId = cycleId;
+  b.stages[3].done = true;
+  b.stageCosts[3] = cost;
+  b.stage = 4;
+  save(); renderBatches();
+}
+function completeStage4(bid) {
+  const b = data.batches.find(x => x.id === bid);
+  const p = data.products.find(x => x.id === b.productId);
+  const used = +document.getElementById("s4_used_"+bid).value || 0;
+  const ret = +document.getElementById("s4_ret_"+bid).value || 0;
+  if (used <= 0) return alert("Укажите использованный металл");
+  if (ret < 0) return alert("Возврат не может быть отрицательным");
+  if (ret > used) return alert("Возврат не может быть больше, чем использовано");
+  const consumed = used - ret;
+  const cost = writeOffMaterial(p.matMetal, consumed);
+  if (cost === null) return;
+  b.stages[4].metalUsed = used;
+  b.stages[4].metalReturned = ret;
+  b.stages[4].done = true;
+  const m = matById(p.matMetal);
+  if (m) m.stock = (+m.stock || 0) + ret;
+  b.stageCosts[4] = cost;
+  b.stage = 5;
+  save(); renderBatches();
+}
+function completeStageN(bid, stageNum) {
+  const b = data.batches.find(x => x.id === bid);
+  const p = data.products.find(x => x.id === b.productId);
+  let matId, qtyPerUnit;
+  if (stageNum === 5) { matId = p.matProc; qtyPerUnit = p.normProc; }
+  if (stageNum === 6) { matId = p.matGalv; qtyPerUnit = p.normGalv; }
+  if (stageNum === 7) { matId = p.matBlk; qtyPerUnit = p.normBlk; }
+  if (stageNum === 8) { matId = p.matPack; qtyPerUnit = p.normPack; }
+  const qty = qtyPerUnit * b.qty;
+  const cost = matId ? writeOffMaterial(matId, qty) : 0;
+  if (cost === null) return;
+  b.stageCosts[stageNum] = cost;
+  b.stages[stageNum].done = true;
+  if (stageNum === 8) {
+    b.stage = 9;
+    b.finished = true;
+    b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
+    data.stock.push({
+      id: uid()+"_"+b.id,
+      batchId: b.id,
+      productId: b.productId,
+      productName: p.name,
+            remaining: b.qty,
+      costPerUnit: b.totalCost / b.qty,
+    });
+  } else {
+    b.stage = stageNum + 1;
+  }
+  save(); renderBatches(); if (b.finished) renderStock();
+}
+
+function renderBatches() {
+  const active = data.batches.filter(b => !b.finished);
+  const done = data.batches.filter(b => b.finished);
+
+  document.getElementById("active_batches").innerHTML = active.map(b => {
+    const p = data.products.find(x => x.id === b.productId);
+    if (!p) return "";
+    const s = b.stages;
+    const st = b.stage;
+    let html = `<div class="stage ${st===1?'active':''}">
+      <div class="stage-title">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
+        <span class="badge badge-active">Этап ${st}</span></div>
+      <div class="stage-info">Создана: ${escapeHtml(b.created)}</div>`;
+
+    // Этап 1 — восковки
+    if (!s[1].done) {
+      const norm = p.normWax * b.qty;
+      html += `<div class="stage ${st===1?'active':''}">
+        <div class="stage-title">1. Создание восковок ${st===1?'<span class="badge badge-active">активен</span>':''}</div>
+        <div class="stage-info">Норма: ${fmt(norm,3)} г воска. Введите фактический вес:</div>`;
+      if (st === 1) {
+        html += `<div class="row">
+          <input id="s1_${b.id}" type="number" step="0.001" placeholder="Вес воска, г">
+          <button class="action ok" onclick="completeStage1(${b.id})">Этап завершён</button>
+        </div>`;
+      }
+      html += `</div>`;
+    } else {
+      html += `<div class="stage done"><div class="stage-title">1. Восковки <span class="badge badge-done">завершён</span></div>
+        <div class="stage-info">Использовано: ${fmt(s[1].waxUsed,3)} г — ${fmt(b.stageCosts[1])} ₽</div></div>`;
+    }
+
+    // Этап 2 — формовка
+    if (s[1].done && !s[2].done) {
+      html += `<div class="stage ${st===2?'active':''}">
+        <div class="stage-title">2. Формовка ${st===2?'<span class="badge badge-active">активен</span>':''}</div>
+        <div class="stage-info">Выберите размер опоки:</div>`;
+      if (st === 2) {
+        html += `<div class="row"><select id="s2_${b.id}">${data.opokas.map(o =>
+          `<option value="${o.id}">${escapeHtml(o.name)} (${o.mass} г формомассы + ${o.water} мл воды)</option>`).join("")}</select>
+          <button class="action ok" onclick="completeStage2(${b.id})">Этап завершён</button></div>`;
+      }
+      html += `</div>`;
+    } else if (s[2].done) {
+      const o = data.opokas.find(x => x.id === s[2].opokaId);
+      html += `<div class="stage done"><div class="stage-title">2. Формовка <span class="badge badge-done">завершён</span></div>
+        <div class="stage-info">Опока: ${o ? escapeHtml(o.name) : "?"} — ${fmt(b.stageCosts[2])} ₽</div></div>`;
+    }
+
+    // Этап 3 — прокалка
+    if (s[2].done && !s[3].done) {
+      html += `<div class="stage ${st===3?'active':''}">
+        <div class="stage-title">3. Прокалка ${st===3?'<span class="badge badge-active">активен</span>':''}</div>
+        <div class="stage-info">Выберите цикл:</div>`;
+      if (st === 3) {
+        html += `<div class="row"><select id="s3_${b.id}">${data.cycles.map(c =>
+          `<option value="${c.id}">${escapeHtml(c.name)} (${c.hours}ч × ${c.kw}кВт = ${fmt(c.hours*c.kw)} кВт·ч)</option>`).join("")}</select>
+          <button class="action ok" onclick="completeStage3(${b.id})">Этап завершён</button></div>`;
+      }
+      html += `</div>`;
+    } else if (s[3].done) {
+      const c = data.cycles.find(x => x.id === s[3].cycleId);
+      html += `<div class="stage done"><div class="stage-title">3. Прокалка <span class="badge badge-done">завершён</span></div>
+        <div class="stage-info">Цикл: ${c ? escapeHtml(c.name) : "?"} — ${fmt(b.stageCosts[3])} ₽</div></div>`;
+    }
+
+    // Этап 4 — литьё
+    if (s[3].done && !s[4].done) {
+      html += `<div class="stage ${st===4?'active':''}">
+        <div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div>
+        <div class="stage-info">Укажите использованный металл и возврат:</div>`;
+      if (st === 4) {
+        html += `<div class="row">
+          <input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г">
+          <input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0">
+          <button class="action ok" onclick="completeStage4(${b.id})">Этап завершён</button>
+        </div>`;
+      }
+      html += `</div>`;
+    } else if (s[4].done) {
+      html += `<div class="stage done"><div class="stage-title">4. Литьё <span class="badge badge-done">завершён</span></div>
+        <div class="stage-info">Использовано: ${fmt(s[4].metalUsed,3)} г, возврат: ${fmt(s[4].metalReturned,3)} г — ${fmt(b.stageCosts[4])} ₽</div></div>`;
+    }
+
+    // Этапы 5–8
+    const stageNames = {5:"Обработка", 6:"Гальваника", 7:"Чернение", 8:"Упаковка"};
+    for (let n = 5; n <= 8; n++) {
+      if (s[n-1].done && !s[n].done) {
+        html += `<div class="stage ${st===n?'active':''}">
+          <div class="stage-title">${n}. ${stageNames[n]} ${st===n?'<span class="badge badge-active">активен</span>':''}</div>
+          <div class="stage-info">Норма расхода применится автоматически.</div>`;
+        if (st === n) {
+          html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, ${n})">Этап завершён</button></div>`;
+        }
+        html += `</div>`;
+      } else if (s[n].done) {
+        html += `<div class="stage done"><div class="stage-title">${n}. ${stageNames[n]} <span class="badge badge-done">завершён</span></div>
+          <div class="stage-info">Стоимость: ${fmt(b.stageCosts[n])} ₽</div></div>`;
+      }
+    }
+
+    html += `<div class="stage-info"><b>Себестоимость партии: ${fmt(Object.values(b.stageCosts).reduce((a,x)=>a+x,0))} ₽</b></div>`;
+    html += `</div>`;
+    return html;
+  }).join("");
+
+  document.getElementById("done_batches").innerHTML = done.map(b => `
+    <div class="stage done">
+      <div class="stage-title">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></div>
+      <div class="stage-info">Себестоимость: ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div>
+      <div class="row"><button class="action danger" onclick="deleteBatch(${b.id})">Удалить</button></div>
+    </div>`).join("");
+}
+
+/* ---------- СКЛАД ГОТОВОЙ ---------- */
+function renderStock() {
+  document.getElementById("stock_table").innerHTML = data.stock.map(s => `
+    <tr>
+      <td>${escapeHtml(s.productName)}</td>
+      <td>#${s.batchId}</td>
+      <td>${s.remaining} шт</td>
+      <td>${fmt(s.costPerUnit)} ₽</td>
+      <td><button class="action warn" onclick="openWriteOff('${s.id}')">Списать</button></td>
+    </tr>`).join("");
+}
+
+function openWriteOff(stockId) {
+  const s = data.stock.find(x => x.id === stockId);
+  if (!s) return;
+  writeOffStockId = stockId;
+  document.getElementById("writeoff_card").style.display = "block";
+  document.getElementById("w_product").innerHTML =
+    `<option value="${s.id}">${escapeHtml(s.productName)} (партия #${s.batchId}, осталось ${s.remaining} шт)</option>`;
+  document.getElementById("w_qty").value = 1;
+  document.getElementById("w_price").value = fmt(s.costPerUnit);
+  document.getElementById("w_result").innerHTML = "";
+}
+function closeWriteOff() {
+  writeOffStockId = null;
+  document.getElementById("writeoff_card").style.display = "none";
+  document.getElementById("w_qty").value = "";
+  document.getElementById("w_note").value = "";
+  document.getElementById("w_result").innerHTML = "";
+}
+
+function writeOff() {
+  const s = data.stock.find(x => x.id === writeOffStockId);
+  if (!s) return alert("Выберите изделие");
+  const qty = +document.getElementById("w_qty").value || 0;
+  const price = +document.getElementById("w_price").value || 0;
+  if (qty <= 0) return alert("Укажите количество");
+  if (qty > s.remaining) return alert("Недостаточно на складе");
+  const sum = qty * price;
+  data.archive.push({
+    id: uid(),
+    date: new Date().toLocaleString(),
+    dateIso: new Date().toISOString().slice(0,10),
+    productName: s.productName,
+    batchId: s.batchId,
+    qty, price, sum,
+    channel: document.getElementById("w_channel").value,
+    note: document.getElementById("w_note").value.trim(),
+    cost: s.costPerUnit * qty,
+    profit: sum - s.costPerUnit * qty,
+  });
+  s.remaining -= qty;
+  if (s.remaining <= 0) {
+    data.stock = data.stock.filter(x => x.id !== s.id);
+  }
+  save(); renderStock();
+  document.getElementById("w_result").innerHTML =
+    `<div class="result">Списано ${qty} шт на сумму ${fmt(sum)} ₽. Прибыль: ${fmt(sum - s.costPerUnit*qty)} ₽</div>`;
+  writeOffStockId = null;
+  document.getElementById("w_qty").value = "";
+  document.getElementById("w_note").value = "";
+}
+
+/* ---------- АРХИВ ---------- */
+function resetFilters() {
+  document.getElementById("f_channel").value = "";
+  document.getElementById("f_from").value = "";
+  document.getElementById("f_to").value = "";
+  renderArchive();
+}
+
+function getFilteredArchive() {
+  const ch = document.getElementById("f_channel").value;
+  const from = document.getElementById("f_from").value;
+  const to = document.getElementById("f_to").value;
+  return data.archive.filter(a => {
+    if (ch && a.channel !== ch) return false;
+    if (from && a.dateIso && a.dateIso < from) return false;
+    if (to && a.dateIso && a.dateIso > to) return false;
+    return true;
+  });
+}
+
+function renderArchive() {
+  const list = getFilteredArchive();
+  document.getElementById("archive_table").innerHTML = list.slice().reverse().map(a => {
+    const profitCls = a.profit >= 0 ? "profit" : "loss";
+    return `<tr>
+      <td>${escapeHtml(a.date)}</td>
+      <td>${escapeHtml(a.productName)} <small>(#${a.batchId})</small></td>
+      <td>${a.qty}</td>
+      <td>${fmt(a.price)} ₽</td>
+      <td>${fmt(a.sum)} ₽</td>
+      <td>${fmt(a.cost)} ₽</td>
+      <td class="${profitCls}">${fmt(a.profit)} ₽</td>
+      <td>${escapeHtml(a.channel)}</td>
+      <td>${escapeHtml(a.note) || "—"}</td>
+      <td><button class="action danger" onclick="delArchive(${a.id})">×</button></td>
+    </tr>`;
+  }).join("");
+
+  // Итоги
+  const totalQty = list.reduce((s,a) => s + a.qty, 0);
+  const totalSum = list.reduce((s,a) => s + a.sum, 0);
+  const totalCost = list.reduce((s,a) => s + a.cost, 0);
+  const totalProfit = totalSum - totalCost;
+  const margin = totalSum > 0 ? (totalProfit / totalSum * 100) : 0;
+  document.getElementById("archive_summary").innerHTML = `
+    <div class="box"><div class="label">Продано, шт</div><div class="value">${totalQty}</div></div>
+    <div class="box"><div class="label">Выручка</div><div class="value">${fmt(totalSum)} ₽</div></div>
+    <div class="box"><div class="label">Себестоимость</div><div class="value">${fmt(totalCost)} ₽</div></div>
+    <div class="box"><div class="label">Прибыль</div><div class="value ${totalProfit>=0?'profit':'loss'}">${fmt(totalProfit)} ₽</div></div>
+    <div class="box"><div class="label">Маржа</div><div class="value">${fmt(margin,1)} %</div></div>
+  `;
+
+  // Сводка по каналам
+  const byChannel = {};
+  list.forEach(a => {
+    if (!byChannel[a.channel]) byChannel[a.channel] = { qty:0, sum:0, cost:0 };
+    byChannel[a.channel].qty += a.qty;
+    byChannel[a.channel].sum += a.sum;
+    byChannel[a.channel].cost += a.cost;
+  });
+  document.getElementById("channel_summary").innerHTML = Object.entries(byChannel).map(([ch, v]) => {
+    const p = v.sum - v.cost;
+    const m = v.sum > 0 ? (p / v.sum * 100) : 0;
+    const cls = p >= 0 ? "profit" : "loss";
+    return `<tr>
+      <td>${escapeHtml(ch)}</td>
+      <td>${v.qty}</td>
+      <td>${fmt(v.sum)} ₽</td>
+      <td>${fmt(v.cost)} ₽</td>
+      <td class="${cls}">${fmt(p)} ₽</td>
+      <td>${fmt(m,1)} %</td>
+    </tr>`;
+  }).join("");
+}
+
+function delArchive(id) {
+  if (!confirm("Удалить запись из архива?")) return;
+  data.archive = data.archive.filter(a => a.id !== id);
+  save(); renderArchive();
+}
+
+/* ---------- ДАННЫЕ ---------- */
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "jewelry_backup_" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData() {
+  const f = document.getElementById("import_file").files[0];
+  if (!f) return alert("Выберите файл");
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const obj = JSON.parse(e.target.result);
+      if (!confirm("Заменить все текущие данные?")) return;
+      data = obj;
+      save();
+      renderAll();
+      alert("Данные загружены");
+    } catch (err) { alert("Ошибка чтения файла: " + err.message); }
+  };
+  reader.readAsText(f);
+}
+
+function clearAll() {
+  if (!confirm("Удалить ВСЕ данные? Это необратимо!")) return;
+  if (!confirm("Точно удалить? Рекомендуем сначала скачать копию.")) return;
+  localStorage.removeItem(KEY);
+  data = { materials: [], products: [], cycles: [], opokas: [], batches: [], stock: [], archive: [] };
+  renderAll();
+}
+
+/* ---------- ОБЩАЯ ОТРИСОВКА ---------- */
+function renderAll() {
+  renderMaterials();
+  renderAllMaterialSelects();
+  renderProducts();
+  renderBatchProductSelect();
+  renderCycles();
+  renderOpokas();
+  renderBatches();
+  renderStock();
+  renderArchive();
+}
+/* ---------- UI СИНХРОНИЗАЦИИ ---------- */
+function setSyncStatus(msg, color) {
+  const el = document.getElementById('sync_status');
+  if (el) el.innerHTML = `<span style="color:${color || '#555'}">${msg}</span>`;
+}
+
+async function uiPushToCloud() {
+  setSyncStatus('⏳ Отправка в облако...', '#b7791f');
+  const res = await pushAll(data);
+  if (res.ok) {
+    const total = Object.values(res.summary).reduce((s,x) => s+x, 0);
+    setSyncStatus(`✅ Отправлено объектов: ${total}`, '#2f855a');
+  } else {
+    setSyncStatus(`❌ Ошибка: ${res.error}`, '#c53030');
+  }
+}
+
+async function uiPullFromCloud() {
+  setSyncStatus('⏳ Скачивание из облака...', '#b7791f');
+  const res = await pullAll();
+  if (!res.ok) {
+    setSyncStatus(`❌ Ошибка: ${res.error}`, '#c53030');
+    return;
+  }
+  const merged = mergeData(data, res.data);
+  data = merged;
+  await saveData(data);
+  renderAll();
+  const total = Object.values(res.data).reduce((s, arr) => s + arr.length, 0);
+  setSyncStatus(`✅ Скачано объектов: ${total}`, '#2f855a');
+}
+
+async function uiFullSync() {
+  setSyncStatus('⏳ Полная синхронизация...', '#b7791f');
+  const res = await syncAll(data);
+  if (!res.ok) {
+    setSyncStatus(`❌ Ошибка: ${res.error}`, '#c53030');
+    return;
+  }
+  data = res.data;
+  await saveData(data);
+  renderAll();
+  const total = Object.values(data).reduce((s, arr) => s + arr.length, 0);
+  setSyncStatus(`✅ Синхронизировано. Всего объектов: ${total}`, '#2f855a');
+}
+/* ---------- СТАРТ ПРИЛОЖЕНИЯ ---------- */
+async function initApp() {
+  let loaded = await migrateFromLocalStorage();
+  if (!loaded) loaded = await loadData();
+  data = loaded || JSON.parse(JSON.stringify(EMPTY_DATA));
+  stampUpdatedAt(data);
+  renderAll();
+
+  // Регистрируем планировщик автосинхронизации
+  window.__scheduleAutosync = () => scheduleAutosync(() => data, (d) => { data = d; });
+
+  // Индикатор состояния облака
+  setCloudIndicator(navigator.onLine ? 'online' : 'offline');
+
+  // Первая синхронизация при запуске (через 1 сек, чтобы UI успел отрисоваться)
+  setTimeout(() => {
+    if (navigator.onLine) {
+      runAutosync(() => data, (d) => { data = d; renderAll(); });
+    }
+  }, 1000);
+
+  console.log("✅ Приложение запущено. IndexedDB + автосинхронизация.");
+}
+
+initApp();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('✅ Service Worker зарегистрирован:', reg.scope))
+        .catch(err => console.error('❌ Ошибка регистрации SW:', err));
+    });
+  }
+</script>
+</body>
+</html>
