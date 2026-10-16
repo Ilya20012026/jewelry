@@ -634,7 +634,7 @@
 
 <!-- ПАРТИИ -->
 <div id="batches" class="tab">
- <div class="card">
+<div class="card master-hidden">
     <h3>Создать производственное задание</h3>
     <p class="hint">Одна строка — обычная партия. Нажмите «+ Ещё изделие», чтобы создать группу из нескольких партий.</p>
 
@@ -2006,7 +2006,7 @@ function renderBatchCard(b) {
     <div class="stage-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
       <span>Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
         <span class="badge badge-active">Этап ${st}</span></span>
-      <button class="action danger" onclick="deleteBatch('${b.id}')">× Удалить</button>
+      <button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">× Удалить</button>
     </div>
     <div class="stage-info">Создана: ${escapeHtml(b.created)}${b.responsible ? " • Ответственный: " + escapeHtml(b.responsible) : ""}</div>`;
 
@@ -2190,7 +2190,7 @@ function renderBatches() {
     html += `    <div class="task-group-meta">Срок: ${escapeHtml(period)}</div>`;
     html += `    <div class="row" style="margin-top:8px">`;
     html += `      <button class="action" onclick="toggleGroupCollapsed('${gid}')">${isCollapsed ? "▸ РАСКРЫТЬ" : "▾ СВЕРНУТЬ"}</button>`;
-html += `      <button class="action danger" onclick="deleteGroup('${gid}')">× Удалить задание</button>`;
+html += `      <button class="action danger master-hidden" onclick="deleteGroup('${gid}')">× Удалить задание</button>`;
     html += `    </div>`;
     html += `  </div>`;
 
@@ -2217,7 +2217,7 @@ html += `      <button class="action danger" onclick="deleteGroup('${gid}')">× 
     <div class="stage done">
       <div class="stage-title">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></div>
       <div class="stage-info">Себестоимость: ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div>
-      <div class="row"><button class="action danger" onclick="deleteBatch('${b.id}')">Удалить</button></div>
+            <div class="row"><button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">Удалить</button></div>
     </div>`).join("");
 }
 
