@@ -35,6 +35,116 @@
     flex-shrink: 0;
   }
   /* ============================================================
+     КАЛЕНДАРЬ
+     ============================================================ */
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 12px;
+  }
+  .calendar-header h3 {
+    margin: 0;
+    border: none;
+    padding: 0;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .calendar-header button.action {
+    padding: 6px 14px;
+    font-size: 16px;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .calendar-grid .day-name {
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
+    font-weight: 700;
+  }
+  .calendar-grid .day {
+    min-height: 68px;
+    padding: 6px;
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+  }
+  .calendar-grid .day:hover {
+    background: #f0f0f0;
+    border-color: #ccc;
+  }
+  .calendar-grid .day.empty {
+    background: transparent;
+    border: none;
+    cursor: default;
+  }
+  .calendar-grid .day.today {
+    border-color: #000;
+    border-width: 2px;
+    background: #fff;
+  }
+  .calendar-grid .day.selected {
+    background: #000;
+    color: #fff;
+    border-color: #000;
+  }
+  .calendar-grid .day.selected .day-number { color: #fff; }
+  .calendar-grid .day .day-number {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+  }
+  .calendar-grid .day .dots {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+  }
+
+  /* Точки */
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+  }
+  .dot-restock { background: #d32f2f; }   /* красный */
+  .dot-new     { background: #2e7d32; }   /* зелёный */
+  .dot-task    { background: #1976d2; }   /* синий */
+
+  /* Легенда */
+  .calendar-legend {
+    display: flex;
+    gap: 18px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: #666;
+    flex-wrap: wrap;
+  }
+  .calendar-legend > span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ============================================================
      ВЕРХНЕЕ МЕНЮ — ПРОИЗВОДСТВО / КОМПАНИЯ / СЕРВИС
      ============================================================ */
     .main-tabs {
@@ -266,6 +376,14 @@
     .summary .box .value { font-size: 16px; }
 
     .hint { font-size: 12px; }
+    .calendar-grid { gap: 2px; }
+    .calendar-grid .day { min-height: 48px; padding: 4px; }
+    .calendar-grid .day .day-number { font-size: 11px; }
+    .calendar-grid .day .dot { width: 6px; height: 6px; }
+    .calendar-grid .day-name { font-size: 9px; padding: 4px 2px; }
+    .calendar-header h3 { font-size: 14px; }
+    .calendar-header button.action { padding: 4px 10px; font-size: 13px; }
+    .calendar-legend { font-size: 10px; gap: 10px; }
   }
 </style>
 </head>
@@ -497,12 +615,59 @@
   </div>
 
   <!-- Вкладка: КАЛЕНДАРЬ -->
-  <div id="company-calendar" class="tab active">
-    <div class="card">
-      <h3>Календарь</h3>
-      <p class="hint">Здесь будет календарь планов. Раздел в разработке.</p>
+<div id="company-calendar" class="tab active">
+
+  <!-- ФОРМА ДОБАВЛЕНИЯ ПЛАНА -->
+  <div class="card">
+    <h3>Добавить план</h3>
+    <p class="hint">Пополнение и новая позиция — автоматически создадут партию в производстве, когда наступит дата. Задача — просто напоминание.</p>
+    <div class="row">
+      <select id="task_type" onchange="onTaskTypeChange()" style="width:180px">
+        <option value="task">Задача</option>
+        <option value="restock">Пополнение позиций</option>
+        <option value="new_item">Новая позиция</option>
+      </select>
+      <select id="task_product" style="width:220px"></select>
+      <input id="task_qty" type="number" placeholder="Кол-во, шт" style="width:110px">
+    </div>
+    <div class="row">
+      <input id="task_title" placeholder="Название задачи" style="width:280px">
+      <input id="task_date_start" type="date" title="Дата начала">
+      <input id="task_date_end" type="date" title="Дата окончания (необязательно)">
+    </div>
+    <div class="row">
+      <select id="task_responsible" style="width:220px"></select>
+      <input id="task_note" placeholder="Комментарий" style="width:320px">
+      <button class="action" onclick="addTask()">ДОБАВИТЬ</button>
     </div>
   </div>
+
+  <!-- КАЛЕНДАРЬ -->
+  <div class="card">
+    <div class="calendar-header">
+      <button class="action" onclick="changeMonth(-1)">←</button>
+      <h3 id="calendar_title">Месяц</h3>
+      <button class="action" onclick="changeMonth(1)">→</button>
+    </div>
+
+    <div class="calendar-grid" id="calendar_grid">
+      <!-- Генерируется в JS -->
+    </div>
+
+    <div class="calendar-legend">
+      <span><span class="dot dot-restock"></span> Пополнение</span>
+      <span><span class="dot dot-new"></span> Новая позиция</span>
+      <span><span class="dot dot-task"></span> Задача</span>
+    </div>
+  </div>
+
+  <!-- СПИСОК ЗАДАЧ ДНЯ -->
+  <div class="card" id="day_tasks_card" style="display:none">
+    <h3 id="day_tasks_title">Задачи дня</h3>
+    <div id="day_tasks_list"></div>
+  </div>
+
+</div>
 
   <!-- Вкладка: СОТРУДНИКИ -->
   <div id="company-employees" class="tab">
@@ -600,6 +765,243 @@ function save() {
   }
 }
 function uid() { return Date.now() + Math.floor(Math.random()*1000); }
+/* ---------- КАЛЕНДАРЬ: состояние ---------- */
+let _calYear = new Date().getFullYear();
+let _calMonth = new Date().getMonth(); // 0-11
+let _calSelectedDay = null;
+
+const MONTH_NAMES = ["Январь","Февраль","Март","Апрель","Май","Июнь",
+                     "Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+
+/* ---------- Переключение типа задачи ---------- */
+function onTaskTypeChange() {
+  const type = document.getElementById("task_type").value;
+  const productSel = document.getElementById("task_product");
+  const qtyInput = document.getElementById("task_qty");
+  const titleInput = document.getElementById("task_title");
+
+  if (type === "task") {
+    // Задача: изделие не нужно
+    productSel.style.display = "none";
+    qtyInput.style.display = "none";
+  } else {
+    // Пополнение / Новая позиция: изделие + количество
+    productSel.style.display = "inline-block";
+    qtyInput.style.display = "inline-block";
+    // Заполняем список изделий
+    productSel.innerHTML = data.products.map(p =>
+      `<option value="${p.id}">${escapeHtml(p.name)}${p.article ? " ("+escapeHtml(p.article)+")" : ""}</option>`
+    ).join("");
+  }
+}
+
+/* ---------- Навигация по месяцам ---------- */
+function changeMonth(delta) {
+  _calMonth += delta;
+  if (_calMonth > 11) { _calMonth = 0; _calYear++; }
+  if (_calMonth < 0)  { _calMonth = 11; _calYear--; }
+  _calSelectedDay = null;
+  renderCalendar();
+}
+
+/* ---------- Рендер календаря ---------- */
+function renderCalendar() {
+  const title = document.getElementById("calendar_title");
+  if (!title) return;
+
+  title.textContent = MONTH_NAMES[_calMonth] + " " + _calYear;
+
+  const grid = document.getElementById("calendar_grid");
+  if (!grid) return;
+
+  const firstDay = new Date(_calYear, _calMonth, 1);
+  const startWeekday = (firstDay.getDay() + 6) % 7; // Пн=0
+  const daysInMonth = new Date(_calYear, _calMonth + 1, 0).getDate();
+
+  const today = new Date();
+  const todayStr = today.getFullYear() + "-" +
+    String(today.getMonth()+1).padStart(2,"0") + "-" +
+    String(today.getDate()).padStart(2,"0");
+
+  let html = "";
+  // Заголовки дней
+  ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(d => {
+    html += `<div class="day-name">${d}</div>`;
+  });
+  // Пустые ячейки до первого дня
+  for (let i = 0; i < startWeekday; i++) {
+    html += `<div class="day empty"></div>`;
+  }
+  // Дни месяца
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = _calYear + "-" +
+      String(_calMonth+1).padStart(2,"0") + "-" +
+      String(d).padStart(2,"0");
+
+    const tasks = getTasksForDay(dateStr);
+    const dots = tasks.map(t => {
+      let cls = "dot-task";
+      if (t.type === "restock") cls = "dot-restock";
+      if (t.type === "new_item") cls = "dot-new";
+      return `<span class="dot ${cls}"></span>`;
+    }).join("");
+
+    const isToday = dateStr === todayStr;
+    const isSelected = dateStr === _calSelectedDay;
+
+    html += `<div class="day ${isToday?'today':''} ${isSelected?'selected':''}"
+                  onclick="selectDay('${dateStr}')">
+      <div class="day-number">${d}</div>
+      <div class="dots">${dots}</div>
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+/* ---------- Получить задачи на день ---------- */
+function getTasksForDay(dateStr) {
+  if (!data.tasks) return [];
+  return data.tasks.filter(t => {
+    const start = t.date_start;
+    const end = t.date_end || t.date_start;
+    return dateStr >= start && dateStr <= end;
+  });
+}
+
+/* ---------- Клик по дню ---------- */
+function selectDay(dateStr) {
+  _calSelectedDay = dateStr;
+  renderCalendar();
+  renderDayTasks(dateStr);
+}
+
+/* ---------- Показать список задач дня ---------- */
+function renderDayTasks(dateStr) {
+  const card = document.getElementById("day_tasks_card");
+  const title = document.getElementById("day_tasks_title");
+  const list = document.getElementById("day_tasks_list");
+  if (!card || !list) return;
+
+  const tasks = getTasksForDay(dateStr);
+  const [y, m, d] = dateStr.split("-");
+  title.textContent = `${d}.${m}.${y} — задачи`;
+
+  if (tasks.length === 0) {
+    list.innerHTML = `<p class="hint">На этот день задач нет.</p>`;
+  } else {
+    list.innerHTML = tasks.map(t => {
+      let typeLabel = "ЗАДАЧА", typeCls = "dot-task";
+      if (t.type === "restock")  { typeLabel = "ПОПОЛНЕНИЕ"; typeCls = "dot-restock"; }
+      if (t.type === "new_item") { typeLabel = "НОВАЯ ПОЗИЦИЯ"; typeCls = "dot-new"; }
+
+      const done = t.done ? "text-decoration:line-through;opacity:0.5;" : "";
+
+      return `<div class="stage" style="${done}">
+        <div class="stage-title">
+          <span class="dot ${typeCls}"></span>
+          ${typeLabel}: ${escapeHtml(t.title || t.product_name || "Без названия")}
+          ${t.qty ? " × " + t.qty + " шт" : ""}
+        </div>
+        <div class="stage-info">
+          ${t.date_start}${t.date_end && t.date_end !== t.date_start ? " — " + t.date_end : ""}
+          ${t.responsible ? " • Ответственный: " + escapeHtml(t.responsible) : ""}
+        </div>
+        ${t.note ? `<div class="stage-info">💬 ${escapeHtml(t.note)}</div>` : ""}
+        ${t.batch_created ? `<div class="stage-info">📦 Партия создана в производстве</div>` : ""}
+        <div class="row" style="margin-top:8px">
+          ${!t.done ? `<button class="action ok" onclick="toggleTaskDone('${t.id}')">✔ Выполнено</button>` : `<button class="action" onclick="toggleTaskDone('${t.id}')">↩ Вернуть</button>`}
+          <button class="action danger" onclick="delTask('${t.id}')">× Удалить</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+  card.style.display = "block";
+}
+
+/* ---------- Добавить задачу ---------- */
+function addTask() {
+  const type = document.getElementById("task_type").value;
+  const title = document.getElementById("task_title").value.trim();
+  const dateStart = document.getElementById("task_date_start").value;
+  let dateEnd = document.getElementById("task_date_end").value;
+  const responsible = document.getElementById("task_responsible").value;
+  const note = document.getElementById("task_note").value.trim();
+
+  if (!dateStart) return alert("Укажите дату начала");
+  if (!dateEnd) dateEnd = dateStart;
+
+  if (type === "task" && !title) return alert("Введите название задачи");
+
+  let productId = null, productName = null, qty = null;
+  if (type === "restock" || type === "new_item") {
+    productId = document.getElementById("task_product").value;
+    const product = data.products.find(p => String(p.id) === String(productId));
+    if (!product) return alert("Выберите изделие");
+    productName = product.name;
+    qty = +document.getElementById("task_qty").value || 0;
+    if (qty <= 0) return alert("Укажите количество");
+  }
+
+  data.tasks = data.tasks || [];
+  const task = {
+    id: uid(),
+    type,
+    title: title || (productName ? `${productName} × ${qty}` : ""),
+    product_id: productId,
+    product_name: productName,
+    qty,
+    date_start: dateStart,
+    date_end: dateEnd,
+    responsible,
+    note,
+    batch_created: false,
+    batch_id: null,
+    done: false,
+    updatedAt: new Date().toISOString(),
+  };
+  data.tasks.push(task);
+
+  // Очистить форму
+  ["task_title","task_date_start","task_date_end","task_note","task_qty"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
+  save();
+  renderCalendar();
+  if (_calSelectedDay === dateStart) renderDayTasks(dateStart);
+  showToast("✅ План добавлен", "success");
+}
+
+/* ---------- Удалить задачу ---------- */
+function delTask(id) {
+  if (!confirm("Удалить план?")) return;
+  markDeleted(data, "tasks", id);
+  save();
+  renderCalendar();
+  if (_calSelectedDay) renderDayTasks(_calSelectedDay);
+}
+
+/* ---------- Переключить "выполнено" ---------- */
+function toggleTaskDone(id) {
+  const t = (data.tasks || []).find(x => String(x.id) === String(id));
+  if (!t) return;
+  t.done = !t.done;
+  t.updatedAt = new Date().toISOString();
+  save();
+  renderCalendar();
+  if (_calSelectedDay) renderDayTasks(_calSelectedDay);
+}
+
+/* ---------- Заполнить список ответственных ---------- */
+function renderResponsibleSelect() {
+  const sel = document.getElementById("task_responsible");
+  if (!sel) return;
+  const list = data.employees || [];
+  sel.innerHTML = `<option value="">— Ответственный —</option>` +
+    list.map(e => `<option value="${escapeHtml(e.name)}">${escapeHtml(e.name)}${e.role ? " ("+escapeHtml(e.role)+")" : ""}</option>`).join("");
+}
+
 /* ---------- Переключение вкладок внутри компании ---------- */
 function showCompanyTab(id, btn) {
   document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
@@ -1352,6 +1754,10 @@ async function initApp() {
     ensureDeletedStruct(data);
   stampUpdatedAt(data);
   renderAll();
+  renderEmployees();
+  renderResponsibleSelect();
+  renderCalendar();
+  onTaskTypeChange();
 
   // Регистрируем планировщик автосинхронизации
   window.__scheduleAutosync = () => scheduleAutosync(() => data, (d) => { data = d; });
