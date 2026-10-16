@@ -1660,120 +1660,179 @@ function completeStageN(bid, stageNum) {
   save(); renderBatches(); if (b.finished) renderStock();
 }
 
+/* ---------- Отрисовка одной партии (используется внутри renderBatches) ---------- */
+function renderBatchCard(b) {
+  const p = data.products.find(x => x.id === b.productId);
+  if (!p) return "";
+  const s = b.stages;
+  const st = b.stage;
+
+  let html = `<div class="stage ${st===1?'active':''}">
+    <div class="stage-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <span>Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
+        <span class="badge badge-active">Этап ${st}</span></span>
+      <button class="action danger" onclick="deleteBatch('${b.id}')">× Удалить</button>
+    </div>
+    <div class="stage-info">Создана: ${escapeHtml(b.created)}${b.responsible ? " • Ответственный: " + escapeHtml(b.responsible) : ""}</div>`;
+
+  // Этап 1 — восковки
+  if (!s[1].done) {
+    const norm = p.normWax * b.qty;
+    html += `<div class="stage ${st===1?'active':''}">
+      <div class="stage-title">1. Создание восковок ${st===1?'<span class="badge badge-active">активен</span>':''}</div>
+      <div class="stage-info">Норма: ${fmt(norm,3)} г воска. Введите фактический вес:</div>`;
+    if (st === 1) {
+      html += `<div class="row">
+        <input id="s1_${b.id}" type="number" step="0.001" placeholder="Вес воска, г">
+        <button class="action ok" onclick="completeStage1(${b.id})">Этап завершён</button>
+      </div>`;
+    }
+    html += `</div>`;
+  } else {
+    html += `<div class="stage done"><div class="stage-title">1. Восковки <span class="badge badge-done">завершён</span></div>
+      <div class="stage-info">Использовано: ${fmt(s[1].waxUsed,3)} г — ${fmt(b.stageCosts[1])} ₽</div></div>`;
+  }
+
+  // Этап 2 — формовка
+  if (s[1].done && !s[2].done) {
+    html += `<div class="stage ${st===2?'active':''}">
+      <div class="stage-title">2. Формовка ${st===2?'<span class="badge badge-active">активен</span>':''}</div>
+      <div class="stage-info">Выберите размер опоки:</div>`;
+    if (st === 2) {
+      html += `<div class="row"><select id="s2_${b.id}">${data.opokas.map(o =>
+        `<option value="${o.id}">${escapeHtml(o.name)} (${o.mass} г формомассы + ${o.water} мл воды)</option>`).join("")}</select>
+        <button class="action ok" onclick="completeStage2(${b.id})">Этап завершён</button></div>`;
+    }
+    html += `</div>`;
+  } else if (s[2].done) {
+    const o = data.opokas.find(x => x.id === s[2].opokaId);
+    html += `<div class="stage done"><div class="stage-title">2. Формовка <span class="badge badge-done">завершён</span></div>
+      <div class="stage-info">Опока: ${o ? escapeHtml(o.name) : "?"} — ${fmt(b.stageCosts[2])} ₽</div></div>`;
+  }
+
+  // Этап 3 — прокалка
+  if (s[2].done && !s[3].done) {
+    html += `<div class="stage ${st===3?'active':''}">
+      <div class="stage-title">3. Прокалка ${st===3?'<span class="badge badge-active">активен</span>':''}</div>
+      <div class="stage-info">Выберите цикл:</div>`;
+    if (st === 3) {
+      html += `<div class="row"><select id="s3_${b.id}">${data.cycles.map(c =>
+        `<option value="${c.id}">${escapeHtml(c.name)} (${c.hours}ч × ${c.kw}кВт = ${fmt(c.hours*c.kw)} кВт·ч)</option>`).join("")}</select>
+        <button class="action ok" onclick="completeStage3(${b.id})">Этап завершён</button></div>`;
+    }
+    html += `</div>`;
+  } else if (s[3].done) {
+    const c = data.cycles.find(x => x.id === s[3].cycleId);
+    html += `<div class="stage done"><div class="stage-title">3. Прокалка <span class="badge badge-done">завершён</span></div>
+      <div class="stage-info">Цикл: ${c ? escapeHtml(c.name) : "?"} — ${fmt(b.stageCosts[3])} ₽</div></div>`;
+  }
+
+  // Этап 4 — литьё
+  if (s[3].done && !s[4].done) {
+    html += `<div class="stage ${st===4?'active':''}">
+      <div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div>
+      <div class="stage-info">Укажите использованный металл и возврат:</div>`;
+    if (st === 4) {
+      html += `<div class="row">
+        <input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г">
+        <input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0">
+        <button class="action ok" onclick="completeStage4(${b.id})">Этап завершён</button>
+      </div>`;
+    }
+    html += `</div>`;
+  } else if (s[4].done) {
+    html += `<div class="stage done"><div class="stage-title">4. Литьё <span class="badge badge-done">завершён</span></div>
+      <div class="stage-info">Использовано: ${fmt(s[4].metalUsed,3)} г, возврат: ${fmt(s[4].metalReturned,3)} г — ${fmt(b.stageCosts[4])} ₽</div></div>`;
+  }
+
+  // Этапы 5–8
+  const stageNames = {5:"Обработка", 6:"Гальваника", 7:"Чернение", 8:"Упаковка"};
+  for (let n = 5; n <= 8; n++) {
+    if (s[n-1].done && !s[n].done) {
+      html += `<div class="stage ${st===n?'active':''}">
+        <div class="stage-title">${n}. ${stageNames[n]} ${st===n?'<span class="badge badge-active">активен</span>':''}</div>
+        <div class="stage-info">Норма расхода применится автоматически.</div>`;
+      if (st === n) {
+        html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, ${n})">Этап завершён</button></div>`;
+      }
+      html += `</div>`;
+    } else if (s[n].done) {
+      html += `<div class="stage done"><div class="stage-title">${n}. ${stageNames[n]} <span class="badge badge-done">завершён</span></div>
+        <div class="stage-info">Стоимость: ${fmt(b.stageCosts[n])} ₽</div></div>`;
+    }
+  }
+
+  html += `<div class="stage-info"><b>Себестоимость партии: ${fmt(Object.values(b.stageCosts).reduce((a,x)=>a+x,0))} ₽</b></div>`;
+  html += `</div>`;
+  return html;
+}
+
 function renderBatches() {
   const active = data.batches.filter(b => !b.finished);
   const done = data.batches.filter(b => b.finished);
 
-  document.getElementById("active_batches").innerHTML = active.map(b => {
-    const p = data.products.find(x => x.id === b.productId);
-    if (!p) return "";
-    const s = b.stages;
-    const st = b.stage;
-       let html = `<div class="stage ${st===1?'active':''}">
-      <div class="stage-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-        <span>Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
-          <span class="badge badge-active">Этап ${st}</span></span>
-        <button class="action danger" onclick="deleteBatch('${b.id}')">× Удалить</button>
-      </div>
-            <div class="stage-info">Создана: ${escapeHtml(b.created)}${b.responsible ? " • Ответственный: " + escapeHtml(b.responsible) : ""}</div>`;
+  // Собираем партии по группам
+  const groupsMap = {};
+  const noGroup = [];
+  data.groups = data.groups || [];
 
-    // Этап 1 — восковки
-    if (!s[1].done) {
-      const norm = p.normWax * b.qty;
-      html += `<div class="stage ${st===1?'active':''}">
-        <div class="stage-title">1. Создание восковок ${st===1?'<span class="badge badge-active">активен</span>':''}</div>
-        <div class="stage-info">Норма: ${fmt(norm,3)} г воска. Введите фактический вес:</div>`;
-      if (st === 1) {
-        html += `<div class="row">
-          <input id="s1_${b.id}" type="number" step="0.001" placeholder="Вес воска, г">
-          <button class="action ok" onclick="completeStage1(${b.id})">Этап завершён</button>
-        </div>`;
-      }
-      html += `</div>`;
+  active.forEach(b => {
+    if (b.groupId) {
+      if (!groupsMap[b.groupId]) groupsMap[b.groupId] = [];
+      groupsMap[b.groupId].push(b);
     } else {
-      html += `<div class="stage done"><div class="stage-title">1. Восковки <span class="badge badge-done">завершён</span></div>
-        <div class="stage-info">Использовано: ${fmt(s[1].waxUsed,3)} г — ${fmt(b.stageCosts[1])} ₽</div></div>`;
+      noGroup.push(b);
     }
+  });
 
-    // Этап 2 — формовка
-    if (s[1].done && !s[2].done) {
-      html += `<div class="stage ${st===2?'active':''}">
-        <div class="stage-title">2. Формовка ${st===2?'<span class="badge badge-active">активен</span>':''}</div>
-        <div class="stage-info">Выберите размер опоки:</div>`;
-      if (st === 2) {
-        html += `<div class="row"><select id="s2_${b.id}">${data.opokas.map(o =>
-          `<option value="${o.id}">${escapeHtml(o.name)} (${o.mass} г формомассы + ${o.water} мл воды)</option>`).join("")}</select>
-          <button class="action ok" onclick="completeStage2(${b.id})">Этап завершён</button></div>`;
-      }
-      html += `</div>`;
-    } else if (s[2].done) {
-      const o = data.opokas.find(x => x.id === s[2].opokaId);
-      html += `<div class="stage done"><div class="stage-title">2. Формовка <span class="badge badge-done">завершён</span></div>
-        <div class="stage-info">Опока: ${o ? escapeHtml(o.name) : "?"} — ${fmt(b.stageCosts[2])} ₽</div></div>`;
-    }
+  // Строим HTML
+  let html = "";
 
-    // Этап 3 — прокалка
-    if (s[2].done && !s[3].done) {
-      html += `<div class="stage ${st===3?'active':''}">
-        <div class="stage-title">3. Прокалка ${st===3?'<span class="badge badge-active">активен</span>':''}</div>
-        <div class="stage-info">Выберите цикл:</div>`;
-      if (st === 3) {
-        html += `<div class="row"><select id="s3_${b.id}">${data.cycles.map(c =>
-          `<option value="${c.id}">${escapeHtml(c.name)} (${c.hours}ч × ${c.kw}кВт = ${fmt(c.hours*c.kw)} кВт·ч)</option>`).join("")}</select>
-          <button class="action ok" onclick="completeStage3(${b.id})">Этап завершён</button></div>`;
-      }
-      html += `</div>`;
-    } else if (s[3].done) {
-      const c = data.cycles.find(x => x.id === s[3].cycleId);
-      html += `<div class="stage done"><div class="stage-title">3. Прокалка <span class="badge badge-done">завершён</span></div>
-        <div class="stage-info">Цикл: ${c ? escapeHtml(c.name) : "?"} — ${fmt(b.stageCosts[3])} ₽</div></div>`;
-    }
+  // Сначала — производственные задания (группы)
+  Object.keys(groupsMap).forEach(gid => {
+    const group = data.groups.find(g => String(g.id) === String(gid));
+    const items = groupsMap[gid];
+    if (!group || items.length === 0) return;
 
-    // Этап 4 — литьё
-    if (s[3].done && !s[4].done) {
-      html += `<div class="stage ${st===4?'active':''}">
-        <div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div>
-        <div class="stage-info">Укажите использованный металл и возврат:</div>`;
-      if (st === 4) {
-        html += `<div class="row">
-          <input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г">
-          <input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0">
-          <button class="action ok" onclick="completeStage4(${b.id})">Этап завершён</button>
-        </div>`;
-      }
-      html += `</div>`;
-    } else if (s[4].done) {
-      html += `<div class="stage done"><div class="stage-title">4. Литьё <span class="badge badge-done">завершён</span></div>
-        <div class="stage-info">Использовано: ${fmt(s[4].metalUsed,3)} г, возврат: ${fmt(s[4].metalReturned,3)} г — ${fmt(b.stageCosts[4])} ₽</div></div>`;
-    }
+    // Заголовок задания
+    const title = group.title || ("от " + (group.date_start || ""));
+    const responsible = group.responsible || "—";
+    const period = group.date_start
+      ? (group.date_end && group.date_end !== group.date_start
+          ? group.date_start + " — " + group.date_end
+          : group.date_start)
+      : "—";
 
-    // Этапы 5–8
-    const stageNames = {5:"Обработка", 6:"Гальваника", 7:"Чернение", 8:"Упаковка"};
-    for (let n = 5; n <= 8; n++) {
-      if (s[n-1].done && !s[n].done) {
-        html += `<div class="stage ${st===n?'active':''}">
-          <div class="stage-title">${n}. ${stageNames[n]} ${st===n?'<span class="badge badge-active">активен</span>':''}</div>
-          <div class="stage-info">Норма расхода применится автоматически.</div>`;
-        if (st === n) {
-          html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, ${n})">Этап завершён</button></div>`;
-        }
-        html += `</div>`;
-      } else if (s[n].done) {
-        html += `<div class="stage done"><div class="stage-title">${n}. ${stageNames[n]} <span class="badge badge-done">завершён</span></div>
-          <div class="stage-info">Стоимость: ${fmt(b.stageCosts[n])} ₽</div></div>`;
-      }
-    }
+    html += `<div class="task-group">`;
+    html += `  <div class="task-group-header">`;
+    html += `    <div class="task-group-title">📦 ПРОИЗВОДСТВЕННОЕ ЗАДАНИЕ ${escapeHtml(title)}</div>`;
+    html += `    <div class="task-group-meta">Ответственный: ${escapeHtml(responsible)}</div>`;
+    html += `    <div class="task-group-meta">Срок: ${escapeHtml(period)}</div>`;
+    html += `  </div>`;
+    html += `  <div class="task-group-body">`;
 
-    html += `<div class="stage-info"><b>Себестоимость партии: ${fmt(Object.values(b.stageCosts).reduce((a,x)=>a+x,0))} ₽</b></div>`;
+    // Партии внутри задания
+    items.forEach(b => {
+      html += renderBatchCard(b);
+    });
+
+    html += `  </div>`;
     html += `</div>`;
-    return html;
-  }).join("");
+  });
 
+  // Потом — обычные партии без группы
+  noGroup.forEach(b => {
+    html += renderBatchCard(b);
+  });
+
+  document.getElementById("active_batches").innerHTML = html || `<p class="hint">Нет активных партий</p>`;
+
+  // Завершённые партии — как раньше
   document.getElementById("done_batches").innerHTML = done.map(b => `
     <div class="stage done">
       <div class="stage-title">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></div>
       <div class="stage-info">Себестоимость: ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div>
-      <div class="row"><button class="action danger" onclick="deleteBatch(${b.id})">Удалить</button></div>
+      <div class="row"><button class="action danger" onclick="deleteBatch('${b.id}')">Удалить</button></div>
     </div>`).join("");
 }
 
