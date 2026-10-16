@@ -517,14 +517,35 @@
 
 <!-- ПАРТИИ -->
 <div id="batches" class="tab">
-  <div class="card">
-    <h3>Создать партию</h3>
-   <div class="row">
-  <select id="b_product" style="min-width:220px"></select>
-  <input id="b_qty" type="number" value="1" placeholder="Количество">
-  <select id="b_responsible" style="min-width:180px"></select>
-  <button class="action ok" onclick="createBatch()">Создать партию</button>
-</div>
+ <div class="card">
+    <h3>Создать производственное задание</h3>
+    <p class="hint">Одна строка — обычная партия. Нажмите «+ Ещё изделие», чтобы создать группу из нескольких партий.</p>
+
+    <div id="batch_items_rows">
+      <div class="row batch-item-row">
+        <select class="batch-product" style="min-width:220px"></select>
+        <input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px">
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:8px">
+      <button class="action" onclick="addBatchItemRow()">+ Ещё изделие</button>
+      <button class="action danger" onclick="removeLastBatchItemRow()">− Убрать последнюю</button>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <input id="b_title" placeholder="Название задания (например, Заказ №5)" style="width:280px">
+      <select id="b_responsible" style="min-width:180px"></select>
+    </div>
+    <div class="row">
+      <label style="font-size:13px;color:#555">Срок с: <input id="b_date_start" type="date"></label>
+      <label style="font-size:13px;color:#555">по: <input id="b_date_end" type="date"></label>
+      <input id="b_note" placeholder="Комментарий" style="width:280px">
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <button class="action ok" onclick="createBatch()">СОЗДАТЬ</button>
+    </div>
   </div>
 
   <div class="card">
@@ -1367,10 +1388,41 @@ function renderOpokas() {
   }).join("");
 }
 
-/* ---------- ПАРТИИ ---------- */
+/* ---------- Партии: строки с изделиями ---------- */
 function renderBatchProductSelect() {
-  document.getElementById("b_product").innerHTML = data.products.map(p =>
-    `<option value="${p.id}">${escapeHtml(p.name)}${p.article ? " ("+escapeHtml(p.article)+")" : ""}</option>`).join("");
+  // Заполняем ВСЕ селекты .batch-product
+  const selects = document.querySelectorAll(".batch-product");
+  const optionsHTML = data.products.map(p =>
+    `<option value="${p.id}">${escapeHtml(p.name)}${p.article ? " ("+escapeHtml(p.article)+")" : ""}</option>`
+  ).join("");
+
+  selects.forEach(sel => {
+    const current = sel.value;
+    sel.innerHTML = optionsHTML;
+    if (current) sel.value = current;
+  });
+}
+
+function addBatchItemRow() {
+  const container = document.getElementById("batch_items_rows");
+  if (!container) return;
+
+  const row = document.createElement("div");
+  row.className = "row batch-item-row";
+  row.innerHTML = `
+    <select class="batch-product" style="min-width:220px"></select>
+    <input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px">
+  `;
+  container.appendChild(row);
+  renderBatchProductSelect();
+}
+
+function removeLastBatchItemRow() {
+  const container = document.getElementById("batch_items_rows");
+  if (!container) return;
+  const rows = container.querySelectorAll(".batch-item-row");
+  if (rows.length <= 1) return alert("Должна остаться хотя бы одна строка");
+  rows[rows.length - 1].remove();
 }
 
 /* ---------- Заполнить список ответственных в форме партии ---------- */
@@ -1383,19 +1435,38 @@ function renderBatchResponsibleSelect() {
 }
 
 function createBatch() {
-const pid = document.getElementById("b_product").value;
-const qty = +document.getElementById("b_qty").value || 0;
-const product = data.products.find(p => String(p.id) === String(pid));
-  if (!product) return alert("Сначала добавьте изделие");
-  if (qty <= 0) return alert("Укажите количество");
+  const container = document.getElementById("batch_items_rows");
+  if (!container) return;
+
+  const rows = container.querySelectorAll(".batch-item-row");
+  const items = [];
+
+  // Собираем данные из всех строк
+  rows.forEach(row => {
+    const pid = row.querySelector(".batch-product").value;
+    const qty = +row.querySelector(".batch-qty").value || 0;
+    if (!pid || qty <= 0) return;
+    const product = data.products.find(p => String(p.id) === String(pid));
+    if (!product) return;
+    items.push({ productId: product.id, productName: product.name, qty });
+  });
+
+  if (items.length === 0) return alert("Добавьте хотя бы одно изделие с количеством");
+
+  const title = document.getElementById("b_title").value.trim();
   const responsible = document.getElementById("b_responsible").value;
-  const batch = {
+  const dateStart = document.getElementById("b_date_start").value || null;
+  const dateEnd = document.getElementById("b_date_end").value || null;
+  const note = document.getElementById("b_note").value.trim();
+
+  // Общие параметры для всех партий
+  const commonBatch = () => ({
     id: uid(),
-    productId: pid,
-    productName: product.name,
-    qty,
-    responsible,
     created: new Date().toLocaleString(),
+    responsible,
+    dateStart,
+    dateEnd,
+    note,
     stage: 1,
     stages: {
       1: { done: false, waxUsed: null },
@@ -1409,7 +1480,70 @@ const product = data.products.find(p => String(p.id) === String(pid));
     },
     stageCosts: {},
     totalCost: 0,
-  };
+  });
+
+  // Если одно изделие — обычная партия (без группы)
+  if (items.length === 1) {
+    const item = items[0];
+    const batch = {
+      ...commonBatch(),
+      productId: item.productId,
+      productName: item.productName,
+      qty: item.qty,
+      groupId: null,
+    };
+    data.batches.push(batch);
+    showToast("Партия создана: " + item.productName + " × " + item.qty, "success");
+  } else {
+    // Несколько изделий — создаём группу
+    const groupId = "g_" + uid();
+    const group = {
+      id: groupId,
+      title: title || ("Задание от " + new Date().toLocaleDateString()),
+      type: "production",
+      responsible,
+      date_start: dateStart,
+      date_end: dateEnd,
+      note,
+      updatedAt: new Date().toISOString(),
+    };
+    data.groups = data.groups || [];
+    data.groups.push(group);
+
+    // Создаём партии
+    items.forEach(item => {
+      const batch = {
+        ...commonBatch(),
+        productId: item.productId,
+        productName: item.productName,
+        qty: item.qty,
+        groupId,
+      };
+      data.batches.push(batch);
+    });
+
+    showToast("Создано задание: " + items.length + " партий", "success");
+  }
+
+  // Очищаем форму
+  document.getElementById("b_title").value = "";
+  document.getElementById("b_date_start").value = "";
+  document.getElementById("b_date_end").value = "";
+  document.getElementById("b_note").value = "";
+
+  // Оставляем одну строку
+  const rowsContainer = document.getElementById("batch_items_rows");
+  rowsContainer.innerHTML = `
+    <div class="row batch-item-row">
+      <select class="batch-product" style="min-width:220px"></select>
+      <input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px">
+    </div>
+  `;
+  renderBatchProductSelect();
+
+  save();
+  renderBatches();
+}
   data.batches.push(batch);
   save(); renderBatches();
 }
