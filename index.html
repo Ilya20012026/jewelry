@@ -1669,7 +1669,22 @@ function renderChatMessages(chatId) {
 async function sendMessage() {
   if (!_currentChatId) return;
 
-  const user = getCurrentUser();
+  let user = getCurrentUser();
+  if (!user) {
+    try {
+      const sb = await initCloud();
+      if (sb) {
+        const { data: remote } = await sb.from("employees").select("*");
+        if (remote && remote.length > 0) {
+          data.employees = remote;
+          await saveData(data);
+          user = getCurrentUser();
+        }
+      }
+    } catch (e) {
+      console.error("Ошибка pull employees:", e);
+    }
+  }
   if (!user) return alert("Войдите заново");
 
   const input = document.getElementById("chat_input");
@@ -3146,6 +3161,8 @@ console.log("✅ Приложение запущено. IndexedDB + автоси
 }
 setTimeout(async () => {
   if (typeof initRealtime === 'function') {
+    setTimeout(async () => {
+  if (typeof initRealtime === 'function') {
     await initRealtime((table, payload) => {
       // Обработка изменений
       if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
@@ -3164,6 +3181,9 @@ setTimeout(async () => {
         if (!oldRow || !oldRow.id) return;
         data[table] = (data[table] || []).filter(x => String(x.id) !== String(oldRow.id));
       }
+
+      // Сохраняем локально (без autosync)
+      saveData(data).catch(e => console.warn("saveData:", e));
 
       // Перерисовываем интерфейс
       try {
