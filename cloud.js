@@ -15,7 +15,6 @@ let _sbReady = false;
 let _sbPromise = null;
 
 /* ---------- Инициализация клиента Supabase ---------- */
-let _sbPromise = null; // Глобальная переменная для защиты от двойного подключения
 
 async function initCloud() {
   if (_sbReady) return _sb;
