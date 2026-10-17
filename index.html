@@ -1947,10 +1947,17 @@ function clearAuthSession() {
 function getCurrentUser() {
   const session = getAuthSession();
   if (!session) return null;
-  // Находим актуальные данные о сотруднике
+  
+  // Если массив сотрудников еще не загрузился (например, во время синхронизации),
+  // мы НЕ выкидываем пользователя, а возвращаем данные из сессии.
+  if (!data.employees || data.employees.length === 0) {
+    return session;
+  }
+
   const emp = (data.employees || []).find(e => String(e.id) === String(session.id));
+  
+  // Если сотрудник реально удален из базы (и база не пустая) — тогда выходим
   if (!emp) {
-    // Сотрудник удалён — выходим
     clearAuthSession();
     return null;
   }
@@ -3240,8 +3247,8 @@ async function initApp() {
             renderChats();
           }
         }
-      } catch (e) {
-        // Тихо игнорируем ошибки
+           } catch (e) {
+        console.error('❌ Ошибка таймера чата:', e);
       }
     }
   }, 3000); // 3 секунды

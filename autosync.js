@@ -167,10 +167,16 @@ async function runAutosync(dataGetter, dataSetter) {
     // 5) Merge основных данных
     let merged = mergeByUpdatedAt(local, pullRes.data);
 
-    // 6) Применяем tombstones — удаляем всё, что помечено
-    merged = applyTombstones(merged, delPull.data);
+// 6) Применяем tombstones — удаляем всё, что помечено
+merged = applyTombstones(merged, delPull.data);
 
-    dataSetter(merged);
+// ЗАЩИТА ОТ ВЫЛЕТОВ: если облако вернуло 0 сотрудников, не затираем локальных
+if (merged.employees && merged.employees.length === 0 && local.employees && local.employees.length > 0) {
+  merged.employees = local.employees;
+}
+
+dataSetter(merged);
+    
     try { await saveData(merged); } catch (e) { console.warn("Autosync: saveData упал, но не критично:", e); }
 
     setCloudIndicator('online');
