@@ -1816,40 +1816,7 @@ function removeChatParticipant(chatId, empId) {
 }
 
 
-  // Сортируем: закреплённые сверху
-  chats.sort((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return 0;
-  });
-
-  if (chats.length === 0) {
-    listEl.innerHTML = `<p class="hint">Нет чатов. Нажмите «+ Создать чат».</p>`;
-    return;
-  }
-
-  listEl.innerHTML = chats.map(c => {
-    // Сколько участников
-    const parts = (data.chat_participants || []).filter(p => String(p.chat_id) === String(c.id));
-    const partsCount = parts.length;
-
-    // Кол-во сообщений
-    const msgCount = (data.messages || []).filter(m => String(m.chat_id) === String(c.id)).length;
-
-    return `
-      <div class="chat-item ${c.pinned ? 'pinned' : ''}" onclick="openChat('${c.id}')">
-        <div class="chat-item-info">
-          <div class="chat-item-title">${escapeHtml(c.title || "Без названия")}</div>
-          <div class="chat-item-meta">
-            ${partsCount > 0 ? partsCount + " участн." : "без участников"}
-            ${msgCount > 0 ? " • " + msgCount + " сообщ." : ""}
-          </div>
-        </div>
-        ${c.pinned ? '<span class="chat-item-badge">закреплён</span>' : ''}
-      </div>
-    `;
-  }).join("");
-}
+ 
 
 /* ---------- Переключение вкладок внутри компании ---------- */
 function showCompanyTab(id, btn) {
