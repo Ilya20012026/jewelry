@@ -217,7 +217,13 @@ function mergeByUpdatedAt(local, remote) {
       const tRemote = item.updatedAt ? Date.parse(item.updatedAt) : 0;
       if (tRemote > tLocal) map.set(key, item);
     }
-    merged[t] = [...map.values()];
+    
+    // ЗАЩИТА СОТРУДНИКОВ (ПРЯМО ЗДЕСЬ): если из облака пришла пустота, оставляем локальных
+    if (t === 'employees' && (!map.size || map.size === 0)) {
+      merged[t] = local[t] || [];
+    } else {
+      merged[t] = [...map.values()];
+    }
   }
   merged.deleted = local.deleted;
   return merged;

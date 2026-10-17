@@ -1391,63 +1391,7 @@ function checkScheduledTasks() {
     showToast(`📦 Создано партий по плану: ${created}`, "success");
   }
 }
-/* ---------- АВТОСОЗДАНИЕ ПАРТИЙ ИЗ ПЛАНОВ ---------- */
-function checkScheduledTasks() {
-  if (!data.tasks || !data.batches) return;
 
-  // Сегодняшняя дата по МСК
-  const now = new Date();
-  const msk = new Date(now.getTime() + (3 * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60 * 1000));
-  const today = msk.toISOString().slice(0, 10);
-
-  let created = 0;
-
-  for (const task of data.tasks) {
-    if (task.type !== "restock" && task.type !== "new_item") continue;
-    if (task.batch_created) continue;
-    if (!task.date_start) continue;
-    if (task.date_start > today) continue;
-    if (!task.product_id || !task.qty || task.qty <= 0) continue;
-
-    const product = data.products.find(p => String(p.id) === String(task.product_id));
-    if (!product) continue;
-
-    const batch = {
-      id: uid(),
-      productId: product.id,
-      productName: product.name,
-      qty: task.qty,
-      created: new Date().toLocaleString(),
-      stage: 1,
-      stages: {
-        1: { done: false, waxUsed: null },
-        2: { done: false, opokaId: null },
-        3: { done: false, cycleId: null },
-        4: { done: false, metalUsed: null, metalReturned: null },
-        5: { done: false },
-        6: { done: false },
-        7: { done: false },
-        8: { done: false },
-      },
-      stageCosts: {},
-      totalCost: 0,
-      fromTaskId: task.id,
-    };
-    data.batches.push(batch);
-
-    task.batch_created = true;
-    task.batch_id = batch.id;
-    task.updatedAt = new Date().toISOString();
-    created++;
-  }
-
-  if (created > 0) {
-    save();
-    renderBatches();
-    if (_calSelectedDay) renderDayTasks(_calSelectedDay);
-    showToast("📦 Создано партий по плану: " + created, "success");
-  }
-}
 
 /* ---------- Заполнить список ответственных ---------- */
 
