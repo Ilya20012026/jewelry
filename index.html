@@ -3213,6 +3213,38 @@ async function initApp() {
   setInterval(() => {
     checkScheduledTasks();
   }, 60000);
+ 
+ // --- АВАРИЙНЫЙ ТАЙМЕР ДЛЯ ЧАТА ---
+  setInterval(async () => {
+    if (typeof _currentChatId !== 'undefined' && _currentChatId && navigator.onLine) {
+      try {
+        const sb = await initCloud();
+        if (!sb) return;
+        
+        const { data: latestMessages, error } = await sb
+          .from('messages')
+          .select('*')
+          .eq('chat_id', _currentChatId)
+          .order('created_at', { ascending: false })
+          .limit(50);
+          
+        if (!error && latestMessages) {
+          latestMessages.reverse();
+          const localMsgs = data.messages ? data.messages.filter(m => String(m.chat_id) === String(_currentChatId)) : [];
+          
+          if (latestMessages.length !== localMsgs.length) {
+            console.log('🔄 Таймер нашел новые сообщения, обновляю чат...');
+            data.messages = (data.messages || []).filter(m => String(m.chat_id) !== String(_currentChatId));
+            data.messages.push(...latestMessages);
+            renderChatMessages(_currentChatId);
+            renderChats();
+          }
+        }
+      } catch (e) {
+        // Тихо игнорируем ошибки
+      }
+    }
+  }, 3000); // 3 секунды
 
   console.log("✅ Приложение запущено. IndexedDB + автосинхронизация + Realtime.");
 }
