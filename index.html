@@ -3132,10 +3132,10 @@ async function initApp() {
   let loaded = await migrateFromLocalStorage();
   if (!loaded) loaded = await loadData();
   data = loaded || JSON.parse(JSON.stringify(EMPTY_DATA));
-    ensureDeletedStruct(data);
+  ensureDeletedStruct(data);
   stampUpdatedAt(data);
   renderAll();
-    // Ждём, пока pull подтянет данные, потом проверяем сессию
+
   setTimeout(() => checkSession(), 2500);
   renderEmployees();
   checkScheduledTasks();
@@ -3143,23 +3143,65 @@ async function initApp() {
   renderCalendar();
   onTaskTypeChange();
 
-  // Регистрируем планировщик автосинхронизации
   window.__scheduleAutosync = () => scheduleAutosync(() => data, (d) => { data = d; });
 
-  // Индикатор состояния облака
   setCloudIndicator(navigator.onLine ? 'online' : 'offline');
 
-  // Первая синхронизация при запуске (через 1 сек, чтобы UI успел отрисоваться)
+  // --- ИНИЦИАЛИЗАЦИЯ REALTIME ---
+  initRealtime((table, payload) => {
+    console.log(`Получено Realtime-событие для таблицы ${table}`);
+
+    // 1. Чат
+    if (table === 'messages' || table === 'chat_participants') {
+      if (typeof _currentChatId !== 'undefined' && _currentChatId) {
+        renderChatMessages(_currentChatId);
+        renderChatParticipants(_currentChatId);
+      }
+      renderChats();
+    }
+
+    // 2. Календарь
+    if (table === 'tasks') {
+      renderCalendar();
+      if (typeof _calSelectedDay !== 'undefined' && _calSelectedDay) {
+        renderDayTasks(_calSelectedDay);
+      }
+    }
+
+    // 3. Производство
+    if (['batches', 'groups', 'employees'].includes(table)) {
+      renderBatches();
+      renderBatchResponsibleSelect();
+    }
+
+    // 4. Справочники
+    if (['materials', 'products', 'cycles', 'opokas'].includes(table)) {
+      renderMaterials();
+      renderProducts();
+      renderCycles();
+      renderOpokas();
+      renderAllMaterialSelects();
+      renderBatchProductSelect();
+    }
+
+    // 5. Склад и архив
+    if (table === 'stock' || table === 'archive') {
+      renderStock();
+      renderArchive();
+    }
+  });
+
   setTimeout(() => {
     if (navigator.onLine) {
       runAutosync(() => data, (d) => { data = d; renderAll(); });
     }
   }, 1000);
 
-   setInterval(() => {
+  setInterval(() => {
     checkScheduledTasks();
-  }, 60000); 
-console.log("✅ Приложение запущено. IndexedDB + автосинхронизация.");
+  }, 60000);
+
+  console.log("✅ Приложение запущено. IndexedDB + автосинхронизация + Realtime.");
 }
 
 initApp();

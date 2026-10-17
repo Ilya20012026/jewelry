@@ -185,3 +185,49 @@ async function syncAll(localData) {
   console.log('✅ Синхронизация завершена');
   return { ok: true, data: merged };
 }
+
+/* ============================================================
+   REALTIME — мгновенные обновления
+   ============================================================ */
+
+/**
+ * Инициализирует подписку на изменения в таблицах Supabase.
+ * @param {Function} onDataChanged — коллбэк, вызывается при любом изменении.
+ */
+async function initRealtime(onDataChanged) {
+  const sb = await initCloud();
+  if (!sb) {
+    console.warn('Realtime: нет клиента Supabase');
+    return;
+  }
+
+  const tablesToWatch = [
+    'materials', 'products', 'cycles', 'opokas',
+    'batches', 'stock', 'archive', 'tasks',
+    'employees', 'groups', 'chats', 'messages', 'chat_participants'
+  ];
+
+  const channel = sb.channel('realtime-sync');
+
+  tablesToWatch.forEach(table => {
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: table },
+      (payload) => {
+        console.log(`Realtime [${table}]:`, payload.eventType, payload);
+        if (typeof onDataChanged === 'function') {
+          onDataChanged(table, payload);
+        }
+      }
+    );
+  });
+
+  channel.subscribe((status) => {
+    console.log('Realtime статус:', status);
+    if (status === 'SUBSCRIBED') {
+      console.log('✅ Realtime подключен ко всем таблицам');
+    }
+  });
+
+  return channel;
+}
