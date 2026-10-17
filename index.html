@@ -3161,8 +3161,6 @@ console.log("✅ Приложение запущено. IndexedDB + автоси
 }
 setTimeout(async () => {
   if (typeof initRealtime === 'function') {
-    setTimeout(async () => {
-  if (typeof initRealtime === 'function') {
     await initRealtime((table, payload) => {
       // Обработка изменений
       if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
@@ -3182,10 +3180,8 @@ setTimeout(async () => {
         data[table] = (data[table] || []).filter(x => String(x.id) !== String(oldRow.id));
       }
 
-      // Сохраняем локально (без autosync)
       saveData(data).catch(e => console.warn("saveData:", e));
 
-      // Перерисовываем интерфейс
       try {
         if (table === 'messages' && typeof _currentChatId !== 'undefined' && _currentChatId) {
           renderChatMessages(_currentChatId);
@@ -3234,6 +3230,7 @@ setTimeout(async () => {
 }, 3000);
 
 initApp();
+
 </script>
 <script>
   if ('serviceWorker' in navigator) {
