@@ -2116,7 +2116,7 @@ function applyRoleRestrictions(user) {
 
 
 /* ---------- Переключение главных разделов ---------- */
-
+console.log("ДО showMain");
 function showMain(mainId, btn) {
   // Скрыть все главные разделы
   document.querySelectorAll(".main-section").forEach(s => s.classList.remove("active"));
@@ -3127,6 +3127,7 @@ async function uiFullSync() {
   setSyncStatus(`✅ Синхронизировано. Всего объектов: ${total}`, '#2f855a');
 }
 /* ---------- СТАРТ ПРИЛОЖЕНИЯ ---------- */
+console.log("ДО initApp");
 async function initApp() {
   let loaded = await migrateFromLocalStorage();
   if (!loaded) loaded = await loadData();
