@@ -3118,7 +3118,8 @@ async function initApp() {
     ensureDeletedStruct(data);
   stampUpdatedAt(data);
   renderAll();
-  checkSession();
+    // Ждём, пока pull подтянет данные, потом проверяем сессию
+  setTimeout(() => checkSession(), 2500);
   renderEmployees();
   checkScheduledTasks();
   renderResponsibleSelect();
