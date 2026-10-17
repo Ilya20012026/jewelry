@@ -3141,6 +3141,19 @@ async function initApp() {
   ensureDeletedStruct(data);
   stampUpdatedAt(data);
   renderAll();
+  // Принудительная загрузка списка чатов при старте (чтобы не пропадали)
+  (async () => {
+    try {
+      const sb = await initCloud();
+      if (sb) {
+        const { data: remoteChats } = await sb.from('chats').select('*');
+        const { data: remoteParts } = await sb.from('chat_participants').select('*');
+        if (remoteChats) data.chats = remoteChats;
+        if (remoteParts) data.chat_participants = remoteParts;
+        renderChats(); // Перерисовываем список
+      }
+    } catch(e) { console.error("Ошибка загрузки чатов:", e); }
+  })();
 
   setTimeout(() => checkSession(), 2500);
   renderEmployees();
