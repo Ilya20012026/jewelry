@@ -1494,6 +1494,53 @@ function renderChats() {
       c.type === "general"
     );
   }
+/* ---------- Создать кастомный чат ---------- */
+function createCustomChat() {
+  const user = getCurrentUser();
+  if (!user || user.role !== "admin") return alert("Только руководитель может создавать чаты");
+
+  const title = prompt("Название чата:");
+  if (!title || !title.trim()) return;
+
+  const newChat = {
+    id: "c_" + Date.now() + "_" + Math.floor(Math.random()*1000),
+    type: "custom",
+    title: title.trim(),
+    linked_id: null,
+    linked_type: null,
+    pinned: false,
+    created_by: String(user.id),
+    updatedAt: new Date().toISOString(),
+  };
+
+  data.chats = data.chats || [];
+  data.chats.push(newChat);
+
+  save();
+  renderChats();
+  showToast("✅ Чат создан: " + title, "success");
+}
+
+/* ---------- Удалить текущий чат ---------- */
+function deleteCurrentChat() {
+  if (!_currentChatId) return;
+  const chat = (data.chats || []).find(c => String(c.id) === String(_currentChatId));
+  if (!chat) return;
+
+  if (chat.type === "announcements" || chat.type === "general") {
+    return alert("Системный чат удалить нельзя");
+  }
+
+  if (!confirm("Удалить чат «" + chat.title + "» и все сообщения?")) return;
+
+  data.chats = data.chats.filter(c => String(c.id) !== String(_currentChatId));
+  data.messages = (data.messages || []).filter(m => String(m.chat_id) !== String(_currentChatId));
+  data.chat_participants = (data.chat_participants || []).filter(p => String(p.chat_id) !== String(_currentChatId));
+
+  save();
+  closeChatWindow();
+  showToast("✅ Чат удалён", "success");
+}
 
 /* ---------- Открыть чат ---------- */
 function openChat(chatId) {
