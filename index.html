@@ -3147,10 +3147,22 @@ async function initApp() {
 
   setCloudIndicator(navigator.onLine ? 'online' : 'offline');
 
-   // --- ИНИЦИАЛИЗАЦИЯ REALTIME ---
-  console.log("Запускаю Realtime...");
+    // --- ИНИЦИАЛИЗАЦИЯ REALTIME ---
   initRealtime((table, payload) => {
     console.log(`Получено Realtime-событие для таблицы ${table}`);
+
+    // Принудительно обновляем локальные данные данными из события
+    if (payload && payload.new && payload.new.id) {
+      if (!data[table]) data[table] = [];
+      const idx = data[table].findIndex(x => String(x.id) === String(payload.new.id));
+      if (idx >= 0) {
+        data[table][idx] = payload.new; // Обновляем (UPDATE)
+      } else if (payload.eventType === 'INSERT') {
+        data[table].push(payload.new); // Добавляем (INSERT)
+      } else if (payload.eventType === 'DELETE') {
+        data[table] = data[table].filter(x => String(x.id) !== String(payload.old.id)); // Удаляем
+      }
+    }
 
     // 1. Чат
     if (table === 'messages' || table === 'chat_participants') {
