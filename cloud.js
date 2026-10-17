@@ -12,20 +12,30 @@ const TOMBSTONE_TTL_DAYS = 30;
 
 let _sb = null;
 let _sbReady = false;
+let _sbPromise = null;
 
 /* ---------- Инициализация клиента Supabase ---------- */
+let _sbPromise = null; // Глобальная переменная для защиты от двойного подключения
+
 async function initCloud() {
   if (_sbReady) return _sb;
-  try {
-    const mod = await import('https://esm.sh/@supabase/supabase-js@2');
-    _sb = mod.createClient(SUPABASE_URL, SUPABASE_KEY);
-    _sbReady = true;
-    console.log('☁️ Supabase подключён');
-    return _sb;
-  } catch (e) {
-    console.error('❌ Не удалось подключить Supabase:', e.message);
-    return null;
-  }
+  if (_sbPromise) return _sbPromise; // Если уже в процессе подключения — ждем его
+
+  _sbPromise = (async () => {
+    try {
+      const mod = await import('https://esm.sh/@supabase/supabase-js@2');
+      _sb = mod.createClient(SUPABASE_URL, SUPABASE_KEY);
+      _sbReady = true;
+      console.log('☁️ Supabase подключён');
+      return _sb;
+    } catch (e) {
+      console.error('❌ Не удалось подключить Supabase:', e.message);
+      _sbPromise = null; // Сбрасываем при ошибке, чтобы можно было попробовать снова
+      return null;
+    }
+  })();
+
+  return _sbPromise;
 }
 
 /* ---------- Проверка связи ---------- */
