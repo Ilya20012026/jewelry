@@ -1906,10 +1906,9 @@ function getCurrentUser() {
 
   const emp = data.employees.find(e => String(e.id) === String(session.id));
   
-  // Если сотрудник реально удален (база не пустая, но его нет) — выходим
+ 
   if (!emp) {
-    clearAuthSession();
-    return null;
+    return session; 
   }
   return emp;
 }
@@ -2013,7 +2012,17 @@ function doLogout() {
 
 /* Проверка сессии при загрузке */
 function checkSession() {
-  const user = getCurrentUser();
+  let user = getCurrentUser();
+  
+  // Если пользователь не найден (вылетел), но в localStorage есть сессия — восстанавливаем принудительно
+  if (!user) {
+    const session = getAuthSession();
+    if (session && session.id) {
+      console.log("🔄 Сессия потеряна, но найдена в localStorage. Восстанавливаем...");
+      user = session; // Возвращаем пользователя
+    }
+  }
+
   if (user) {
     showApp();
   } else {

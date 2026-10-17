@@ -175,6 +175,16 @@ if (merged.employees && merged.employees.length === 0 && local.employees && loca
   merged.employees = local.employees;
 }
 
+    // ЖЕСТКАЯ ЗАЩИТА: если в скачанных данных нет сотрудников, а локально они есть — возвращаем локальных
+    if (merged.employees && merged.employees.length === 0 && local.employees && local.employees.length > 0) {
+      merged.employees = local.employees;
+    }
+    
+    // То же самое для чатов (чтобы не пропадали)
+    if (merged.chats && merged.chats.length === 0 && local.chats && local.chats.length > 0) {
+      merged.chats = local.chats;
+    }
+
 dataSetter(merged);
     
     try { await saveData(merged); } catch (e) { console.warn("Autosync: saveData упал, но не критично:", e); }
