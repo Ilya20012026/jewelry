@@ -197,7 +197,16 @@ dataSetter(merged);
 /* ---------- Merge по updatedAt ---------- */
 function mergeByUpdatedAt(local, remote) {
   const merged = {};
+  
+  // ЗАЩИТА ЧАТА: Autosync не трогает сообщения
+  merged.messages = local.messages || [];
+  merged.chats = local.chats || [];
+  merged.chat_participants = local.chat_participants || [];
+
   for (const t of AUTOSYNC_TABLES) {
+    // Пропускаем чат, так как мы его уже перенесли
+    if (t === 'messages' || t === 'chats' || t === 'chat_participants') continue;
+
     const map = new Map();
     for (const item of (local[t] || []))  map.set(String(item.id), item);
     for (const item of (remote[t] || [])) {
@@ -210,7 +219,6 @@ function mergeByUpdatedAt(local, remote) {
     }
     merged[t] = [...map.values()];
   }
-  // Сохраняем deleted
   merged.deleted = local.deleted;
   return merged;
 }

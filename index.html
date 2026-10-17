@@ -1948,15 +1948,14 @@ function getCurrentUser() {
   const session = getAuthSession();
   if (!session) return null;
   
-  // Если массив сотрудников еще не загрузился (например, во время синхронизации),
-  // мы НЕ выкидываем пользователя, а возвращаем данные из сессии.
-  if (!data.employees || data.employees.length === 0) {
+  // Если массив сотрудников еще не загрузился или стал null — не выкидываем!
+  if (!data.employees || !Array.isArray(data.employees) || data.employees.length === 0) {
     return session;
   }
 
-  const emp = (data.employees || []).find(e => String(e.id) === String(session.id));
+  const emp = data.employees.find(e => String(e.id) === String(session.id));
   
-  // Если сотрудник реально удален из базы (и база не пустая) — тогда выходим
+  // Если сотрудник реально удален (база не пустая, но его нет) — выходим
   if (!emp) {
     clearAuthSession();
     return null;
@@ -3221,7 +3220,7 @@ async function initApp() {
     checkScheduledTasks();
   }, 60000);
  
- // --- АВАРИЙНЫЙ ТАЙМЕР ДЛЯ ЧАТА ---
+   // --- АВАРИЙНЫЙ ТАЙМЕР ДЛЯ ЧАТА ---
   setInterval(async () => {
     if (typeof _currentChatId !== 'undefined' && _currentChatId && navigator.onLine) {
       try {
@@ -3237,17 +3236,23 @@ async function initApp() {
           
         if (!error && latestMessages) {
           latestMessages.reverse();
-          const localMsgs = data.messages ? data.messages.filter(m => String(m.chat_id) === String(_currentChatId)) : [];
           
-          if (latestMessages.length !== localMsgs.length) {
+          let hasNew = false;
+          latestMessages.forEach(msg => {
+            const exists = (data.messages || []).find(m => String(m.id) === String(msg.id));
+            if (!exists) {
+              data.messages.push(msg);
+              hasNew = true;
+            }
+          });
+
+          if (hasNew) {
             console.log('🔄 Таймер нашел новые сообщения, обновляю чат...');
-            data.messages = (data.messages || []).filter(m => String(m.chat_id) !== String(_currentChatId));
-            data.messages.push(...latestMessages);
             renderChatMessages(_currentChatId);
             renderChats();
           }
         }
-           } catch (e) {
+      } catch (e) {
         console.error('❌ Ошибка таймера чата:', e);
       }
     }
