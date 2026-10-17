@@ -3147,7 +3147,8 @@ async function initApp() {
 
   setCloudIndicator(navigator.onLine ? 'online' : 'offline');
 
-  // --- ИНИЦИАЛИЗАЦИЯ REALTIME ---
+   // --- ИНИЦИАЛИЗАЦИЯ REALTIME ---
+  console.log("Запускаю Realtime...");
   initRealtime((table, payload) => {
     console.log(`Получено Realtime-событие для таблицы ${table}`);
 
