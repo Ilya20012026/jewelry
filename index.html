@@ -1665,6 +1665,17 @@ async function sendMessage() {
 
   save();
   renderChatMessages(_currentChatId);
+
+  // МГНОВЕННАЯ ОТПРАВКА В ОБЛАКО (не ждем Autosync)
+  try {
+    const sb = await initCloud();
+    if (sb) {
+      await sb.from('messages').upsert(msg);
+      console.log("✅ Сообщение мгновенно отправлено в облако");
+    }
+  } catch (e) {
+    console.error("Ошибка мгновенной отправки:", e);
+  }
 }
 
 /* ---------- Загрузить файл ---------- */
@@ -3219,17 +3230,21 @@ async function initApp() {
             }
           });
 
-          if (hasNew) {
+        if (hasNew) {
             console.log('🔄 Таймер нашел новые сообщения, обновляю чат...');
             renderChatMessages(_currentChatId);
             renderChats();
+            
+            // Принудительная перерисовка (на случай, если DOM не обновился)
+            setTimeout(() => {
+              renderChatMessages(_currentChatId);
+            }, 100);
           }
-        }
       } catch (e) {
         console.error('❌ Ошибка таймера чата:', e);
       }
     }
-  }, 3000); // 3 секунды
+  }, 1500); // 1,5 секунды
 
   console.log("✅ Приложение запущено. IndexedDB + автосинхронизация + Realtime.");
 }
