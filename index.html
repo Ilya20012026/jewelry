@@ -1687,6 +1687,7 @@ async function sendMessage() {
     file_name: _pendingChatFile ? _pendingChatFile.name : null,
     file_type: _pendingChatFile ? _pendingChatFile.type : null,
     created_at: new Date().toISOString(),
+ updatedAt: new Date().toISOString(),
   };
 
   data.messages = data.messages || [];
