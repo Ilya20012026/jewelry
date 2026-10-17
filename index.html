@@ -1495,6 +1495,248 @@ function renderChats() {
     );
   }
 
+/* ---------- Открыть чат ---------- */
+function openChat(chatId) {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const chat = (data.chats || []).find(c => String(c.id) === String(chatId));
+  if (!chat) return alert("Чат не найден");
+
+  _currentChatId = chatId;
+
+  // Заголовок
+  document.getElementById("chat_title").textContent = chat.title || "Без названия";
+
+  // Скрываем список, показываем окно
+  document.querySelector("#company-chat > .card").style.display = "none";
+  document.getElementById("chat_window").style.display = "block";
+
+  // Участники
+  renderChatParticipants(chatId);
+
+  // Сообщения
+  renderChatMessages(chatId);
+
+  // Фокус на поле ввода
+  setTimeout(() => {
+    const inp = document.getElementById("chat_input");
+    if (inp) inp.focus();
+  }, 100);
+}
+
+/* ---------- Закрыть чат ---------- */
+function closeChatWindow() {
+  _currentChatId = null;
+  document.getElementById("chat_window").style.display = "none";
+  document.querySelector("#company-chat > .card").style.display = "block";
+  renderChats();
+}
+
+/* ---------- Отрисовать сообщения ---------- */
+function renderChatMessages(chatId) {
+  const el = document.getElementById("chat_messages");
+  if (!el) return;
+
+  const user = getCurrentUser();
+  const myId = user ? String(user.id) : null;
+
+  const messages = (data.messages || [])
+    .filter(m => String(m.chat_id) === String(chatId))
+    .sort((a, b) => {
+      const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return tA - tB;
+    });
+
+  if (messages.length === 0) {
+    el.innerHTML = `<p class="hint" style="text-align:center;">Пока нет сообщений. Напишите первым!</p>`;
+    return;
+  }
+
+  el.innerHTML = messages.map(m => {
+    const isOwn = String(m.sender_id) === myId;
+    const timeStr = m.created_at
+      ? new Date(m.created_at).toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })
+      : "";
+
+    let fileHtml = "";
+    if (m.file_url) {
+      const isImage = (m.file_type || "").startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(m.file_name || "");
+      if (isImage) {
+        fileHtml = `<div class="chat-message-file"><img src="${escapeHtml(m.file_url)}" onclick="window.open('${escapeHtml(m.file_url)}','_blank')" alt=""></div>`;
+      } else {
+        fileHtml = `<div class="chat-message-file">📎 <a href="${escapeHtml(m.file_url)}" target="_blank">${escapeHtml(m.file_name || "Файл")}</a></div>`;
+      }
+    }
+
+    return `
+      <div class="chat-message ${isOwn ? 'own' : ''}">
+        <div class="chat-message-header">
+          <span class="chat-message-sender">${escapeHtml(m.sender_name || "—")}</span>
+          <span class="chat-message-time">${timeStr}</span>
+        </div>
+        ${m.text ? `<div class="chat-message-text">${escapeHtml(m.text)}</div>` : ""}
+        ${fileHtml}
+      </div>
+    `;
+  }).join("");
+
+  // Прокрутить вниз
+  el.scrollTop = el.scrollHeight;
+}
+
+/* ---------- Отправить сообщение ---------- */
+async function sendMessage() {
+  if (!_currentChatId) return;
+
+  const user = getCurrentUser();
+  if (!user) return alert("Войдите заново");
+
+  const input = document.getElementById("chat_input");
+  const text = (input.value || "").trim();
+
+  if (!text && !_pendingChatFile) return;
+
+  const msg = {
+    id: "m_" + Date.now() + "_" + Math.floor(Math.random()*1000),
+    chat_id: _currentChatId,
+    sender_id: String(user.id),
+    sender_name: user.name + (user.role === "admin" ? " (админ)" : ""),
+    text: text || null,
+    file_url: _pendingChatFile ? _pendingChatFile.url : null,
+    file_name: _pendingChatFile ? _pendingChatFile.name : null,
+    file_type: _pendingChatFile ? _pendingChatFile.type : null,
+    created_at: new Date().toISOString(),
+  };
+
+  data.messages = data.messages || [];
+  data.messages.push(msg);
+
+  input.value = "";
+  _pendingChatFile = null;
+  document.getElementById("chat_file_status").textContent = "";
+
+  save();
+  renderChatMessages(_currentChatId);
+}
+
+/* ---------- Загрузить файл ---------- */
+async function uploadChatFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById("chat_file_status");
+  statusEl.textContent = "Загрузка файла: " + file.name + "...";
+  statusEl.style.color = "#b7791f";
+
+  try {
+    const sb = await initCloud();
+    if (!sb) throw new Error("Нет клиента Supabase");
+
+    const ext = file.name.split('.').pop() || 'bin';
+    const fileName = "c_" + Date.now() + "_" + Math.floor(Math.random()*1000) + "." + ext;
+
+    const { error: uploadError } = await sb.storage
+      .from('chat-files')
+      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = sb.storage
+      .from('chat-files')
+      .getPublicUrl(fileName);
+
+    _pendingChatFile = {
+      url: urlData.publicUrl,
+      name: file.name,
+      type: file.type || "application/octet-stream",
+    };
+
+    statusEl.textContent = "✅ Файл готов к отправке: " + file.name;
+    statusEl.style.color = "#2f855a";
+
+  } catch (e) {
+    console.error("Ошибка загрузки:", e);
+    statusEl.textContent = "❌ Ошибка: " + e.message;
+    statusEl.style.color = "#c53030";
+  }
+}
+
+/* ---------- Участники чата ---------- */
+function renderChatParticipants(chatId) {
+  const listEl = document.getElementById("chat_participants_list");
+  const selectEl = document.getElementById("chat_add_participant");
+  if (!listEl || !selectEl) return;
+
+  const user = getCurrentUser();
+  const isAdmin = user && user.role === "admin";
+
+  const chat = (data.chats || []).find(c => String(c.id) === String(chatId));
+  const isSystemChat = chat && (chat.type === "announcements" || chat.type === "general");
+
+  const participants = (data.chat_participants || [])
+    .filter(p => String(p.chat_id) === String(chatId))
+    .map(p => {
+      const emp = (data.employees || []).find(e => String(e.id) === String(p.employee_id));
+      return { ...p, name: emp ? emp.name : "Неизвестный" };
+    });
+
+  // Список участников
+  if (participants.length === 0) {
+    listEl.innerHTML = `<span style="font-size:13px;color:#888;">пока никого</span>`;
+  } else {
+    listEl.innerHTML = participants.map(p => `
+      <span class="chat-participant-chip">
+        ${escapeHtml(p.name)}
+        ${isAdmin ? `<button onclick="removeChatParticipant('${p.chat_id}', '${p.employee_id}')">×</button>` : ''}
+      </span>
+    `).join("");
+  }
+
+  // Список для добавления
+  if (isAdmin && !isSystemChat) {
+    const participantIds = new Set(participants.map(p => String(p.employee_id)));
+    const available = (data.employees || []).filter(e => !participantIds.has(String(e.id)));
+    selectEl.style.display = "inline-block";
+    selectEl.innerHTML = `<option value="">— Добавить —</option>` +
+      available.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join("");
+    document.querySelector("#chat_participants_bar button").style.display = "inline-block";
+  } else {
+    selectEl.style.display = "none";
+    document.querySelector("#chat_participants_bar button").style.display = "none";
+  }
+}
+
+function addChatParticipant() {
+  const chatId = _currentChatId;
+  if (!chatId) return;
+
+  const selectEl = document.getElementById("chat_add_participant");
+  const empId = selectEl.value;
+  if (!empId) return alert("Выберите сотрудника");
+
+  data.chat_participants = data.chat_participants || [];
+  const exists = data.chat_participants.find(p =>
+    String(p.chat_id) === String(chatId) && String(p.employee_id) === String(empId)
+  );
+  if (exists) return alert("Уже добавлен");
+
+  data.chat_participants.push({ chat_id: chatId, employee_id: empId });
+  save();
+  renderChatParticipants(chatId);
+}
+
+function removeChatParticipant(chatId, empId) {
+  if (!confirm("Убрать участника из чата?")) return;
+  data.chat_participants = (data.chat_participants || []).filter(p =>
+    !(String(p.chat_id) === String(chatId) && String(p.employee_id) === String(empId))
+  );
+  save();
+  renderChatParticipants(chatId);
+}
+
+
   // Сортируем: закреплённые сверху
   chats.sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
@@ -1536,7 +1778,12 @@ function showCompanyTab(id, btn) {
   document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
   document.getElementById("company-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
-  if (id === "employees") renderEmployees();
+    if (id === "employees") renderEmployees();
+  if (id === "chat") {
+    renderChats();
+    document.getElementById("chat_window").style.display = "none";
+    document.querySelector("#company-chat > .card").style.display = "block";
+  }
 }
 
 /* ---------- СОТРУДНИКИ ---------- */
