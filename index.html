@@ -2109,10 +2109,12 @@ function applyRoleRestrictions(user) {
     const activeCompanyTab = document.querySelector("#main-company .tab.active");
     if (activeCompanyTab && activeCompanyTab.id === "company-employees") {
       const calBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
-      if (calBtn) showCompanyTab("calendar", calBtn);
+    if (calBtn) showCompanyTab("calendar", calBtn);
     }
   }
 }
+}
+
 
 /* ---------- Переключение главных разделов ---------- */
 
