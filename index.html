@@ -1413,7 +1413,7 @@ function isAdmin() {
 }
 
 /* Вход */
-function doLogin() {
+async function doLogin() {
   const name = (document.getElementById("login_name").value || "").trim();
   const pin = (document.getElementById("login_pin").value || "").trim();
   const errEl = document.getElementById("login_error");
@@ -1425,9 +1425,34 @@ function doLogin() {
     return;
   }
 
-  const emp = (data.employees || []).find(e =>
+    // Сначала ищем локально
+  let emp = (data.employees || []).find(e =>
     e.name && e.name.toLowerCase() === name.toLowerCase() && e.pin === pin
   );
+
+  // Если локально нет — запрашиваем из Supabase
+  if (!emp) {
+    errEl.textContent = "Проверка через облако...";
+    errEl.style.color = "#b7791f";
+    try {
+      const sb = await initCloud();
+      if (sb) {
+        const { data: remote, error } = await sb.from("employees").select("*");
+        if (!error && remote && remote.length > 0) {
+          data.employees = remote;
+          await saveData(data);
+          emp = remote.find(e =>
+            e.name && e.name.toLowerCase() === name.toLowerCase() && e.pin === pin
+          );
+        }
+      }
+    } catch (e) {
+      console.error("Ошибка запроса к облаку:", e);
+    }
+  }
+
+  errEl.textContent = "";
+  errEl.style.color = "";
 
   if (!emp) {
     errEl.textContent = "Неверные ФИО или PIN";
@@ -2080,10 +2105,18 @@ function renderBatchCard(b) {
   const s = b.stages;
   const st = b.stage;
 
+   // Фото изделия (если есть)
+  const photoHtml = p.photo
+    ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">`
+    : "";
+
   let html = `<div class="stage ${st===1?'active':''}">
     <div class="stage-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-      <span>Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
-        <span class="badge badge-active">Этап ${st}</span></span>
+      <span style="display:flex;align-items:center;gap:10px;">
+        ${photoHtml}
+        <span>Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
+          <span class="badge badge-active">Этап ${st}</span></span>
+      </span>
       <button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">× Удалить</button>
     </div>
     <div class="stage-info">Создана: ${escapeHtml(b.created)}${b.responsible ? " • Ответственный: " + escapeHtml(b.responsible) : ""}</div>`;
