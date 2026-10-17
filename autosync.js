@@ -228,7 +228,6 @@ function mergeByUpdatedAt(local, remote) {
       if (tRemote > tLocal) map.set(key, item);
     }
     
-    // ЗАЩИТА СОТРУДНИКОВ (ПРЯМО ЗДЕСЬ): если из облака пришла пустота, оставляем локальных
     if (t === 'employees' && (!map.size || map.size === 0)) {
       merged[t] = local[t] || [];
     } else {
@@ -238,7 +237,6 @@ function mergeByUpdatedAt(local, remote) {
   merged.deleted = local.deleted;
   return merged;
 }
-
 /* ---------- Планировщик ---------- */
 function scheduleAutosync(dataGetter, dataSetter) {
   if (_syncTimer) clearTimeout(_syncTimer);

@@ -1241,10 +1241,7 @@ function renderDayTasks(dateStr) {
         </div>
         ${t.note ? `<div class="stage-info">💬 ${escapeHtml(t.note)}</div>` : ""}
         ${t.batch_created ? `<div class="stage-info">📦 Партия создана в производстве</div>` : ""}
-        <div class="row" style="margin-top:8px">
-          ${!t.done ? `<button class="action ok master-hidden" onclick="toggleTaskDone('${t.id}')">✔ Выполнено</button>` : `<button class="action master-hidden" onclick="toggleTaskDone('${t.id}')">↩ Вернуть</button>`}
-<button class="action danger master-hidden" onclick="delTask('${t.id}')">× Удалить</button>
-        </div>
+        <div class="row" style="margin-top:8px"> <button class="action" onclick="openTaskChat('${t.id}', '${escapeHtml(t.title || t.product_name)}')">💬 Обсудить</button> ${!t.done ? `<button class="action ok master-hidden" onclick="toggleTaskDone('${t.id}')">✔ Выполнено</button>` : `<button class="action master-hidden" onclick="toggleTaskDone('${t.id}')">↩ Вернуть</button>`} <button class="action danger master-hidden" onclick="delTask('${t.id}')">× Удалить</button> </div>
       </div>`;
     }).join("");
   }
@@ -1495,6 +1492,41 @@ function createCustomChat() {
   save();
   renderChats();
   showToast("✅ Чат создан: " + title, "success");
+}
+/* ---------- Открыть или создать чат для задачи/партии ---------- */
+async function openTaskChat(linkedId, title) {
+  const user = getCurrentUser();
+  if (!user) return alert("Войдите заново");
+
+  let chat = (data.chats || []).find(c => String(c.linked_id) === String(linkedId));
+
+  if (!chat) {
+    chat = {
+      id: "c_" + Date.now() + "_" + Math.floor(Math.random()*1000),
+      type: "task",
+      title: "📦 " + title,
+      linked_id: String(linkedId),
+      linked_type: linkedId.startsWith("batch_") ? "batch" : "task",
+      pinned: false,
+      created_by: String(user.id),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    data.chats = data.chats || [];
+    data.chats.push(chat);
+    
+    data.chat_participants = data.chat_participants || [];
+    data.chat_participants.push({ chat_id: chat.id, employee_id: String(user.id) });
+
+    save();
+    renderChats();
+    showToast("✅ Чат для задачи создан", "success");
+  }
+
+  const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
+  showCompanyTab('chat', chatTabBtn);
+
+  openChat(chat.id);
 }
 
 /* ---------- Удалить текущий чат ---------- */
@@ -2640,14 +2672,17 @@ function renderBatchCard(b) {
     : "";
 
   let html = `<div class="stage ${st===1?'active':''}">
-    <div class="stage-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-      <span style="display:flex;align-items:center;gap:10px;">
-        ${photoHtml}
-        <span>Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
-          <span class="badge badge-active">Этап ${st}</span></span>
-      </span>
-      <button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">× Удалить</button>
-    </div>
+   <div class="stage-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+   <span style="display:flex;align-items:center;gap:10px;">
+     ${photoHtml}
+     <span>Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
+       <span class="badge badge-active">Этап ${st}</span></span>
+   </span>
+   <div style="display:flex;gap:6px;">
+     <button class="action" onclick="openTaskChat('batch_${b.id}', 'Партия #${b.id} — ${escapeHtml(b.productName)}')">💬 Обсудить</button>
+     <button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">× Удалить</button>
+   </div>
+ </div>
     <div class="stage-info">Создана: ${escapeHtml(b.created)}${b.responsible ? " • Ответственный: " + escapeHtml(b.responsible) : ""}</div>`;
 
   // Этап 1 — восковки
