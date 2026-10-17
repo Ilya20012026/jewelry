@@ -1685,7 +1685,14 @@ async function sendMessage() {
       console.error("Ошибка pull employees:", e);
     }
   }
-  if (!user) return alert("Войдите заново");
+    if (!user) {
+    // Попытка восстановить сессию из localStorage напрямую
+    const raw = localStorage.getItem("jewelry_auth");
+    if (raw) {
+      try { user = JSON.parse(raw); } catch(e) {}
+    }
+    if (!user) return alert("Войдите заново");
+  }
 
   const input = document.getElementById("chat_input");
   const text = (input.value || "").trim();

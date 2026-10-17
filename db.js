@@ -85,9 +85,16 @@ async function loadData() {
 /** Сохраняет объект data в IndexedDB */
 async function saveData(data) {
   try {
+    // ЗАЩИТА ОТ ВЫЛЕТОВ: если массив сотрудников пустой, не сохраняем пустоту!
+    if (!data.employees || data.employees.length === 0) {
+      const old = await loadData();
+      if (old && old.employees && old.employees.length > 0) {
+        data.employees = old.employees; // Возвращаем сотрудников из памяти
+      }
+    }
+
     await dbSet(DATA_KEY, data);
   } catch (e) {
-    // Если БД закрылась — пробуем переоткрыть и повторить
     if (e.name === "InvalidStateError" || /closing|closed/i.test(e.message)) {
       _db = null;
       await new Promise(r => setTimeout(r, 100));
