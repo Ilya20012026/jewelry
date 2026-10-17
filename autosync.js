@@ -4,7 +4,7 @@
    ============================================================ */
 
 const AUTOSYNC_DELAY_MS = 15000;
-const AUTOSYNC_TABLES = ['materials','products','cycles','opokas','batches','stock','archive','tasks','employees','groups'];
+const AUTOSYNC_TABLES = ['materials','products','cycles','opokas','batches','stock','archive','tasks','employees','groups','chats','messages','chat_participants'];
 
 let _syncTimer = null;
 let _syncInProgress = false;
