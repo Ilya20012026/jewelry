@@ -3126,7 +3126,6 @@ async function initApp() {
     } catch(e) { console.error("Ошибка загрузки чатов:", e); }
   })();
 
-  setTimeout(() => checkSession(), 2500);
   renderEmployees();
   checkScheduledTasks();
   renderResponsibleSelect();
@@ -3194,12 +3193,18 @@ async function initApp() {
     }
   });
 
-  setTimeout(() => {
+   // Первая синхронизация при запуске
+  setTimeout(async () => {
     if (navigator.onLine) {
-      runAutosync(() => data, (d) => { data = d; renderAll(); });
+      // Сначала ждем, пока данные скачаются
+      await runAutosync(() => data, (d) => { data = d; renderAll(); });
+      // И только ПОСЛЕ этого проверяем сессию
+      checkSession();
+    } else {
+      // Если интернета нет, проверяем сессию по локальным данным
+      checkSession();
     }
   }, 1000);
-
   setInterval(() => {
     checkScheduledTasks();
   }, 60000);
