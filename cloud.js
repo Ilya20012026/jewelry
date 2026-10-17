@@ -185,3 +185,42 @@ async function syncAll(localData) {
   console.log('✅ Синхронизация завершена');
   return { ok: true, data: merged };
 }
+/* ============================================================
+   REALTIME: подписка на ВСЕ таблицы
+   ============================================================ */
+
+let _realtimeChannel = null;
+
+const REALTIME_TABLES = [
+  'materials','products','cycles','opokas','batches','stock','archive',
+  'tasks','groups','chats','messages','chat_participants','employees'
+];
+
+async function initRealtime(onChange) {
+  const sb = await initCloud();
+  if (!sb) return null;
+
+  if (_realtimeChannel) {
+    await sb.removeChannel(_realtimeChannel);
+    _realtimeChannel = null;
+  }
+
+  let channel = sb.channel('jewelry-realtime');
+
+  REALTIME_TABLES.forEach(table => {
+    channel = channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table },
+      (payload) => {
+        console.log('🔄 Realtime:', table, payload.eventType);
+        if (typeof onChange === 'function') onChange(table, payload);
+      }
+    );
+  });
+
+  _realtimeChannel = channel.subscribe((status) => {
+    console.log('Realtime status:', status);
+  });
+
+  return _realtimeChannel;
+}

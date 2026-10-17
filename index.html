@@ -3143,6 +3143,74 @@ async function initApp() {
   }, 60000); 
 console.log("✅ Приложение запущено. IndexedDB + автосинхронизация.");
 }
+setTimeout(async () => {
+  if (typeof initRealtime === 'function') {
+    await initRealtime((table, payload) => {
+      // Обработка изменений
+      if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+        const newRow = payload.new;
+        if (!newRow || !newRow.id) return;
+
+        data[table] = data[table] || [];
+        const existing = data[table].find(x => String(x.id) === String(newRow.id));
+        if (existing) {
+          Object.assign(existing, newRow);
+        } else {
+          data[table].push(newRow);
+        }
+      } else if (payload.eventType === 'DELETE') {
+        const oldRow = payload.old;
+        if (!oldRow || !oldRow.id) return;
+        data[table] = (data[table] || []).filter(x => String(x.id) !== String(oldRow.id));
+      }
+
+      // Перерисовываем интерфейс
+      try {
+        if (table === 'messages' && typeof _currentChatId !== 'undefined' && _currentChatId) {
+          renderChatMessages(_currentChatId);
+        }
+        if (table === 'chats' || table === 'messages') {
+          if (typeof renderChats === 'function') renderChats();
+        }
+        if (table === 'batches' || table === 'groups') {
+          if (typeof renderBatches === 'function') renderBatches();
+        }
+        if (table === 'stock') {
+          if (typeof renderStock === 'function') renderStock();
+        }
+        if (table === 'archive') {
+          if (typeof renderArchive === 'function') renderArchive();
+        }
+        if (table === 'employees') {
+          if (typeof renderEmployees === 'function') renderEmployees();
+        }
+        if (table === 'tasks') {
+          if (typeof renderCalendar === 'function') renderCalendar();
+          if (typeof renderDayTasks === 'function' && _calSelectedDay) renderDayTasks(_calSelectedDay);
+        }
+        if (table === 'materials') {
+          if (typeof renderMaterials === 'function') renderMaterials();
+          if (typeof renderAllMaterialSelects === 'function') renderAllMaterialSelects();
+        }
+        if (table === 'products') {
+          if (typeof renderProducts === "function") renderProducts();
+          if (typeof renderBatchProductSelect === 'function') renderBatchProductSelect();
+        }
+        if (table === 'cycles' || table === 'opokas') {
+          if (typeof renderCycles === 'function') renderCycles();
+          if (typeof renderOpokas === 'function') renderOpokas();
+        }
+        if (table === 'chat_participants') {
+          if (typeof renderChatParticipants === 'function' && _currentChatId) {
+            renderChatParticipants(_currentChatId);
+          }
+        }
+      } catch (e) {
+        console.warn('Ошибка при обновлении UI:', e);
+      }
+    });
+  }
+}, 3000);
 
 initApp();
 </script>
