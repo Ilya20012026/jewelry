@@ -1044,7 +1044,18 @@
 
 <!-- ОБЁРТКА: СЕРВИС -->
 <div id="main-service" class="main-section">
-  <div id="data" class="tab active">
+<div class="tabs">
+  <button class="active" onclick="showServiceTab('backup', this)">Резервная копия</button>
+  <button onclick="showServiceTab('archive_chats', this)">Архив чатов</button>
+</div>
+  <div id="service-archive_chats" class="tab">
+    <div class="card">
+      <h3>Архив закрытых чатов</h3>
+      <p class="hint">Здесь хранятся чаты задач и партий, которые уже выполнены.</p>
+      <div id="archived_chats_list"></div>
+    </div>
+  </div>
+  <div id="service-backup" class="tab active">
     <div class="card">
       <h3>Резервная копия</h3>
       <p class="hint">Данные хранятся в этом браузере. Раз в неделю скачивайте копию.</p>
@@ -1324,6 +1335,19 @@ function toggleTaskDone(id) {
   if (!t) return;
   t.done = !t.done;
   t.updatedAt = new Date().toISOString();
+  
+  // Если задачу выполнили — архивируем её чат
+  const chat = (data.chats || []).find(c => String(c.linked_id) === String(t.id));
+  if (chat) {
+    if (t.done) {
+      chat.archived = true;
+      showToast("📦 Чат задачи перенесён в архив", "success");
+    } else {
+      chat.archived = false;
+    }
+    chat.updatedAt = new Date().toISOString();
+  }
+  
   save();
   renderCalendar();
   if (_calSelectedDay) renderDayTasks(_calSelectedDay);
@@ -1423,25 +1447,22 @@ function renderChats() {
 
   const isAdmin = user.role === "admin";
 
-  // Какие чаты показывать?
-  let chats = data.chats || [];
+  // Скрываем чаты задач и архивные
+  let chats = (data.chats || []).filter(c => c.type !== "task" && !c.archived);
 
   if (!isAdmin) {
-    // Мастер — только те, где он участник
     const myChatIds = new Set(
       (data.chat_participants || [])
         .filter(p => String(p.employee_id) === String(user.id))
         .map(p => String(p.chat_id))
     );
-    // + системные (объявления, общий) — видят все
     chats = chats.filter(c =>
       myChatIds.has(String(c.id)) ||
       c.type === "announcements" ||
-          c.type === "general"
+      c.type === "general"
     );
   }
 
-  // Сортировка: закреплённые сверху
   chats.sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
@@ -2152,6 +2173,13 @@ function showMain(mainId, btn) {
   if (mainId === "company") {
     // Здесь позже добавим календарь и чат
   }
+}
+function showServiceTab(id, btn) {
+  document.querySelectorAll("#main-service .tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll("#main-service > .tabs button").forEach(b => b.classList.remove("active"));
+  document.getElementById("service-" + id).classList.add("active");
+  if (btn) btn.classList.add("active");
+  if (id === "archive_chats") renderArchivedChats();
 }
 
 function showTab(id, btn) {
@@ -3146,6 +3174,26 @@ async function uiFullSync() {
   setSyncStatus(`✅ Синхронизировано. Всего объектов: ${total}`, '#2f855a');
 }
 /* ---------- СТАРТ ПРИЛОЖЕНИЯ ---------- */
+/* ---------- Отрисовка Архива Чатов ---------- */
+function renderArchivedChats() {
+  const listEl = document.getElementById("archived_chats_list");
+  if (!listEl) return;
+  const archived = (data.chats || []).filter(c => c.archived === true);
+  
+  if (archived.length === 0) {
+    listEl.innerHTML = `<p class="hint">Архив пуст.</p>`;
+    return;
+  }
+  
+  listEl.innerHTML = archived.map(c => `
+    <div class="chat-item" onclick="openChat('${c.id}')">
+      <div class="chat-item-info">
+        <div class="chat-item-title">${escapeHtml(c.title)}</div>
+        <div class="chat-item-meta">Архивирован</div>
+      </div>
+    </div>
+  `).join("");
+}
 console.log("ДО initApp");
 async function initApp() {
   let loaded = await migrateFromLocalStorage();
