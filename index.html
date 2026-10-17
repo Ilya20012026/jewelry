@@ -560,10 +560,17 @@
     <h3>Добавить изделие</h3>
     <p class="hint">Нормы расхода на 1 изделие — используются системой автоматически на этапах.</p>
     <div class="row">
-      <input id="p_article" placeholder="Артикул" style="width:120px">
-      <input id="p_name" placeholder="Название" style="width:180px">
-      <input id="p_cat" placeholder="Категория" style="width:140px">
-    </div>
+  <input id="p_article" placeholder="Артикул" style="width:120px">
+  <input id="p_name" placeholder="Название" style="width:180px">
+  <input id="p_cat" placeholder="Категория" style="width:140px">
+</div>
+
+<div class="row" style="align-items:center;margin-top:8px">
+  <input id="p_photo_file" type="file" accept="image/*" style="display:none" onchange="uploadProductPhoto(this)">
+  <button type="button" class="action" onclick="document.getElementById('p_photo_file').click()">📷 Загрузить фото</button>
+  <img id="p_photo_preview" src="" alt="" style="display:none;width:80px;height:80px;object-fit:cover;border-radius:4px;border:1px solid #ddd;">
+  <span id="p_photo_status" style="font-size:13px;color:#888;"></span>
+</div>
     <table>
       <thead><tr><th>Этап / параметр</th><th>Норма на 1 шт</th><th>Ед.</th><th>Материал</th></tr></thead>
       <tbody>
@@ -593,7 +600,7 @@
   <div class="card">
     <h3>Список изделий</h3>
     <table>
-      <thead><tr><th>Артикул</th><th>Название</th><th>Категория</th><th></th></tr></thead>
+      <thead><tr><th>Фото</th><th>Артикул</th><th>Название</th><th>Категория</th><th></th></tr></thead>
       <tbody id="p_table"></tbody>
     </table>
   </div>
@@ -1636,14 +1643,67 @@ function renderAllMaterialSelects() {
   ["n_wax_mat","n_proc_mat","n_galv_mat","n_blk_mat","n_pack_mat","n_metal_mat",
    "c_energy_mat","o_mass_mat_sel","o_water_mat_sel"].forEach(fillSelect);
 }
+/* ============================================================
+   ФОТО ИЗДЕЛИЙ (Supabase Storage)
+   ============================================================ */
+
+let _pendingPhotoUrl = null;  // URL загруженного фото, ждёт сохранения изделия
+
+async function uploadProductPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const statusEl = document.getElementById("p_photo_status");
+  const previewEl = document.getElementById("p_photo_preview");
+
+  statusEl.textContent = "Загрузка...";
+  statusEl.style.color = "#b7791f";
+
+  try {
+    const sb = await initCloud();
+    if (!sb) throw new Error("Нет клиента Supabase");
+
+    // Уникальное имя файла
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = "p_" + Date.now() + "_" + Math.floor(Math.random()*1000) + "." + ext;
+
+    // Загружаем в bucket "product-photos"
+    const { data: uploadData, error: uploadError } = await sb.storage
+      .from('product-photos')
+      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+    if (uploadError) throw uploadError;
+
+    // Получаем публичный URL
+    const { data: urlData } = sb.storage
+      .from('product-photos')
+      .getPublicUrl(fileName);
+
+    const publicUrl = urlData.publicUrl;
+    _pendingPhotoUrl = publicUrl;
+
+    // Показываем превью
+    previewEl.src = publicUrl;
+    previewEl.style.display = "block";
+    statusEl.textContent = "✅ Фото загружено";
+    statusEl.style.color = "#2f855a";
+
+  } catch (e) {
+    console.error("Ошибка загрузки фото:", e);
+    statusEl.textContent = "❌ Ошибка: " + e.message;
+    statusEl.style.color = "#c53030";
+  }
+}
+
 function addProduct() {
   const name = document.getElementById("p_name").value.trim();
   if (!name) return alert("Введите название");
-  data.products.push({
+   data.products.push({
     id: uid(),
     article: document.getElementById("p_article").value.trim(),
     name,
     category: document.getElementById("p_cat").value.trim(),
+    photo: _pendingPhotoUrl || null,
     normWax: +document.getElementById("n_wax").value || 0,
     normProc: +document.getElementById("n_proc").value || 0,
     normGalv: +document.getElementById("n_galv").value || 0,
@@ -1656,7 +1716,13 @@ function addProduct() {
     matPack: +document.getElementById("n_pack_mat").value || null,
     matMetal: +document.getElementById("n_metal_mat").value || null,
   });
-  ["p_article","p_name","p_cat"].forEach(id => document.getElementById(id).value = "");
+    ["p_article","p_name","p_cat"].forEach(id => document.getElementById(id).value = "");
+  // Сброс фото
+  _pendingPhotoUrl = null;
+  const previewEl = document.getElementById("p_photo_preview");
+  if (previewEl) { previewEl.src = ""; previewEl.style.display = "none"; }
+  const statusEl = document.getElementById("p_photo_status");
+  if (statusEl) statusEl.textContent = "";
   save(); renderProducts(); renderBatchProductSelect();
 }
 function delProduct(id) {
@@ -1665,9 +1731,12 @@ function delProduct(id) {
   save(); renderProducts(); renderBatchProductSelect();
 }
 function renderProducts() {
-  document.getElementById("p_table").innerHTML = data.products.map(p => `
+    document.getElementById("p_table").innerHTML = data.products.map(p => `
     <tr>
-      <td>${escapeHtml(p.article) || "—"}</td><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category) || "—"}</td>
+      <td>${p.photo ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "—"}</td>
+      <td>${escapeHtml(p.article) || "—"}</td>
+      <td>${escapeHtml(p.name)}</td>
+      <td>${escapeHtml(p.category) || "—"}</td>
       <td><button class="action danger master-hidden" onclick="delProduct(${p.id})">×</button></td>
     </tr>`).join("");
 }
