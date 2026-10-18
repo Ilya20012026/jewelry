@@ -1861,11 +1861,16 @@ function showCompanyTab(id, btn) {
   document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
   document.getElementById("company-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
-    if (id === "employees") renderEmployees();
+  if (id === "employees") renderEmployees();
+  
   if (id === "chat") {
     renderChats();
     document.getElementById("chat_window").style.display = "none";
     document.querySelector("#company-chat > .card").style.display = "block";
+  } else {
+    // Если мы уходим из Сообщений — принудительно прячем окно чата
+    document.getElementById("chat_window").style.display = "none";
+    _currentChatId = null; // Сбрасываем текущий чат, чтобы не тянулся таймер
   }
 }
 
@@ -2155,8 +2160,13 @@ function applyRoleRestrictions(user) {
 /* ---------- Переключение главных разделов ---------- */
 console.log("ДО showMain");
 function showMain(mainId, btn) {
-  // Скрыть все главные разделы
+  // Скрываем все главные разделы
   document.querySelectorAll(".main-section").forEach(s => s.classList.remove("active"));
+  
+  // ПРЯЧЕМ ОКНО ЧАТА ПРИ СМЕНЕ ГЛАВНОГО РАЗДЕЛА
+  document.getElementById("chat_window").style.display = "none";
+  _currentChatId = null;
+  // ... остальной твой код (const section = ...)
 
   // Показать нужный
   const section = document.getElementById("main-" + mainId);
