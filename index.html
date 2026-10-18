@@ -975,8 +975,16 @@ async function openTaskChat(linkedId, title) {
     data.chat_participants = data.chat_participants || []; data.chat_participants.push({ chat_id: chat.id, employee_id: String(user.id) });
     save(); renderChats(); showToast("✅ Чат для задачи создан", "success");
   }
+  
+  // 1. Переключаем главную вкладку на "Компания"
+  const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
+  if (companyBtn) showMain("company", companyBtn);
+
+  // 2. Переключаем внутреннюю вкладку на "Сообщения"
   const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
   showCompanyTab('chat', chatTabBtn);
+  
+  // 3. Открываем сам чат (и принудительно показываем окно)
   openChat(chat.id);
 }
 
