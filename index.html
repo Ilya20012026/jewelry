@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="Ювелирка">
 <style>
   /* =========================================
-     БАЗОВЫЕ НАСТРОЙКИ И ТИПОГРАФИКА
+     БАЗОВЫЕ НАСТРОЙКИ
      ========================================= */
   :root {
     --black: #111111;
@@ -21,491 +21,163 @@
     --text-muted: #7a7a7a;
     --border-color: #e2e4e9;
     --border-hover: #c0c4cc;
-    --accent: #111111;
-    --accent-hover: #333333;
-    --radius: 10px;
-    --radius-sm: 6px;
+    --radius: 12px;
+    --radius-sm: 8px;
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.02);
-    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
   }
 
   * { box-sizing: border-box; }
 
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    margin: 0;
-    background: var(--bg-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0; 
+    background: var(--bg-color); 
     color: var(--text-main);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
-    line-height: 1.5;
   }
 
   /* =========================================
-     ШАПКА (HEADER)
+     ЭКРАН ВХОДА (СПЛЭШ И ЛОГИН)
      ========================================= */
-  header {
-    background: var(--white);
-    color: var(--black);
-    padding: 0 32px;
-    height: 64px;
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.02);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  header span:first-child {
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  #splash_screen, .login-screen {
+    position: fixed !important;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--black) !important;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 20000;
   }
   
-  #cloud_dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #10b981; /* Зеленый цвет для онлайн */
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
-    transition: background .2s;
-    flex-shrink: 0;
-  }
+  .login-box { max-width: 400px; width: 100%; text-align: center; padding: 20px; }
+  .login-box h1 { font-size: 24px; letter-spacing: 2px; font-weight: 700; color: #fff; margin: 0 0 10px 0; }
+  .login-box h2 { font-size: 14px; font-weight: 400; letter-spacing: 4px; color: #888; margin: 0 0 30px 0; text-transform: uppercase; }
+  
+  .login-form { display: flex; flex-direction: column; gap: 16px; text-align: left; }
+  .login-form label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+  .login-form input { width: 100%; padding: 16px; font-size: 16px; background: #222; color: #fff; border: 1px solid #333; border-radius: var(--radius-sm); transition: 0.2s; }
+  .login-form input:focus { outline: none; border-color: #fff; background: #111; }
+  .login-form button.action { width: 100%; padding: 16px; font-size: 14px; letter-spacing: 2px; margin-top: 10px; background: #fff; color: #000; border: 1px solid #fff; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; text-transform: uppercase; }
+  .login-form button.action:hover { background: #ddd; }
+  .login-error { color: #ff5555; font-size: 13px; min-height: 18px; text-align: center; }
+
 
   /* =========================================
-     ГЛАВНЫЕ ВКЛАДКИ (MAIN TABS)
+     ШАПКА И НАВИГАЦИЯ
      ========================================= */
-  .main-tabs {
-    display: flex;
-    background: var(--white);
+  header {
+    background: var(--white); color: var(--black);
+    padding: 0 32px; height: 64px;
+    font-size: 16px; font-weight: 700; letter-spacing: 1px;
+    display: flex; align-items: center; justify-content: space-between;
     border-bottom: 1px solid var(--border-color);
-    padding: 0 32px;
-    gap: 32px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  header span:first-child { text-transform: uppercase; }
+  #cloud_dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); flex-shrink: 0; transition: 0.3s; }
+
+  .main-tabs {
+    display: flex; background: var(--white);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 32px; gap: 32px;
   }
   .main-tabs button {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    padding: 20px 0;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    transition: var(--transition);
-    border-bottom: 3px solid transparent;
-    position: relative;
+    background: none; border: none; color: var(--text-muted);
+    padding: 20px 0; cursor: pointer; font-size: 14px; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    transition: 0.2s; border-bottom: 3px solid transparent;
   }
-  .main-tabs button:hover {
-    color: var(--black);
-  }
-  .main-tabs button.active {
-    color: var(--black);
-    border-bottom-color: var(--black);
-  }
+  .main-tabs button:hover { color: var(--black); }
+  .main-tabs button.active { color: var(--black); border-bottom-color: var(--black); }
 
-  /* =========================================
-     ВТОРОСТЕПЕННЫЕ ВКЛАДКИ (SUB TABS)
-     ========================================= */
   .tabs {
-    display: flex;
-    background: transparent;
-    flex-wrap: wrap;
+    display: flex; background: transparent; flex-wrap: wrap;
     border-bottom: 1px solid var(--border-color);
-    padding: 0 32px;
-    gap: 24px;
-    margin-top: 10px;
+    padding: 0 32px; gap: 24px; margin-top: 10px;
   }
   .tabs button {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    padding: 16px 0;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    border-bottom: 2px solid transparent;
-    transition: var(--transition);
+    background: none; border: none; color: var(--text-muted);
+    padding: 16px 0; cursor: pointer; font-size: 13px; font-weight: 500;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    border-bottom: 2px solid transparent; transition: 0.2s;
   }
-  .tabs button:hover {
-    color: var(--black);
-  }
-  .tabs button.active {
-    color: var(--black);
-    border-bottom-color: var(--black);
-    font-weight: 700;
-  }
+  .tabs button:hover { color: var(--black); }
+  .tabs button.active { color: var(--black); border-bottom-color: var(--black); font-weight: 700; }
+
 
   /* =========================================
-     КАРТОЧКИ (CARDS)
+     КАРТОЧКИ И КОНТЕНТ
      ========================================= */
-  .tab {
-    display: none;
-    padding: 32px;
-    max-width: 1400px;
-    margin: 0 auto;
-    animation: fadeIn 0.3s ease;
-  }
-  .tab.active {
-    display: block;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  .main-section { display: none; }
+  .main-section.active { display: block; }
+
+  .tab { display: none; padding: 32px; max-width: 1200px; margin: 0 auto; }
+  .tab.active { display: block; animation: fadeIn 0.3s ease; }
+  
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
   .card {
-    background: var(--white);
-    padding: 28px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    margin-bottom: 24px;
-    box-shadow: var(--shadow-sm);
-    overflow-x: auto;
-    transition: var(--transition);
+    background: var(--white); padding: 32px;
+    border: 1px solid var(--border-color); border-radius: var(--radius);
+    margin-bottom: 24px; box-shadow: var(--shadow-sm); overflow-x: auto;
   }
-  .card:hover {
-    box-shadow: var(--shadow-md);
-  }
+  
   h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    font-weight: 700;
-    font-size: 16px;
-    color: var(--black);
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
+    margin-top: 0; margin-bottom: 24px; font-weight: 700; font-size: 16px;
+    color: var(--black); padding-bottom: 12px; border-bottom: 1px solid var(--border-color);
   }
 
-  /* =========================================
-     ТАБЛИЦЫ
-     ========================================= */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  th, td {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border-color);
-    text-align: left;
-    font-size: 14px;
-    white-space: nowrap;
-    color: var(--text-main);
-  }
-  th {
-    font-size: 12px;
-    letter-spacing: 0.5px;
-    color: var(--text-muted);
-    font-weight: 600;
-    background: #fafafa;
-    border-top: 1px solid var(--border-color);
-  }
-  tr:last-child td {
-    border-bottom: none;
-  }
-  tr:hover td {
-    background: #fafafa;
-  }
+  .hint { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; line-height: 1.6; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
 
   /* =========================================
      ФОРМЫ И КНОПКИ
      ========================================= */
   input, select, textarea {
-    padding: 12px 16px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    margin: 4px 6px 4px 0;
-    background: var(--white);
-    color: var(--text-main);
-    transition: var(--transition);
-    max-width: 100%;
-    font-family: inherit;
+    padding: 12px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+    font-size: 14px; background: var(--white); color: var(--text-main);
+    transition: 0.2s; max-width: 100%; font-family: inherit;
   }
   input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: var(--black);
-    box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
-  }
-  input[type=number] {
-    width: 120px;
+    outline: none; border-color: var(--black); box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
   }
 
   button.action {
-    background: var(--white);
-    color: var(--black);
-    border: 1px solid var(--border-color);
-    padding: 10px 20px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 600;
-    transition: var(--transition);
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+    background: var(--white); color: var(--black); border: 1px solid var(--border-color);
+    padding: 12px 24px; border-radius: var(--radius-sm); cursor: pointer;
+    font-size: 13px; font-weight: 600; transition: 0.2s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   }
-  button.action:hover {
-    border-color: var(--border-hover);
-    background: #fdfdfd;
-  }
-  button.action.ok {
-    background: var(--black);
-    color: var(--white);
-    border-color: var(--black);
-  }
-  button.action.ok:hover {
-    background: var(--accent-hover);
-    border-color: var(--accent-hover);
-  }
-  button.action.danger {
-    color: #ef4444;
-    border-color: #fca5a5;
-    background: #fef2f2;
-    padding: 8px 14px;
-    font-size: 12px;
-  }
-  button.action.danger:hover {
-    background: #ef4444;
-    color: var(--white);
-    border-color: #ef4444;
-  }
-  button.action.warn {
-    background: var(--white);
-    color: #d97706;
-    border-color: #fcd34d;
-  }
-  button.action.warn:hover {
-    background: #fffbeb;
-    border-color: #f59e0b;
-  }
-  button.action:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  /* =========================================
-     ПРОЧИЕ ЭЛЕМЕНТЫ И СЕТКА
-     ========================================= */
-  .row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 12px;
-  }
+  button.action:hover { border-color: var(--border-hover); background: #fafafa; }
   
-  .result {
-    background: #f8fafc;
-    border: 1px solid var(--border-color);
-    padding: 20px;
-    border-radius: var(--radius-sm);
-    margin-top: 16px;
-    font-size: 14px;
-    color: var(--text-main);
-  }
-  .hint {
-    color: var(--text-muted);
-    font-size: 13px;
-    margin-bottom: 16px;
-    line-height: 1.6;
-  }
-
-  /* Прогресс-бар партии */
-  .progress-track {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin: 20px 0;
-    position: relative;
-  }
-  .progress-track::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 12px;
-    right: 12px;
-    height: 2px;
-    background: var(--border-color);
-    z-index: 1;
-    transform: translateY(-50%);
-  }
-  .progress-step {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--white);
-    border: 2px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-muted);
-    position: relative;
-    z-index: 2;
-    transition: var(--transition);
-  }
-  .progress-step.done {
-    background: var(--black);
-    border-color: var(--black);
-    color: var(--white);
-  }
-  .progress-step.current {
-    border-color: var(--black);
-    color: var(--black);
-    box-shadow: 0 0 0 4px rgba(0,0,0,0.1);
-  }
+  button.action.ok { background: var(--black); color: var(--white); border-color: var(--black); }
+  button.action.ok:hover { background: #333; }
+  
+  button.action.danger { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
+  button.action.danger:hover { background: #ef4444; color: var(--white); border-color: #ef4444; }
 
   /* =========================================
-     ЧАТ
+     ТАБЛИЦЫ
      ========================================= */
-  .chat-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    background: var(--white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: var(--transition);
-  }
-  .chat-item:hover {
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
-  }
-  .chat-item.pinned {
-    border-left: 4px solid var(--black);
-    background: #fafafa;
-  }
-  .chat-item-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--black);
-  }
-  .chat-item-meta {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-top: 4px;
-  }
-  .chat-message {
-    padding: 12px 16px;
-    margin-bottom: 12px;
-    border-radius: var(--radius-sm);
-    background: var(--white);
-    border: 1px solid var(--border-color);
-    max-width: 75%;
-    box-shadow: var(--shadow-sm);
-  }
-  .chat-message.own {
-    background: var(--black);
-    color: var(--white);
-    margin-left: auto;
-    border-color: var(--black);
-  }
-  .chat-message-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    font-size: 12px;
-    margin-bottom: 6px;
-  }
-  .chat-message.own .chat-message-header {
-    color: #a3a3a3;
-  }
-  .chat-message-text {
-    font-size: 14px;
-    line-height: 1.5;
-  }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { padding: 16px; border-bottom: 1px solid var(--border-color); text-align: left; font-size: 14px; }
+  th { font-size: 12px; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; background: #fafafa; }
+  tr:hover td { background: #fafafa; }
 
   /* =========================================
-     УВЕДОМЛЕНИЯ (TOASTS)
+     ВСПОМОГАТЕЛЬНЫЕ ЭЛЕМЕНТЫ
      ========================================= */
-  #toast_box {
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    pointer-events: none;
-  }
-  .toast-item {
-    padding: 14px 20px;
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    font-weight: 500;
-    box-shadow: var(--shadow-md);
-    opacity: 0;
-    transform: translateY(10px);
-    transition: var(--transition);
-    pointer-events: auto;
-    color: var(--white);
-  }
-  .toast-item.show {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  .toast-item.info { background: #3b82f6; }
-  .toast-item.success { background: #10b981; }
-  .toast-item.error { background: #ef4444; }
-  .toast-item.warn { background: #f59e0b; }
+  .progress-track { display: flex; align-items: center; justify-content: space-between; margin: 20px 0; position: relative; }
+  .progress-track::before { content: ''; position: absolute; top: 50%; left: 12px; right: 12px; height: 2px; background: var(--border-color); z-index: 1; transform: translateY(-50%); }
+  .progress-step { width: 24px; height: 24px; border-radius: 50%; background: var(--white); border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text-muted); position: relative; z-index: 2; transition: 0.3s; }
+  .progress-step.done { background: var(--black); border-color: var(--black); color: var(--white); }
+  .progress-step.current { border-color: var(--black); color: var(--black); box-shadow: 0 0 0 4px rgba(0,0,0,0.1); }
 
-  /* =========================================
-     КАЛЕНДАРЬ
-     ========================================= */
-  .calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-    margin-top: 16px;
-  }
-  .calendar-grid .day {
-    min-height: 80px;
-    padding: 8px;
-    background: var(--white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .calendar-grid .day:hover {
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-sm);
-  }
-  .calendar-grid .day.today {
-    border-color: var(--black);
-    border-width: 2px;
-  }
-  .calendar-grid .day.selected {
-    background: var(--black);
-    color: var(--white);
-    border-color: var(--black);
-  }
-  .calendar-grid .day.selected .day-number {
-    color: var(--white);
-  }
+  .stage { border-left: 3px solid var(--border-color); padding: 16px 20px; margin-bottom: 12px; background: #fafafa; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .stage.active { border-left-color: var(--black); background: var(--white); border: 1px solid var(--border-color); border-left-width: 3px; }
+  .stage.done { border-left-color: #10b981; background: #f0fdf4; }
 
-  /* Мобильная адаптация */
+  /* Адаптивность */
   @media (max-width: 768px) {
     header, .main-tabs, .tabs { padding-left: 16px; padding-right: 16px; }
     .main-tabs { gap: 16px; }
@@ -513,7 +185,6 @@
     .card { padding: 16px; }
     .row { gap: 8px; }
     input, select { width: 100% !important; margin-right: 0; }
-    .chat-message { max-width: 90%; }
   }
 </style>
    
