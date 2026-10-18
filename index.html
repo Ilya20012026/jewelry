@@ -139,6 +139,7 @@
   .dot-restock { background: #d32f2f; }
   .dot-new     { background: #2e7d32; }
   .dot-task    { background: #1976d2; }
+.dot-done { background: #ccc; }
 
   .calendar-legend { display: flex; gap: 18px; margin-top: 16px; font-size: 12px; color: #666; flex-wrap: wrap; }
   .calendar-legend > span { display: flex; align-items: center; gap: 6px; }
@@ -677,6 +678,18 @@
       <textarea id="modal_task_note" rows="4" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;"></textarea>
     </div>
 
+<div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Дата выполнения (для Календаря)</label>
+      <input type="date" id="modal_task_date" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Ответственный (для Календаря)</label>
+      <select id="modal_task_responsible" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+        <option value="">— Без ответственного —</option>
+      </select>
+    </div>
+
     <div style="margin-bottom:12px;">
       <label style="font-size:12px; color:#888; text-transform:uppercase;">Фото / Обложка</label>
       <input type="file" id="modal_task_photo" accept="image/*" onchange="uploadTaskPhoto(this)" style="margin-top:4px;">
@@ -814,10 +827,14 @@ function renderCalendar() {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = _calYear + "-" + String(_calMonth+1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
     const tasks = getTasksForDay(dateStr);
-    const dots = tasks.map(t => {
+        const dots = tasks.map(t => {
       let cls = "dot-task";
-      if (t.type === "restock") cls = "dot-restock";
-      if (t.type === "new_item") cls = "dot-new";
+      if (t.done) {
+        cls = "dot-done"; 
+      } else {
+        if (t.type === "restock") cls = "dot-restock";
+        if (t.type === "new_item") cls = "dot-new";
+      }
       return `<span class="dot ${cls}"></span>`;
     }).join("");
 
@@ -1378,6 +1395,13 @@ function openTaskModal(taskId) {
   document.getElementById("modal_task_title").textContent = task.title;
   document.getElementById("modal_task_note").value = task.note || "";
   
+  document.getElementById("modal_task_date").value = task.date || new Date().toISOString().slice(0,10);
+  
+  const respSelect = document.getElementById("modal_task_responsible");
+  respSelect.innerHTML = '<option value="">— Без ответственного —</option>' + 
+    (data.employees || []).map(e => `<option value="${escapeHtml(e.name)}">${escapeHtml(e.name)}</option>`).join("");
+  if (task.responsible) respSelect.value = task.responsible;
+
   const preview = document.getElementById("modal_task_photo_preview");
   if (task.photo) {
     preview.innerHTML = '<img src="' + escapeHtml(task.photo) + '" style="max-height:150px; border-radius:4px;">';
@@ -1407,6 +1431,8 @@ function saveTaskFromModal() {
   
   task.title = document.getElementById("modal_task_title").textContent; 
   task.note = document.getElementById("modal_task_note").value;
+  task.date = document.getElementById("modal_task_date").value;
+  task.responsible = document.getElementById("modal_task_responsible").value;
   task.updatedAt = new Date().toISOString();
   
   save();
@@ -1469,13 +1495,16 @@ function sendTaskToCalendar() {
   const task = (data.board_tasks || []).find(t => String(t.id) === String(_currentTaskId));
   if (!task) return;
   
+  const dateVal = document.getElementById("modal_task_date").value || new Date().toISOString().slice(0,10);
+  const respVal = document.getElementById("modal_task_responsible").value;
+
   const newTask = {
     id: uid(),
     type: "task",
     title: task.title,
-    date_start: new Date().toISOString().slice(0,10),
-    date_end: new Date().toISOString().slice(0,10),
-    responsible: "",
+    date_start: dateVal,
+    date_end: dateVal,
+    responsible: respVal,
     note: task.note || "",
     done: false,
     updatedAt: new Date().toISOString()
@@ -1485,7 +1514,7 @@ function sendTaskToCalendar() {
   data.tasks.push(newTask);
   save();
   renderCalendar();
-  showToast("📅 Задача добавлена в календарь", "success");
+  showToast("📅 Задача отправлена в календарь на " + dateVal, "success");
 }
 
 function showCompanyTab(id, btn) {
