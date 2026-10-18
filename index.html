@@ -1191,25 +1191,44 @@ function createBoard() {
 function renderBoards() {
   const listEl = document.getElementById("boards_list");
   if (!listEl) return;
+  
   const boards = data.boards || [];
   if (boards.length === 0) {
     listEl.innerHTML = `<p class="hint">Пока нет досок. Создайте первую!</p>`;
     return;
   }
-  listEl.innerHTML = boards.map(b => `
-    <div class="card" style="margin-bottom: 16px; padding: 16px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3 style="margin:0; border:none; padding:0;">${escapeHtml(b.name)}</h3>
-        <div>
-          <button class="action" onclick="addColumn('${b.id}')">+ Колонка</button>
-          <button class="action danger" onclick="deleteBoard('${b.id}')">× Удалить доску</button>
-        </div>
+
+  listEl.innerHTML = ""; // Очищаем контейнер
+
+  boards.forEach(b => {
+    const boardDiv = document.createElement("div");
+    boardDiv.className = "card";
+    boardDiv.style.marginBottom = "16px";
+    boardDiv.style.padding = "16px";
+
+    // Шапка доски
+    const header = document.createElement("div");
+    header.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;";
+    header.innerHTML = `
+      <h3 style="margin:0; border:none; padding:0;">${escapeHtml(b.name)}</h3>
+      <div>
+        <button class="action" onclick="addColumn('${b.id}')">+ Колонка</button>
+        <button class="action danger" onclick="deleteBoard('${b.id}')">× Удалить доску</button>
       </div>
-            <div style="display:flex; flex-wrap: wrap; gap:12px; padding-bottom:8px; align-items: flex-start;">
-        ${renderColumns(b.id)}
-      </div>
-    </div>
-  `).join("");
+    `;
+
+    // Контейнер для колонок (с переносом)
+    const colsContainer = document.createElement("div");
+    colsContainer.style.cssText = "display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start;";
+
+    // Рендерим колонки и добавляем их в контейнер
+    const colsHTML = renderColumns(b.id);
+    colsContainer.innerHTML = colsHTML;
+
+    boardDiv.appendChild(header);
+    boardDiv.appendChild(colsContainer);
+    listEl.appendChild(boardDiv);
+  });
 }
 
 function renderColumns(boardId) {
@@ -1232,7 +1251,7 @@ function renderColumns(boardId) {
     `).join("");
 
     return `
-      <div style="flex: 0 0 240px; background: #f5f5f5; border-radius: 6px; padding: 12px; border: 1px solid #ddd; display: flex; flex-direction: column;">
+      <div style="min-width: 220px; max-width: 260px; background: #f5f5f5; border-radius: 6px; padding: 12px; border: 1px solid #ddd; display: flex; flex-direction: column;">
         <div style="display:flex; justify-content:space-between; margin-bottom:8px; align-items:center;">
           <b style="font-size:13px; text-transform:uppercase;">${escapeHtml(c.name)}</b>
           <button class="action danger" style="padding:0 4px; font-size:10px;" onclick="deleteColumn('${c.id}')">×</button>
