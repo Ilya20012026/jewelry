@@ -240,3 +240,4 @@ async function initRealtime(onDataChanged) {
 
   return channel;
 }
+const TABLES = ['materials','products','cycles','opokas','batches','stock','archive','tasks','employees','groups','chats','messages','chat_participants','boards','columns','board_tasks'];

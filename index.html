@@ -498,8 +498,9 @@
 
 <!-- ОБЁРТКА: КОМПАНИЯ -->
 <div id="main-company" class="main-section">
-  <div class="tabs">
+    <div class="tabs">
     <button class="active" onclick="showCompanyTab('calendar', this)">Календарь</button>
+    <button onclick="showCompanyTab('boards', this)">Доски</button>
     <button onclick="showCompanyTab('employees', this)">Сотрудники</button>
     <button onclick="showCompanyTab('chat', this)">Сообщения</button>
   </div>
@@ -545,6 +546,19 @@
       <h3 id="day_tasks_title">Задачи дня</h3>
       <div id="day_tasks_list"></div>
     </div>
+  </div>
+
+  <div id="company-boards" class="tab">
+    <div class="card master-hidden">
+      <h3>Создать новую доску</h3>
+      <p class="hint">Например: Wildberries, Производство, Закупки.</p>
+      <div class="row">
+        <input id="new_board_name" placeholder="Название доски" style="width:280px">
+        <button class="action" onclick="createBoard()">+ Создать доску</button>
+      </div>
+    </div>
+    
+    <div id="boards_list"></div>
   </div>
 
   <div id="company-employees" class="tab">
@@ -658,7 +672,8 @@ const EMPTY_DATA = {
   materials: [], products: [], cycles: [], opokas: [],
   batches: [], stock: [], archive: [],
   tasks: [], employees: [], groups: [],
-  chats: [], messages: [], chat_participants: []
+  chats: [], messages: [], chat_participants: [],
+  boards: [], columns: [], board_tasks: []
 };
 
 let data = JSON.parse(JSON.stringify(EMPTY_DATA));
@@ -1160,6 +1175,129 @@ function removeChatParticipant(chatId, empId) {
   save(); renderChatParticipants(chatId);
 }
 
+/* ============================================================
+   СИСТЕМА ДОСОК (ТИПО YOUGILE)
+   ============================================================ */
+
+function createBoard() {
+  const name = document.getElementById("new_board_name").value.trim();
+  if (!name) return alert("Введите название доски");
+  data.boards = data.boards || [];
+  data.boards.push({ id: uid(), name: name, updatedAt: new Date().toISOString() });
+  document.getElementById("new_board_name").value = "";
+  save(); renderBoards(); showToast("✅ Доска создана: " + name, "success");
+}
+
+function renderBoards() {
+  const listEl = document.getElementById("boards_list");
+  if (!listEl) return;
+  const boards = data.boards || [];
+  if (boards.length === 0) {
+    listEl.innerHTML = `<p class="hint">Пока нет досок. Создайте первую!</p>`;
+    return;
+  }
+  listEl.innerHTML = boards.map(b => `
+    <div class="card" style="margin-bottom: 16px; padding: 16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin:0; border:none; padding:0;">${escapeHtml(b.name)}</h3>
+        <div>
+          <button class="action" onclick="addColumn('${b.id}')">+ Колонка</button>
+          <button class="action danger" onclick="deleteBoard('${b.id}')">× Удалить доску</button>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px; overflow-x:auto; padding-bottom:8px;">
+        ${renderColumns(b.id)}
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderColumns(boardId) {
+  const cols = (data.columns || []).filter(c => String(c.board_id) === String(boardId));
+  if (cols.length === 0) return `<p class="hint" style="width:100%;">Нет колонок. Добавьте первую.</p>`;
+  
+  return cols.map(c => {
+    const colTasks = (data.board_tasks || []).filter(t => String(t.column_id) === String(c.id));
+    const cardsHTML = colTasks.map(t => `
+      <div style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+        <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">${escapeHtml(t.title)}</div>
+        <div style="display: flex; justify-content: space-between; gap: 4px;">
+          <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="deleteBoardTask('${t.id}')">×</button>
+          <div>
+            <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="moveBoardTask('${t.id}', 'left')">←</button>
+            <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="moveBoardTask('${t.id}', 'right')">→</button>
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    return `
+      <div style="flex: 0 0 240px; background: #f5f5f5; border-radius: 6px; padding: 12px; border: 1px solid #ddd; display: flex; flex-direction: column;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px; align-items:center;">
+          <b style="font-size:13px; text-transform:uppercase;">${escapeHtml(c.name)}</b>
+          <button class="action danger" style="padding:0 4px; font-size:10px;" onclick="deleteColumn('${c.id}')">×</button>
+        </div>
+        <div style="flex: 1; overflow-y: auto; max-height: 400px; margin-bottom: 8px;">
+          ${cardsHTML || '<p style="font-size:11px; color:#999; text-align:center;">Пусто</p>'}
+        </div>
+        <button class="action" style="width: 100%; padding: 4px; font-size: 11px;" onclick="addBoardTask('${c.id}')">+ Задача</button>
+      </div>
+    `;
+  }).join("");
+}
+
+function addColumn(boardId) {
+  const name = prompt("Название колонки (например, 'Новые заказы'):");
+  if (!name || !name.trim()) return;
+  data.columns = data.columns || [];
+  data.columns.push({ id: uid(), board_id: boardId, name: name.trim(), updatedAt: new Date().toISOString() });
+  save(); renderBoards(); showToast("✅ Колонка добавлена", "success");
+}
+
+function deleteBoard(boardId) {
+  if (!confirm("Удалить доску и все её колонки?")) return;
+  markDeleted(data, "boards", boardId);
+  const cols = (data.columns || []).filter(c => String(c.board_id) === String(boardId));
+  cols.forEach(c => markDeleted(data, "columns", c.id));
+  save(); renderBoards();
+}
+
+function deleteColumn(colId) {
+  if (!confirm("Удалить колонку?")) return;
+  markDeleted(data, "columns", colId);
+  save(); renderBoards();
+}
+
+function addBoardTask(columnId) {
+  const title = prompt("Название задачи (например, 'Собрать заказ №5'):");
+  if (!title || !title.trim()) return;
+  data.board_tasks = data.board_tasks || [];
+  data.board_tasks.push({ id: uid(), column_id: columnId, title: title.trim(), updatedAt: new Date().toISOString() });
+  save(); renderBoards(); showToast("✅ Задача добавлена", "success");
+}
+
+function deleteBoardTask(taskId) {
+  if (!confirm("Удалить задачу?")) return;
+  markDeleted(data, "board_tasks", taskId);
+  save(); renderBoards();
+}
+
+function moveBoardTask(taskId, direction) {
+  const task = (data.board_tasks || []).find(t => String(t.id) === String(taskId));
+  if (!task) return;
+  const currentCol = (data.columns || []).find(c => String(c.id) === String(task.column_id));
+  if (!currentCol) return;
+  const boardCols = (data.columns || []).filter(c => String(c.board_id) === String(currentCol.board_id));
+  const currentIndex = boardCols.findIndex(c => String(c.id) === String(currentCol.id));
+  let newIndex = currentIndex;
+  if (direction === "right") newIndex++;
+  if (direction === "left") newIndex--;
+  if (newIndex < 0 || newIndex >= boardCols.length) return;
+  task.column_id = boardCols[newIndex].id;
+  task.updatedAt = new Date().toISOString();
+  save(); renderBoards();
+}
+
 function showCompanyTab(id, btn) {
   document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
   document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
@@ -1168,6 +1306,10 @@ function showCompanyTab(id, btn) {
   
   if (id === "employees") {
     renderEmployees();
+  }
+
+  if (id === "boards") {
+    renderBoards();
   }
   
   if (id === "chat") {
