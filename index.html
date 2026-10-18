@@ -1919,6 +1919,14 @@ async function initApp() {
 }
 
 initApp();
+// Страховка: если через 1.5 секунды оба экрана скрыты, показываем логин
+setTimeout(() => {
+  const login = document.getElementById("login_screen");
+  const app = document.getElementById("app_main");
+  if (login && login.style.display === "none" && app && app.style.display === "none") {
+    login.style.display = "flex";
+  }
+}, 1500);
 </script>
 <script>
   if ('serviceWorker' in navigator) {
