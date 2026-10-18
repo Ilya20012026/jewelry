@@ -1870,7 +1870,6 @@ function renderBatchResponsibleSelect() {
 }
 
 function createBatch() {
-  // ЗАЩИТА ОТ ДВОЙНОГО КЛИКА
   const btn = document.querySelector('button[onclick="createBatch()"]');
   if (btn) {
     if (btn.disabled) return;
@@ -1899,10 +1898,11 @@ function createBatch() {
   const dateEnd = document.getElementById("b_date_end").value || null;
   const note = document.getElementById("b_note").value.trim();
 
-  // АВТОМАТИЧЕСКИ ДОБАВЛЯЕМ В КАЛЕНДАРЬ
+  let calTaskId = null;
   if (dateStart) {
+    calTaskId = uid();
     const calTask = {
-      id: uid(),
+      id: calTaskId,
       type: "production_task",
       title: "Производство: " + (title || "Партия"),
       date_start: dateStart,
@@ -1919,22 +1919,24 @@ function createBatch() {
   const commonBatch = () => ({
     id: uid(), created: new Date().toLocaleString(), responsible, dateStart, dateEnd, note, stage: 1,
     stages: { 1: { done: false, waxUsed: null }, 2: { done: false, opokaId: null }, 3: { done: false, cycleId: null }, 4: { done: false, metalUsed: null, metalReturned: null }, 5: { done: false }, 6: { done: false }, 7: { done: false }, 8: { done: false } },
-    stageCosts: {}, totalCost: 0,
+    stageCosts: {}, totalCost: 0, calTaskId: calTaskId
   });
 
-    const groupId = "g_" + uid();
+  const groupId = "g_" + uid();
   const group = { id: groupId, title: title || ("Задание от " + new Date().toLocaleDateString()), type: "production", responsible, date_start: dateStart, date_end: dateEnd, note, updatedAt: new Date().toISOString() };
   data.groups = data.groups || []; data.groups.push(group);
+  
   items.forEach(item => { 
     const batch = { ...commonBatch(), productId: item.productId, productName: item.productName, qty: item.qty, groupId }; 
     data.batches.push(batch); 
   });
+  
   showToast("Создано задание: " + items.length + " партий", "success");
 
   document.getElementById("b_title").value = ""; document.getElementById("b_date_start").value = ""; document.getElementById("b_date_end").value = ""; document.getElementById("b_note").value = "";
   const rowsContainer = document.getElementById("batch_items_rows");
   rowsContainer.innerHTML = `<div class="row batch-item-row"><select class="batch-product" style="min-width:220px"></select><input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px"></div>`;
-setTimeout(() => { renderCalendar(); }, 150);
+  setTimeout(() => { renderCalendar(); }, 150);
   renderBatchProductSelect(); save(); renderBatches();
 }
 
@@ -2050,9 +2052,8 @@ function completeStageN(bid, stageNum) {
     b.stage = 9; b.finished = true; b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
     data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: p.name, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
     
-    // ЗАКРЫВАЕМ СВЯЗАННУЮ ЗАДАЧУ В КАЛЕНДАРЕ
-    if (data.tasks) {
-      const calTask = data.tasks.find(t => t.type === "production_task" && t.title.includes(p.name));
+    if (data.tasks && b.calTaskId) {
+      const calTask = data.tasks.find(t => String(t.id) === String(b.calTaskId));
       if (calTask) {
         calTask.done = true;
         calTask.updatedAt = new Date().toISOString();
@@ -2203,7 +2204,15 @@ function renderBatches() {
       const g = data.groups.find(x => String(x.id) === String(b.groupId));
       if (g) groupName = `<div style="font-size:12px; color:#888; margin-bottom:4px;">Задание: ${escapeHtml(g.title)}</div>`;
     }
-    return `<div class="stage done">${groupName}<div class="stage-title">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></div><div class="stage-info">Себестоимость: ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div><div class="row"><button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">Удалить</button></div></div>`;
+    return `
+    <details style="margin-bottom:8px; border:1px solid #eee; border-radius:4px; padding:8px; background:#fff;">
+      <summary style="cursor:pointer; font-size:14px; font-weight:600;">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></summary>
+      <div style="margin-top:8px; font-size:13px;">
+        ${groupName}
+        <div>Себестоимость: ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div>
+        <div style="margin-top:8px;"><button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">Удалить</button></div>
+      </div>
+    </details>`;
   }).join("");
 }
 
