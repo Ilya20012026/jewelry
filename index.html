@@ -969,12 +969,30 @@ async function openTaskChat(linkedId, title) {
   const user = getCurrentUser();
   if (!user) return alert("Войдите заново");
   let chat = (data.chats || []).find(c => String(c.linked_id) === String(linkedId));
+  
   if (!chat) {
     chat = { id: "c_" + Date.now() + "_" + Math.floor(Math.random()*1000), type: "task", title: "📦 " + title, linked_id: String(linkedId), linked_type: linkedId.startsWith("batch_") ? "batch" : "task", pinned: false, created_by: String(user.id), updatedAt: new Date().toISOString() };
     data.chats = data.chats || []; data.chats.push(chat);
     data.chat_participants = data.chat_participants || []; data.chat_participants.push({ chat_id: chat.id, employee_id: String(user.id) });
     save(); renderChats(); showToast("✅ Чат для задачи создан", "success");
   }
+  
+  // 1. Переключаем главную вкладку на "Компания"
+  const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
+  if (companyBtn) showMain("company", companyBtn);
+
+  // 2. Переключаем внутреннюю вкладку на "Сообщения" (принудительно)
+  const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
+  if (chatTabBtn) showCompanyTab('chat', chatTabBtn);
+  
+  // 3. Открываем сам чат и принудительно показываем окно
+  _currentChatId = chat.id;
+  document.getElementById("chat_title").textContent = chat.title || "Без названия";
+  document.querySelector("#company-chat > .card").style.display = "none";
+  document.getElementById("chat_window").style.display = "block";
+  renderChatParticipants(chat.id);
+  renderChatMessages(chat.id);
+}
   
   // 1. Переключаем главную вкладку на "Компания"
   const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
@@ -1115,9 +1133,23 @@ function showCompanyTab(id, btn) {
   document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
   document.getElementById("company-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
-  if (id === "employees") renderEmployees();
-  if (id === "chat") { renderChats(); document.getElementById("chat_window").style.display = "none"; document.querySelector("#company-chat > .card").style.display = "block"; } 
-  else { document.getElementById("chat_window").style.display = "none"; _currentChatId = null; }
+  
+  if (id === "employees") {
+    renderEmployees();
+  }
+  
+  if (id === "chat") {
+    renderChats();
+    // Если мы открываем вкладку чата вручную (из меню), прячем окно и показываем список
+    if (!_currentChatId) {
+      document.getElementById("chat_window").style.display = "none";
+      document.querySelector("#company-chat > .card").style.display = "block";
+    }
+  } else {
+    // Если уходим на другую вкладку — сбрасываем чат
+    document.getElementById("chat_window").style.display = "none";
+    _currentChatId = null;
+  }
 }
 
 function addEmployee() {
