@@ -276,51 +276,7 @@
   <button onclick="showMain('service', this)">СЕРВИС</button>
 </div>
 
-<!-- ПОСТАВКИ -->
-<div id="supplies" class="tab">
-  <div class="card master-hidden">
-    <h3>Создать поставку</h3>
-    <div class="row">
-      <input id="sup_title" placeholder="Название (например, Собрать поставку WB)" style="width:280px">
-      <input id="sup_date" type="date">
-      <select id="sup_counterparty" style="width:180px">
-        <option value="">— Контрагент —</option>
-        <option>ВБ</option><option>Озон</option><option>Авито</option>
-        <option>Опт</option><option>Точка продаж</option><option>Церковь</option>
-        <option>Другое</option>
-      </select>
-    </div>
-    
-    <div style="margin-top:12px; padding:12px; background:#f9f9f9; border:1px solid #eee; border-radius:4px;">
-      <b style="font-size:13px;">Товары в поставке:</b>
-      <div id="supply_items_rows" style="margin-top:8px;">
-        <div class="row supply-item-row">
-          <select class="supply-stock-select" style="min-width:250px"></select>
-          <input class="supply-qty" type="number" value="1" min="1" placeholder="Кол-во" style="width:100px">
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <button class="action" onclick="addSupplyItemRow()">+ Ещё товар</button>
-        <button class="action danger" onclick="removeLastSupplyItemRow()">− Убрать</button>
-      </div>
-    </div>
 
-    <div class="row" style="margin-top:12px;">
-      <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
-      <button class="action" onclick="document.getElementById('sup_pdf').click()">📎 PDF (штрихкоды)</button>
-      <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
-      <div id="sup_pdf_status" style="font-size:13px; color:#888;"></div>
-    </div>
-  </div>
-  <div class="card">
-    <h3>Активные поставки</h3>
-    <div id="supplies_active_list"></div>
-  </div>
-  <div class="card">
-    <h3>Архив поставок</h3>
-    <div id="supplies_archive_list"></div>
-  </div>
-</div>
 
 <!-- ОБЁРТКА: ПРОИЗВОДСТВО -->
 <div id="main-production" class="main-section active">
@@ -543,6 +499,51 @@
     </table>
   </div>
 </div>
+</div>
+<!-- ПОСТАВКИ -->
+<div id="supplies" class="tab">
+  <div class="card master-hidden">
+    <h3>Создать поставку</h3>
+    <div class="row">
+      <input id="sup_title" placeholder="Название (например, Собрать поставку WB)" style="width:280px">
+      <input id="sup_date" type="date">
+      <select id="sup_counterparty" style="width:180px">
+        <option value="">— Контрагент —</option>
+        <option>ВБ</option><option>Озон</option><option>Авито</option>
+        <option>Опт</option><option>Точка продаж</option><option>Церковь</option>
+        <option>Другое</option>
+      </select>
+    </div>
+    
+    <div style="margin-top:12px; padding:12px; background:#f9f9f9; border:1px solid #eee; border-radius:4px;">
+      <b style="font-size:13px;">Товары в поставке:</b>
+      <div id="supply_items_rows" style="margin-top:8px;">
+        <div class="row supply-item-row">
+          <select class="supply-stock-select" style="min-width:250px"></select>
+          <input class="supply-qty" type="number" value="1" min="1" placeholder="Кол-во" style="width:100px">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button class="action" onclick="addSupplyItemRow()">+ Ещё товар</button>
+        <button class="action danger" onclick="removeLastSupplyItemRow()">− Убрать</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
+      <button class="action" onclick="document.getElementById('sup_pdf').click()">📎 PDF (штрихкоды)</button>
+      <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
+      <div id="sup_pdf_status" style="font-size:13px; color:#888;"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Активные поставки</h3>
+    <div id="supplies_active_list"></div>
+  </div>
+  <div class="card">
+    <h3>Архив поставок</h3>
+    <div id="supplies_archive_list"></div>
+  </div>
 </div>
 <!-- /ОБЁРТКА: ПРОИЗВОДСТВО -->
 
@@ -2819,26 +2820,33 @@ async function markSupplySent(id) {
   const s = (data.supplies || []).find(x => String(x.id) === String(id));
   if (!s) return;
   
-  const fileInput = document.createElement("input");
-  fileInput.type = "file"; fileInput.accept = "image/*";
-  fileInput.onchange = async (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    showToast("⏳ Загрузка фото...", "info");
-    try {
-      const sb = await initCloud(); if (!sb) throw new Error("Нет клиента");
-      const ext = file.name.split('.').pop() || 'jpg';
-      const fileName = `sent_${id}_${Date.now()}.${ext}`;
-      const { error } = await sb.storage.from('product-photos').upload(fileName, file);
-      if (error) throw error;
-      const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
-      s.photoSent = urlData.publicUrl;
-      s.status = 'sent';
-      s.updatedAt = new Date().toISOString();
-      save(); renderSupplies();
-      showToast("✅ Посылка отправлена", "success");
-    } catch (err) { console.error(err); showToast("❌ Ошибка", "error"); }
-  };
-  fileInput.click();
+  if (confirm("Отправить посылку? Хотите прикрепить фото отправления?")) {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file"; fileInput.accept = "image/*";
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      showToast("⏳ Загрузка фото...", "info");
+      try {
+        const sb = await initCloud(); if (!sb) throw new Error("Нет клиента");
+        const ext = file.name.split('.').pop() || 'jpg';
+        const fileName = `sent_${id}_${Date.now()}.${ext}`;
+        const { error } = await sb.storage.from('product-photos').upload(fileName, file);
+        if (error) throw error;
+        const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
+        s.photoSent = urlData.publicUrl;
+        s.status = 'sent';
+        s.updatedAt = new Date().toISOString();
+        save(); renderSupplies();
+        showToast("✅ Посылка отправлена с фото", "success");
+      } catch (err) { console.error(err); showToast("❌ Ошибка", "error"); }
+    };
+    fileInput.click();
+  } else {
+    s.status = 'sent';
+    s.updatedAt = new Date().toISOString();
+    save(); renderSupplies();
+    showToast("✅ Посылка отправлена без фото", "success");
+  }
 }
 
 function finishSupply(id) {
