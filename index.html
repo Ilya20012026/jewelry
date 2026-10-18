@@ -11,20 +11,23 @@
 <meta name="apple-mobile-web-app-title" content="Ювелирка">
 <style>
   /* =========================================
-     БАЗОВЫЕ НАСТРОЙКИ
+     ЦВЕТОВАЯ ПАЛИТРА (PREMIUM DARK)
      ========================================= */
   :root {
-    --black: #111111;
-    --white: #ffffff;
-    --bg-color: #f4f5f7;
-    --text-main: #1a1a1a;
-    --text-muted: #7a7a7a;
-    --border-color: #e2e4e9;
-    --border-hover: #c0c4cc;
+    --bg-main: #000000;       /* Глубокий черный фон, как на входе */
+    --bg-card: #121212;       /* Темно-серый для карточек (чтобы выделялись) */
+    --bg-input: #1e1e1e;      /* Фон для полей ввода */
+    --bg-hover: #2a2a2a;      /* Фон при наведении */
+    
+    --border: #333333;        /* Цвет рамок */
+    --border-focus: #666666;  /* Цвет рамок при клике */
+    
+    --text-main: #ffffff;     /* Белый текст */
+    --text-muted: #888888;    /* Серый текст для подсказок */
+    
     --radius: 12px;
     --radius-sm: 8px;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.05);
+    --transition: all 0.2s ease;
   }
 
   * { box-sizing: border-box; }
@@ -32,78 +35,53 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0; 
-    background: var(--bg-color); 
+    background: var(--bg-main); 
     color: var(--text-main);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
   }
 
   /* =========================================
-     ЭКРАН ВХОДА (СПЛЭШ И ЛОГИН)
-     ========================================= */
-  #splash_screen, .login-screen {
-    position: fixed !important;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: var(--black) !important;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 20000;
-  }
-  
-  .login-box { max-width: 400px; width: 100%; text-align: center; padding: 20px; }
-  .login-box h1 { font-size: 24px; letter-spacing: 2px; font-weight: 700; color: #fff; margin: 0 0 10px 0; }
-  .login-box h2 { font-size: 14px; font-weight: 400; letter-spacing: 4px; color: #888; margin: 0 0 30px 0; text-transform: uppercase; }
-  
-  .login-form { display: flex; flex-direction: column; gap: 16px; text-align: left; }
-  .login-form label { font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-  .login-form input { width: 100%; padding: 16px; font-size: 16px; background: #222; color: #fff; border: 1px solid #333; border-radius: var(--radius-sm); transition: 0.2s; }
-  .login-form input:focus { outline: none; border-color: #fff; background: #111; }
-  .login-form button.action { width: 100%; padding: 16px; font-size: 14px; letter-spacing: 2px; margin-top: 10px; background: #fff; color: #000; border: 1px solid #fff; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; text-transform: uppercase; }
-  .login-form button.action:hover { background: #ddd; }
-  .login-error { color: #ff5555; font-size: 13px; min-height: 18px; text-align: center; }
-
-
-  /* =========================================
-     ШАПКА И НАВИГАЦИЯ
+     ШАПКА И МЕНЮ
      ========================================= */
   header {
-    background: var(--white); color: var(--black);
-    padding: 0 32px; height: 64px;
-    font-size: 16px; font-weight: 700; letter-spacing: 1px;
+    background: var(--bg-main); color: var(--text-main);
+    padding: 0 40px; height: 72px;
+    font-size: 16px; font-weight: 700; letter-spacing: 2px;
     display: flex; align-items: center; justify-content: space-between;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border);
     position: sticky; top: 0; z-index: 100;
   }
   header span:first-child { text-transform: uppercase; }
-  #cloud_dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); flex-shrink: 0; transition: 0.3s; }
+  #cloud_dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15); flex-shrink: 0; transition: 0.3s; }
 
   .main-tabs {
-    display: flex; background: var(--white);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 32px; gap: 32px;
+    display: flex; background: var(--bg-main);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px; gap: 40px;
   }
   .main-tabs button {
     background: none; border: none; color: var(--text-muted);
-    padding: 20px 0; cursor: pointer; font-size: 14px; font-weight: 600;
-    letter-spacing: 1px; text-transform: uppercase;
-    transition: 0.2s; border-bottom: 3px solid transparent;
+    padding: 24px 0; cursor: pointer; font-size: 13px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase;
+    transition: var(--transition); border-bottom: 2px solid transparent;
   }
-  .main-tabs button:hover { color: var(--black); }
-  .main-tabs button.active { color: var(--black); border-bottom-color: var(--black); }
+  .main-tabs button:hover { color: var(--text-main); }
+  .main-tabs button.active { color: var(--text-main); border-bottom-color: var(--text-main); }
 
   .tabs {
     display: flex; background: transparent; flex-wrap: wrap;
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 32px; gap: 24px; margin-top: 10px;
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px; gap: 32px;
   }
   .tabs button {
     background: none; border: none; color: var(--text-muted);
-    padding: 16px 0; cursor: pointer; font-size: 13px; font-weight: 500;
-    letter-spacing: 0.5px; text-transform: uppercase;
-    border-bottom: 2px solid transparent; transition: 0.2s;
+    padding: 20px 0; cursor: pointer; font-size: 13px; font-weight: 500;
+    letter-spacing: 1px; text-transform: uppercase;
+    border-bottom: 2px solid transparent; transition: var(--transition);
   }
-  .tabs button:hover { color: var(--black); }
-  .tabs button.active { color: var(--black); border-bottom-color: var(--black); font-weight: 700; }
-
+  .tabs button:hover { color: var(--text-main); }
+  .tabs button.active { color: var(--text-main); border-bottom-color: var(--text-main); font-weight: 700; }
 
   /* =========================================
      КАРТОЧКИ И КОНТЕНТ
@@ -111,80 +89,94 @@
   .main-section { display: none; }
   .main-section.active { display: block; }
 
-  .tab { display: none; padding: 32px; max-width: 1200px; margin: 0 auto; }
+  .tab { display: none; padding: 40px; max-width: 1200px; margin: 0 auto; }
   .tab.active { display: block; animation: fadeIn 0.3s ease; }
-  
   @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
   .card {
-    background: var(--white); padding: 32px;
-    border: 1px solid var(--border-color); border-radius: var(--radius);
-    margin-bottom: 24px; box-shadow: var(--shadow-sm); overflow-x: auto;
+    background: var(--bg-card); padding: 32px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    overflow-x: auto;
   }
   
   h3 {
     margin-top: 0; margin-bottom: 24px; font-weight: 700; font-size: 16px;
-    color: var(--black); padding-bottom: 12px; border-bottom: 1px solid var(--border-color);
+    letter-spacing: 1px; color: var(--text-main); padding-bottom: 16px; border-bottom: 1px solid var(--border);
   }
 
-  .hint { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; line-height: 1.6; }
-  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
+  .hint { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; line-height: 1.6; }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 16px; }
 
   /* =========================================
      ФОРМЫ И КНОПКИ
      ========================================= */
   input, select, textarea {
-    padding: 12px 16px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);
-    font-size: 14px; background: var(--white); color: var(--text-main);
-    transition: 0.2s; max-width: 100%; font-family: inherit;
+    padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-size: 14px; background: var(--bg-input); color: var(--text-main);
+    transition: var(--transition); max-width: 100%; font-family: inherit;
   }
   input:focus, select:focus, textarea:focus {
-    outline: none; border-color: var(--black); box-shadow: 0 0 0 3px rgba(0,0,0,0.05);
+    outline: none; border-color: var(--border-focus); background: #111;
   }
+  input[type=number] { width: 120px; }
+  /* Делаем иконку календаря белой для темной темы */
+  ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
   button.action {
-    background: var(--white); color: var(--black); border: 1px solid var(--border-color);
+    background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);
     padding: 12px 24px; border-radius: var(--radius-sm); cursor: pointer;
-    font-size: 13px; font-weight: 600; transition: 0.2s;
+    font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+    transition: var(--transition);
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   }
-  button.action:hover { border-color: var(--border-hover); background: #fafafa; }
+  button.action:hover { background: var(--bg-hover); border-color: var(--border-focus); }
   
-  button.action.ok { background: var(--black); color: var(--white); border-color: var(--black); }
-  button.action.ok:hover { background: #333; }
+  /* Главные кнопки (Сохранить, Создать) - делаем белыми, как на входе */
+  button.action.ok { background: var(--text-main); color: var(--bg-main); border-color: var(--text-main); }
+  button.action.ok:hover { background: #cccccc; }
   
-  button.action.danger { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
-  button.action.danger:hover { background: #ef4444; color: var(--white); border-color: #ef4444; }
+  /* Кнопки удаления - красные */
+  button.action.danger { background: transparent; color: #ef4444; border-color: #7f1d1d; }
+  button.action.danger:hover { background: #ef4444; color: var(--text-main); border-color: #ef4444; }
 
   /* =========================================
      ТАБЛИЦЫ
      ========================================= */
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { padding: 16px; border-bottom: 1px solid var(--border-color); text-align: left; font-size: 14px; }
-  th { font-size: 12px; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; background: #fafafa; }
-  tr:hover td { background: #fafafa; }
+  th, td { padding: 16px; border-bottom: 1px solid var(--border); text-align: left; font-size: 14px; }
+  th { font-size: 12px; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+  tr:hover td { background: var(--bg-hover); }
 
   /* =========================================
-     ВСПОМОГАТЕЛЬНЫЕ ЭЛЕМЕНТЫ
+     ЭТАПЫ ПРОИЗВОДСТВА (STAGES)
      ========================================= */
-  .progress-track { display: flex; align-items: center; justify-content: space-between; margin: 20px 0; position: relative; }
-  .progress-track::before { content: ''; position: absolute; top: 50%; left: 12px; right: 12px; height: 2px; background: var(--border-color); z-index: 1; transform: translateY(-50%); }
-  .progress-step { width: 24px; height: 24px; border-radius: 50%; background: var(--white); border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text-muted); position: relative; z-index: 2; transition: 0.3s; }
-  .progress-step.done { background: var(--black); border-color: var(--black); color: var(--white); }
-  .progress-step.current { border-color: var(--black); color: var(--black); box-shadow: 0 0 0 4px rgba(0,0,0,0.1); }
+  .progress-track { display: flex; align-items: center; justify-content: space-between; margin: 24px 0; position: relative; }
+  .progress-track::before { content: ''; position: absolute; top: 50%; left: 12px; right: 12px; height: 2px; background: var(--border); z-index: 1; transform: translateY(-50%); }
+  .progress-step { width: 28px; height: 28px; border-radius: 50%; background: var(--bg-card); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text-muted); position: relative; z-index: 2; transition: var(--transition); }
+  .progress-step.done { background: var(--text-main); border-color: var(--text-main); color: var(--bg-main); }
+  .progress-step.current { border-color: var(--text-main); color: var(--text-main); box-shadow: 0 0 0 4px rgba(255,255,255,0.1); }
 
-  .stage { border-left: 3px solid var(--border-color); padding: 16px 20px; margin-bottom: 12px; background: #fafafa; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
-  .stage.active { border-left-color: var(--black); background: var(--white); border: 1px solid var(--border-color); border-left-width: 3px; }
-  .stage.done { border-left-color: #10b981; background: #f0fdf4; }
+  .stage { border-left: 2px solid var(--border); padding: 20px 24px; margin-bottom: 16px; background: var(--bg-input); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .stage.active { border-left-color: var(--text-main); background: var(--bg-card); border: 1px solid var(--border); border-left-width: 2px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .stage.done { border-left-color: #10b981; background: #0a1f14; }
+  .stage-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; color: var(--text-main); }
+  .stage-info { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
 
+  /* Уведомления */
+  .toast-item { background: var(--bg-card) !important; border: 1px solid var(--border); color: var(--text-main) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+  
   /* Адаптивность */
   @media (max-width: 768px) {
     header, .main-tabs, .tabs { padding-left: 16px; padding-right: 16px; }
     .main-tabs { gap: 16px; }
     .tab { padding: 16px; }
-    .card { padding: 16px; }
-    .row { gap: 8px; }
+    .card { padding: 20px; }
+    .row { gap: 12px; }
     input, select { width: 100% !important; margin-right: 0; }
+    .chat-message { max-width: 95%; background: var(--bg-card); border: 1px solid var(--border); }
+    .chat-message.own { background: var(--text-main); color: var(--bg-main); border-color: var(--text-main); }
+    .chat-message.own .chat-message-header { color: #555; }
   }
 </style>
    
