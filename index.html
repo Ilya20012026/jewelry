@@ -140,6 +140,7 @@
   .dot-new     { background: #2e7d32; }
   .dot-task    { background: #1976d2; }
 .dot-done { background: #ccc; }
+.dot-production { background: #ff0000; }
 
   .calendar-legend { display: flex; gap: 18px; margin-top: 16px; font-size: 12px; color: #666; flex-wrap: wrap; }
   .calendar-legend > span { display: flex; align-items: center; gap: 6px; }
@@ -827,16 +828,17 @@ function renderCalendar() {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = _calYear + "-" + String(_calMonth+1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
     const tasks = getTasksForDay(dateStr);
-        const dots = tasks.map(t => {
-      let cls = "dot-task";
-      if (t.done) {
-        cls = "dot-done"; 
-      } else {
-        if (t.type === "restock") cls = "dot-restock";
-        if (t.type === "new_item") cls = "dot-new";
-      }
-      return `<span class="dot ${cls}"></span>`;
-    }).join("");
+      const dots = tasks.map(t => {
+  let cls = "dot-task";
+  if (t.done) {
+    cls = "dot-done"; 
+  } else {
+    if (t.type === "restock") cls = "dot-restock";
+    if (t.type === "new_item") cls = "dot-new";
+    if (t.type === "production_task") cls = "dot-production"; // <-- НОВОЕ
+  }
+  return `<span class="dot ${cls}"></span>`;
+}).join("");
 
     const isToday = dateStr === todayStr;
     const isSelected = dateStr === _calSelectedDay;
@@ -880,6 +882,7 @@ function renderDayTasks(dateStr) {
       let typeLabel = "ЗАДАЧА", typeCls = "dot-task";
       if (t.type === "restock")  { typeLabel = "ПОПОЛНЕНИЕ"; typeCls = "dot-restock"; }
       if (t.type === "new_item") { typeLabel = "НОВАЯ ПОЗИЦИЯ"; typeCls = "dot-new"; }
+if (t.type === "production_task") { typeLabel = "ПРОИЗВОДСТВЕННАЯ ЗАДАЧА"; typeCls = "dot-production"; }
       const done = t.done ? "text-decoration:line-through;opacity:0.5;" : "";
       return `<div class="stage" style="${done}">
         <div class="stage-title"><span class="dot ${typeCls}"></span> ${typeLabel}: ${escapeHtml(t.title || t.product_name || "Без названия")} ${t.qty ? " × " + t.qty + " шт" : ""}</div>
@@ -1514,6 +1517,7 @@ function sendTaskToCalendar() {
   data.tasks.push(newTask);
   save();
   setTimeout(() => renderCalendar(), 100);
+setTimeout(() => { renderCalendar(); }, 150);
   showToast("📅 Задача отправлена в календарь на " + dateVal, "success");
 }
 
@@ -1900,7 +1904,7 @@ function createBatch() {
   if (dateStart) {
     const calTask = {
       id: uid(),
-      type: "task",
+      type: "production_task",
       title: "Производство: " + (title || "Партия"),
       date_start: dateStart,
       date_end: dateEnd || dateStart,
@@ -1935,6 +1939,7 @@ function createBatch() {
   document.getElementById("b_title").value = ""; document.getElementById("b_date_start").value = ""; document.getElementById("b_date_end").value = ""; document.getElementById("b_note").value = "";
   const rowsContainer = document.getElementById("batch_items_rows");
   rowsContainer.innerHTML = `<div class="row batch-item-row"><select class="batch-product" style="min-width:220px"></select><input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px"></div>`;
+setTimeout(() => { renderCalendar(); }, 150);
   renderBatchProductSelect(); save(); renderBatches();
 }
 
@@ -2005,6 +2010,16 @@ function completeStageN(bid, stageNum) {
   if (stageNum === 8) {
     b.stage = 9; b.finished = true; b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
     data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: p.name, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
+    // ЗАКРЫВАЕМ СВЯЗАННУЮ ЗАДАЧУ В КАЛЕНДАРЕ
+    if (data.tasks) {
+      const calTask = data.tasks.find(t => 
+        t.type === "production_task" && t.title.includes(p.name)
+      );
+      if (calTask) {
+        calTask.done = true;
+        calTask.updatedAt = new Date().toISOString();
+      }
+    }
   } else { b.stage = stageNum + 1; }
   save(); renderBatches(); if (b.finished) renderStock();
 }
