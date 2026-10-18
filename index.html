@@ -1395,7 +1395,7 @@ function openTaskModal(taskId) {
   document.getElementById("modal_task_title").textContent = task.title;
   document.getElementById("modal_task_note").value = task.note || "";
   
-  document.getElementById("modal_task_date").value = task.date || new Date().toISOString().slice(0,10);
+  document.getElementById("modal_task_date").value = task.date || "";
   
   const respSelect = document.getElementById("modal_task_responsible");
   respSelect.innerHTML = '<option value="">— Без ответственного —</option>' + 
@@ -1513,7 +1513,7 @@ function sendTaskToCalendar() {
   data.tasks = data.tasks || [];
   data.tasks.push(newTask);
   save();
-  renderCalendar();
+  setTimeout(() => renderCalendar(), 100);
   showToast("📅 Задача отправлена в календарь на " + dateVal, "success");
 }
 
@@ -1895,6 +1895,23 @@ function createBatch() {
   const dateStart = document.getElementById("b_date_start").value || null;
   const dateEnd = document.getElementById("b_date_end").value || null;
   const note = document.getElementById("b_note").value.trim();
+
+  // АВТОМАТИЧЕСКИ ДОБАВЛЯЕМ В КАЛЕНДАРЬ
+  if (dateStart) {
+    const calTask = {
+      id: uid(),
+      type: "task",
+      title: "Производство: " + (title || "Партия"),
+      date_start: dateStart,
+      date_end: dateEnd || dateStart,
+      responsible: responsible,
+      note: "Создано из раздела Партии",
+      done: false,
+      updatedAt: new Date().toISOString()
+    };
+    data.tasks = data.tasks || [];
+    data.tasks.push(calTask);
+  }
 
   const commonBatch = () => ({
     id: uid(), created: new Date().toLocaleString(), responsible, dateStart, dateEnd, note, stage: 1,
