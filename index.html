@@ -1195,7 +1195,7 @@ function addBoard() {
   const title = document.getElementById("board_title").value.trim();
   if (!title) return alert("Введите название доски");
   data.boards = data.boards || [];
-  data.boards.push({ id: uid(), title, createdAt: new Date().toISOString() });
+  data.boards.push({ id: uid(), name: title, createdAt: new Date().toISOString() });
   document.getElementById("board_title").value = "";
   save(); renderBoards(); showToast("✅ Доска создана", "success");
 }
