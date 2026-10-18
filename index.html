@@ -1008,8 +1008,7 @@ function openChat(chatId) {
   const chat = (data.chats || []).find(c => String(c.id) === String(chatId));
   if (!chat) return alert("Чат не найден");
   
-  _currentChatId = chatId;
-  
+  // ПРИНУДИТЕЛЬНО переключаем интерфейс
   const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
   if (companyBtn) showMain("company", companyBtn);
   
@@ -1021,6 +1020,9 @@ function openChat(chatId) {
     chatTabBtn.classList.add("active");
   }
 
+  // А ТЕПЕРЬ (после всех переключений) устанавливаем ID чата!
+  _currentChatId = chatId;
+  
   document.getElementById("chat_title").textContent = chat.title || "Без названия";
   document.querySelector("#company-chat > .card").style.display = "none";
   document.getElementById("chat_window").style.display = "block";
