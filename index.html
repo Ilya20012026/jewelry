@@ -443,7 +443,7 @@
     <h3>Склад готовой продукции</h3>
     <p class="hint">Здесь изделия, прошедшие все этапы. Списывайте их в каналы продаж.</p>
     <table>
-      <thead><tr><th>Изделие</th><th>Партия</th><th>Осталось, шт</th><th>Себест. 1 шт</th><th></th></tr></thead>
+      <thead><tr><th>Изделие</th><th>Партия</th><th>Осталось, шт</th><th>Себест. 1 шт</th><th>Общая себест.</th><th></th></tr></thead>
       <tbody id="stock_table"></tbody>
     </table>
   </div>
@@ -2395,6 +2395,7 @@ function renderStock() {
       <td>${s.batchIds.length > 1 ? s.batchIds.length + ' партий' : '#' + s.batchId}</td>
       <td>${s.remaining} шт</td>
       <td>${fmt(avgCost)} ₽</td>
+      <td>${fmt(s.totalCost)} ₽</td>
       <td><button class="action warn" onclick="openWriteOff('${s.id}')">Списать</button></td>
     </tr>`;
   }).join("");
@@ -2672,9 +2673,21 @@ function addSupply() {
 
 function renderSupplyStockSelect() {
   const selects = document.querySelectorAll(".supply-stock-select");
-  const options = (data.stock || []).filter(s => s.remaining > 0).map(s => 
+  
+  // Сначала группируем склад по названию
+  const grouped = {};
+  (data.stock || []).forEach(s => {
+    if (s.remaining <= 0) return;
+    if (!grouped[s.productName]) {
+      grouped[s.productName] = { id: s.id, productName: s.productName, remaining: 0 };
+    }
+    grouped[s.productName].remaining += s.remaining;
+  });
+
+  const options = Object.values(grouped).map(s => 
     `<option value="${s.id}">${escapeHtml(s.productName)} (осталось ${s.remaining} шт)</option>`
   ).join("");
+
   selects.forEach(sel => {
     const cur = sel.value;
     sel.innerHTML = options || `<option value="">Нет товаров на складе</option>`;
