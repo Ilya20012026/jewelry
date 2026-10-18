@@ -666,6 +666,37 @@
 </div>
 </div>
 
+<!-- МОДАЛЬНОЕ ОКНО ЗАДАЧИ -->
+<div id="task_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:15000; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#fff; width:100%; max-width:600px; border-radius:8px; padding:24px; position:relative; max-height:90vh; overflow-y:auto;">
+    <button onclick="closeTaskModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer;">×</button>
+    <h3 id="modal_task_title" style="margin-top:0; padding-right:30px;">Задача</h3>
+    
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Описание</label>
+      <textarea id="modal_task_note" rows="4" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;"></textarea>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Фото / Обложка</label>
+      <input type="file" id="modal_task_photo" accept="image/*" onchange="uploadTaskPhoto(this)" style="margin-top:4px;">
+      <div id="modal_task_photo_preview" style="margin-top:8px;"></div>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Прикрепить документ</label>
+      <input type="file" id="modal_task_file" onchange="uploadTaskFile(this)" style="margin-top:4px;">
+      <div id="modal_task_files_list" style="margin-top:8px; font-size:13px;"></div>
+    </div>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+      <button class="action" onclick="saveTaskFromModal()">💾 Сохранить</button>
+      <button class="action warn" onclick="sendTaskToCalendar()">📅 В работу</button>
+      <button class="action danger" onclick="closeTaskModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
 <script src="db.js"></script>
 <script src="cloud.js"></script>
 <script src="autosync.js"></script>
@@ -1242,14 +1273,16 @@ function renderColumns(boardId) {
   
   return cols.map(c => {
     const colTasks = (data.board_tasks || []).filter(t => String(t.column_id) === String(c.id));
-    const cardsHTML = colTasks.map(t => `
-      <div style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+       const cardsHTML = colTasks.map(t => `
+      <div style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor:pointer;" onclick="openTaskModal('${t.id}')">
+        ${t.photo ? `<img src="${escapeHtml(t.photo)}" style="width:100%; height:100px; object-fit:cover; border-radius:4px; margin-bottom:6px;">` : ''}
         <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">${escapeHtml(t.title)}</div>
+        ${t.note ? `<div style="font-size:11px; color:#888; margin-bottom:4px;">${escapeHtml(t.note.slice(0,30))}...</div>` : ''}
         <div style="display: flex; justify-content: space-between; gap: 4px;">
-          <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="deleteBoardTask('${t.id}')">×</button>
+          <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="event.stopPropagation(); deleteBoardTask('${t.id}')">×</button>
           <div>
-            <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="moveBoardTask('${t.id}', 'left')">←</button>
-            <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="moveBoardTask('${t.id}', 'right')">→</button>
+            <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="event.stopPropagation(); moveBoardTask('${t.id}', 'left')">←</button>
+            <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="event.stopPropagation(); moveBoardTask('${t.id}', 'right')">→</button>
           </div>
         </div>
       </div>
@@ -1332,6 +1365,127 @@ function moveBoardTask(taskId, direction) {
   task.column_id = boardCols[newIndex].id;
   task.updatedAt = new Date().toISOString();
   save(); renderBoards();
+}
+
+/* ---------- МОДАЛЬНОЕ ОКНО ЗАДАЧИ ---------- */
+let _currentTaskId = null;
+
+function openTaskModal(taskId) {
+  const task = (data.board_tasks || []).find(t => String(t.id) === String(taskId));
+  if (!task) return;
+  _currentTaskId = taskId;
+  
+  document.getElementById("modal_task_title").textContent = task.title;
+  document.getElementById("modal_task_note").value = task.note || "";
+  
+  const preview = document.getElementById("modal_task_photo_preview");
+  if (task.photo) {
+    preview.innerHTML = '<img src="' + escapeHtml(task.photo) + '" style="max-height:150px; border-radius:4px;">';
+  } else {
+    preview.innerHTML = "";
+  }
+  
+  const filesList = document.getElementById("modal_task_files_list");
+  if (task.files && task.files.length > 0) {
+    filesList.innerHTML = task.files.map(f => '<div>📎 <a href="' + escapeHtml(f.url) + '" target="_blank">' + escapeHtml(f.name) + '</a></div>').join("");
+  } else {
+    filesList.innerHTML = "<span style='color:#888;'>Файлов нет</span>";
+  }
+  
+  document.getElementById("task_modal").style.display = "flex";
+}
+
+function closeTaskModal() {
+  _currentTaskId = null;
+  document.getElementById("task_modal").style.display = "none";
+}
+
+function saveTaskFromModal() {
+  if (!_currentTaskId) return;
+  const task = (data.board_tasks || []).find(t => String(t.id) === String(_currentTaskId));
+  if (!task) return;
+  
+  task.title = document.getElementById("modal_task_title").textContent; 
+  task.note = document.getElementById("modal_task_note").value;
+  task.updatedAt = new Date().toISOString();
+  
+  save();
+  renderBoards();
+  closeTaskModal();
+  showToast("✅ Задача сохранена", "success");
+}
+
+async function uploadTaskPhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  const preview = document.getElementById("modal_task_photo_preview");
+  preview.innerHTML = "Загрузка...";
+  
+  try {
+    const sb = await initCloud(); if (!sb) throw new Error("Нет клиента Supabase");
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = "task_" + Date.now() + "." + ext;
+    const { error } = await sb.storage.from('product-photos').upload(fileName, file);
+    if (error) throw error;
+    const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
+    
+    const task = (data.board_tasks || []).find(t => String(t.id) === String(_currentTaskId));
+    if (task) {
+      task.photo = urlData.publicUrl;
+      task.updatedAt = new Date().toISOString();
+      save();
+      renderBoards();
+      preview.innerHTML = `<img src="${escapeHtml(task.photo)}" style="max-height:150px; border-radius:4px;">`;
+      showToast("✅ Фото обновлено", "success");
+    }
+  } catch (e) { console.error(e); showToast("❌ Ошибка загрузки фото", "error"); }
+}
+
+async function uploadTaskFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const filesList = document.getElementById("modal_task_files_list");
+  
+  try {
+    const sb = await initCloud(); if (!sb) throw new Error("Нет клиента Supabase");
+    const ext = file.name.split('.').pop() || 'bin';
+    const fileName = "doc_" + Date.now() + "." + ext;
+    const { error } = await sb.storage.from('chat-files').upload(fileName, file);
+    if (error) throw error;
+    const { data: urlData } = sb.storage.from('chat-files').getPublicUrl(fileName);
+    
+    const task = (data.board_tasks || []).find(t => String(t.id) === String(_currentTaskId));
+    if (task) {
+      task.files = task.files || [];
+      task.files.push({ url: urlData.publicUrl, name: file.name });
+      task.updatedAt = new Date().toISOString();
+      save();
+      filesList.innerHTML = task.files.map(f => `<div>📎 <a href="${escapeHtml(f.url)}" target="_blank">${escapeHtml(f.name)}</a></div>`).join("");
+      showToast("✅ Файл прикреплен", "success");
+    }
+  } catch (e) { console.error(e); showToast("❌ Ошибка загрузки файла", "error"); }
+}
+
+function sendTaskToCalendar() {
+  if (!_currentTaskId) return;
+  const task = (data.board_tasks || []).find(t => String(t.id) === String(_currentTaskId));
+  if (!task) return;
+  
+  const newTask = {
+    id: uid(),
+    type: "task",
+    title: task.title,
+    date_start: new Date().toISOString().slice(0,10),
+    date_end: new Date().toISOString().slice(0,10),
+    responsible: "",
+    note: task.note || "",
+    done: false,
+    updatedAt: new Date().toISOString()
+  };
+  
+  data.tasks = data.tasks || [];
+  data.tasks.push(newTask);
+  save();
+  renderCalendar();
+  showToast("📅 Задача добавлена в календарь", "success");
 }
 
 function showCompanyTab(id, btn) {
@@ -1473,6 +1627,9 @@ function applyRoleRestrictions(user) {
   if (archiveBtn) archiveBtn.style.display = isMaster ? "none" : "";
   const empBtn = document.querySelector("#main-company .tabs button[onclick*='employees']");
   if (empBtn) empBtn.style.display = isMaster ? "none" : "";
+
+  const boardsBtn = document.querySelector("#main-company .tabs button[onclick*='boards']");
+  if (boardsBtn) boardsBtn.style.display = isMaster ? "none" : "";
 
   if (isMaster) {
     const activeMain = document.querySelector(".main-section.active");
