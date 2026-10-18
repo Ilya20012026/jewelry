@@ -2049,20 +2049,46 @@ function completeStageN(bid, stageNum) {
   b.stages[stageNum].done = true;
   
   if (stageNum === 8) {
-    b.stage = 9; b.finished = true; b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
+    b.stage = 9; 
+    b.finished = true; 
+    b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
     data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: p.name, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
     
-    if (data.tasks && b.calTaskId) {
-      const calTask = data.tasks.find(t => String(t.id) === String(b.calTaskId));
-      if (calTask) {
-        calTask.done = true;
-        calTask.updatedAt = new Date().toISOString();
+    // ПРОВЕРКА: ВСЕ ЛИ ПАРТИИ В ГРУППЕ ЗАВЕРШЕНЫ?
+    if (b.groupId) {
+      const groupBatches = data.batches.filter(x => String(x.groupId) === String(b.groupId));
+      const allDone = groupBatches.every(x => x.finished);
+      
+      if (allDone) {
+        const group = data.groups.find(g => String(g.id) === String(b.groupId));
+        if (group) {
+           // Закрываем задачу в календаре
+           const calTask = data.tasks.find(t => t.type === "production_task" && t.title.includes(group.title));
+           if (calTask) { 
+             calTask.done = true; 
+             calTask.updatedAt = new Date().toISOString(); 
+           }
+           showToast("🏆 Всё производственное задание завершено!", "success");
+        }
+      }
+    } else {
+      // Если партия одиночная (без группы)
+      if (data.tasks && b.calTaskId) {
+        const calTask = data.tasks.find(t => String(t.id) === String(b.calTaskId));
+        if (calTask) { 
+          calTask.done = true; 
+          calTask.updatedAt = new Date().toISOString(); 
+        }
       }
     }
   } else { 
     b.stage = stageNum + 1; 
   }
-  save(); renderBatches(); if (b.finished) renderStock();
+  
+  save(); 
+  renderBatches(); 
+  if (b.finished) renderStock();
+  renderCalendar();
 }
 
 function renderBatchCard(b) {
@@ -2154,12 +2180,36 @@ function toggleGroupCollapsed(groupId) {
   g.collapsed = !g.collapsed; g.updatedAt = new Date().toISOString(); save(); renderBatches();
 }
 
-function deleteGroup(groupId) {
-  if (!confirm("Удалить задание и все партии внутри?")) return;
+function finishGroup(groupId) {
+  if (!confirm("Вы уверены, что всё задание выполнено? Все партии уйдут в архив.")) return;
+  
+  const group = data.groups.find(g => String(g.id) === String(groupId));
+  if (!group) return;
+
+  // 1. Закрываем все партии внутри
   const groupBatches = data.batches.filter(b => String(b.groupId) === String(groupId));
-  groupBatches.forEach(b => { markDeleted(data, "batches", b.id); });
-  markDeleted(data, "groups", groupId); save(); renderBatches();
-  showToast("Задание удалено: " + groupBatches.length + " партий", "success");
+  groupBatches.forEach(b => {
+    b.finished = true;
+    b.stage = 9;
+    if (!b.totalCost) b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
+    // Если партия еще не попала на склад, добавляем
+    if (!data.stock.find(s => s.batchId === b.id)) {
+      data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: b.productName, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
+    }
+  });
+
+  // 2. Гасим задачу в календаре
+  const calTask = data.tasks.find(t => t.type === "production_task" && t.title.includes(group.title));
+  if (calTask) {
+    calTask.done = true;
+    calTask.updatedAt = new Date().toISOString();
+  }
+
+  save(); 
+  renderBatches(); 
+  renderCalendar();
+  renderStock();
+  showToast("✅ Задание полностью завершено", "success");
 }
 
 function renderBatches() {
@@ -2190,7 +2240,7 @@ function renderBatches() {
     const period = group.date_start ? (group.date_end && group.date_end !== group.date_start ? group.date_start + " — " + group.date_end : group.date_start) : "—";
     const isCollapsed = !!group.collapsed;
 
-    html += `<div class="task-group"><div class="task-group-header"><div class="task-group-title">📦 ПРОИЗВОДСТВЕННОЕ ЗАДАНИЕ ${escapeHtml(title)}</div><div class="task-group-meta">Ответственный: ${escapeHtml(responsible)}</div><div class="task-group-meta">Срок: ${escapeHtml(period)}</div><div class="row" style="margin-top:8px"><button class="action" onclick="toggleGroupCollapsed('${gid}')">${isCollapsed ? "▸ РАСКРЫТЬ" : "▾ СВЕРНУТЬ"}</button><button class="action danger master-hidden" onclick="deleteGroup('${gid}')">× Удалить задание</button></div></div>`;
+    html += `<div class="task-group"><div class="task-group-header"><div class="task-group-title">📦 ПРОИЗВОДСТВЕННОЕ ЗАДАНИЕ ${escapeHtml(title)}</div><div class="task-group-meta">Ответственный: ${escapeHtml(responsible)}</div><div class="task-group-meta">Срок: ${escapeHtml(period)}</div><div class="row" style="margin-top:8px"><button class="action" onclick="toggleGroupCollapsed('${gid}')">${isCollapsed ? "▸ РАСКРЫТЬ" : "▾ СВЕРНУТЬ"}</button><button class="action ok" onclick="finishGroup('${gid}')">✔ Завершить задание</button><button class="action danger master-hidden" onclick="deleteGroup('${gid}')">× Удалить задание</button></div></div>`;
     if (!isCollapsed) { html += `<div class="task-group-body">`; items.forEach(b => { html += renderBatchCard(b); }); html += `</div>`; }
     html += `</div>`;
   });
@@ -2198,22 +2248,47 @@ function renderBatches() {
   noGroup.forEach(b => { html += renderBatchCard(b); });
   document.getElementById("active_batches").innerHTML = html || `<p class="hint">Нет активных партий</p>`;
   
-  document.getElementById("done_batches").innerHTML = done.map(b => {
-    let groupName = "";
-    if (b.groupId) {
-      const g = data.groups.find(x => String(x.id) === String(b.groupId));
-      if (g) groupName = `<div style="font-size:12px; color:#888; margin-bottom:4px;">Задание: ${escapeHtml(g.title)}</div>`;
-    }
-    return `
-    <details style="margin-bottom:8px; border:1px solid #eee; border-radius:4px; padding:8px; background:#fff;">
-      <summary style="cursor:pointer; font-size:14px; font-weight:600;">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></summary>
-      <div style="margin-top:8px; font-size:13px;">
-        ${groupName}
-        <div>Себестоимость: ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div>
-        <div style="margin-top:8px;"><button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">Удалить</button></div>
-      </div>
-    </details>`;
-  }).join("");
+  // БЛОК ЗАВЕРШЕННЫХ ПАРТИЙ С ДЕТАЛИЗАЦИЕЙ
+  const doneGroups = {};
+  done.forEach(b => {
+    const gid = b.groupId || "no_group";
+    if (!doneGroups[gid]) doneGroups[gid] = [];
+    doneGroups[gid].push(b);
+  });
+
+  let doneHtml = "";
+  Object.keys(doneGroups).forEach(gid => {
+    const group = data.groups.find(g => String(g.id) === String(gid));
+    const title = group ? group.title : "Одиночные партии";
+    doneHtml += `<div class="task-group"><div class="task-group-header"><div class="task-group-title">✅ ЗАВЕРШЕНО: ${escapeHtml(title)}</div></div>`;
+    doneHtml += `<div class="task-group-body">`;
+    doneGroups[gid].forEach(b => {
+       doneHtml += `
+        <details style="margin-bottom:8px; border:1px solid #eee; border-radius:4px; padding:8px; background:#fff;">
+          <summary style="cursor:pointer; font-size:14px; font-weight:600;">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></summary>
+          <div style="margin-top:12px; font-size:13px;">
+            <div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #eee;">
+              <b>Себестоимость:</b> ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+              <div><b>Воск:</b> ${fmt(b.stages[1].waxUsed, 3)} г — ${fmt(b.stageCosts[1])} ₽</div>
+              <div><b>Формовка:</b> ${fmt(b.stageCosts[2])} ₽</div>
+              <div><b>Прокалка:</b> ${fmt(b.stageCosts[3])} ₽</div>
+              <div><b>Литьё (металл):</b> ${fmt(b.stages[4].metalUsed, 3)} г (возврат ${fmt(b.stages[4].metalReturned, 3)} г) — ${fmt(b.stageCosts[4])} ₽</div>
+              <div><b>Обработка:</b> ${fmt(b.stageCosts[5])} ₽</div>
+              <div><b>Гальваника:</b> ${fmt(b.stageCosts[6])} ₽</div>
+              <div><b>Чернение:</b> ${fmt(b.stageCosts[7])} ₽</div>
+              <div><b>Упаковка:</b> ${fmt(b.stageCosts[8])} ₽</div>
+            </div>
+            <div style="margin-top:12px; border-top:1px solid #eee; padding-top:12px;">
+              <button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">Удалить</button>
+            </div>
+          </div>
+        </details>`;
+    });
+    doneHtml += `</div></div>`;
+  });
+  document.getElementById("done_batches").innerHTML = doneHtml || `<p class="hint">Нет завершенных партий</p>`;
 }
 
 function renderStock() {
