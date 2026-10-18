@@ -1180,7 +1180,6 @@ function showApp() {
 }
 
 function hideApp() {
-  document.getElementById("
   document.getElementById("login_screen").style.display = "flex";
   document.getElementById("login_screen").classList.remove("hidden");
   document.getElementById("app_main").style.display = "none";
@@ -1785,5 +1784,104 @@ async function uiFullSync() {
 function renderArchivedChats() {
   const listEl = document.getElementById("archived_chats_list"); if (!listEl) return;
   const archived = (data.chats || []).filter(c => c.archived === true);
-  if (archived.length === 0) { listEl.innerHTML = `<p class="hint">Архив пуст.</p>`; return; }
-  listEl
+    if (archived.length === 0) { listEl.innerHTML = `<p class="hint">Архив пуст.</p>`; return; }
+  listEl.innerHTML = archived.map(c => `
+    <div class="chat-item" onclick="openChat('${c.id}')">
+      <div class="chat-item-info">
+        <div class="chat-item-title">${escapeHtml(c.title)}</div>
+        <div class="chat-item-meta">Архивирован</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* ---------- СТАРТ ПРИЛОЖЕНИЯ ---------- */
+async function initApp() {
+  let loaded = await migrateFromLocalStorage();
+  if (!loaded) loaded = await loadData();
+  data = loaded || JSON.parse(JSON.stringify(EMPTY_DATA));
+  ensureDeletedStruct(data);
+  stampUpdatedAt(data);
+  renderAll();
+  
+  (async () => {
+    try {
+      const sb = await initCloud();
+      if (sb) {
+        const { data: remoteChats } = await sb.from('chats').select('*');
+        const { data: remoteParts } = await sb.from('chat_participants').select('*');
+        if (remoteChats) data.chats = remoteChats;
+        if (remoteParts) data.chat_participants = remoteParts;
+        renderChats();
+      }
+    } catch(e) { console.error("Ошибка загрузки чатов:", e); }
+  })();
+
+  renderEmployees();
+  checkScheduledTasks();
+  renderResponsibleSelect();
+  renderCalendar();
+  onTaskTypeChange();
+
+  window.__scheduleAutosync = () => scheduleAutosync(() => data, (d) => { data = d; });
+  setCloudIndicator(navigator.onLine ? 'online' : 'offline');
+
+  initRealtime((table, payload) => {
+    console.log(`Realtime-событие для таблицы ${table}`);
+    if (payload && payload.new && payload.new.id) {
+      if (!data[table]) data[table] = [];
+      const idx = data[table].findIndex(x => String(x.id) === String(payload.new.id));
+      if (idx >= 0) data[table][idx] = payload.new;
+      else if (payload.eventType === 'INSERT') data[table].push(payload.new);
+      else if (payload.eventType === 'DELETE') data[table] = data[table].filter(x => String(x.id) !== String(payload.old.id));
+    }
+    if (table === 'messages' || table === 'chat_participants') {
+      if (typeof _currentChatId !== 'undefined' && _currentChatId) { renderChatMessages(_currentChatId); renderChatParticipants(_currentChatId); }
+      renderChats();
+    }
+    if (table === 'tasks') { renderCalendar(); if (typeof _calSelectedDay !== 'undefined' && _calSelectedDay) renderDayTasks(_calSelectedDay); }
+    if (['batches', 'groups', 'employees'].includes(table)) { renderBatches(); renderBatchResponsibleSelect(); }
+    if (['materials', 'products', 'cycles', 'opokas'].includes(table)) { renderMaterials(); renderProducts(); renderCycles(); renderOpokas(); renderAllMaterialSelects(); renderBatchProductSelect(); }
+    if (table === 'stock' || table === 'archive') { renderStock(); renderArchive(); }
+  });
+
+  setTimeout(async () => {
+    if (navigator.onLine) {
+      await runAutosync(() => data, (d) => { data = d; renderAll(); });
+      checkSession();
+    } else { checkSession(); }
+  }, 1000);
+
+  setInterval(() => { checkScheduledTasks(); }, 60000);
+
+  setInterval(async () => {
+    if (typeof _currentChatId !== 'undefined' && _currentChatId && navigator.onLine) {
+      try {
+        const sb = await initCloud(); if (!sb) return;
+        const { data: latestMessages, error } = await sb.from('messages').select('*').eq('chat_id', _currentChatId).order('created_at', { ascending: false }).limit(50);
+        if (!error && latestMessages) {
+          latestMessages.reverse(); let hasNew = false;
+          latestMessages.forEach(msg => {
+            const exists = (data.messages || []).find(m => String(m.id) === String(msg.id));
+            if (!exists) { data.messages.push(msg); hasNew = true; }
+          });
+          if (hasNew) { renderChatMessages(_currentChatId); renderChats(); setTimeout(() => { renderChatMessages(_currentChatId); }, 100); }
+        }
+      } catch (e) { console.error('❌ Ошибка таймера чата:', e); }
+    }
+  }, 1500);
+
+  console.log("✅ Приложение запущено.");
+}
+
+initApp();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then(reg => console.log('✅ SW зарегистрирован:', reg.scope)).catch(err => console.error('❌ Ошибка SW:', err));
+    });
+  }
+</script>
+</body>
+</html>
