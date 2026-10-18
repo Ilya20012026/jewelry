@@ -1770,6 +1770,7 @@ function showTab(id, btn) {
   btn.classList.add("active");
 
   if (id === "stock") renderStock();
+  if (id === "supplies") renderSupplyStockSelect();
   if (id === "archive") renderArchive();
   if (id === "batches") renderBatches();
 }
@@ -2119,7 +2120,14 @@ function completeStageN(bid, stageNum) {
     b.finished = true; 
     b.finishedAt = new Date().toLocaleString(); // <-- ДОБАВИЛИ ДАТУ
     b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
-    data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: p.name, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
+        const existingStock = data.stock.find(s => s.productName === p.name);
+    if (existingStock) {
+      existingStock.remaining += b.qty;
+      existingStock.batchId = existingStock.batchId + ", " + b.id;
+      existingStock.updatedAt = new Date().toISOString();
+    } else {
+      data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: p.name, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
+    }
     
     if (b.groupId) {
       const groupBatches = data.batches.filter(x => String(x.groupId) === String(b.groupId));
@@ -2257,8 +2265,15 @@ function finishGroup(groupId) {
     b.stage = 9;
     if (!b.totalCost) b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
     // Если партия еще не попала на склад, добавляем
-    if (!data.stock.find(s => s.batchId === b.id)) {
-      data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: b.productName, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
+        if (!data.stock.find(s => s.batchId === b.id)) {
+      const existingStock = data.stock.find(s => s.productName === b.productName);
+      if (existingStock) {
+        existingStock.remaining += b.qty;
+        existingStock.batchId = existingStock.batchId + ", " + b.id;
+        existingStock.updatedAt = new Date().toISOString();
+      } else {
+        data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: b.productName, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
+      }
     }
   });
 
@@ -2362,7 +2377,27 @@ function renderBatches() {
 }
 
 function renderStock() {
-  document.getElementById("stock_table").innerHTML = data.stock.map(s => `<tr><td>${escapeHtml(s.productName)}</td><td>#${s.batchId}</td><td>${s.remaining} шт</td><td>${fmt(s.costPerUnit)} ₽</td><td><button class="action warn" onclick="openWriteOff('${s.id}')">Списать</button></td></tr>`).join("");
+  const grouped = {};
+  (data.stock || []).forEach(s => {
+    const key = s.productName;
+    if (!grouped[key]) {
+      grouped[key] = { ...s, remaining: 0, totalCost: 0, batchIds: [] };
+    }
+    grouped[key].remaining += s.remaining;
+    grouped[key].totalCost += s.costPerUnit * s.remaining;
+    grouped[key].batchIds.push(s.batchId);
+  });
+
+  document.getElementById("stock_table").innerHTML = Object.values(grouped).map(s => {
+    const avgCost = s.remaining > 0 ? (s.totalCost / s.remaining) : 0;
+    return `<tr>
+      <td>${escapeHtml(s.productName)}</td>
+      <td>${s.batchIds.length > 1 ? s.batchIds.length + ' партий' : '#' + s.batchId}</td>
+      <td>${s.remaining} шт</td>
+      <td>${fmt(avgCost)} ₽</td>
+      <td><button class="action warn" onclick="openWriteOff('${s.id}')">Списать</button></td>
+    </tr>`;
+  }).join("");
 }
 
 function openWriteOff(stockId) {
