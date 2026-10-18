@@ -237,6 +237,14 @@
 </style>
 </head>
 <body>
+<!-- Экран загрузки -->
+<div id="splash_screen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; color: #fff; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s;">
+  <h1 style="font-size: 24px; letter-spacing: 2px; font-weight: 700; color: #fff; margin-bottom: 20px;">РУСИЧЪ</h1>
+  <div style="width: 40px; height: 40px; border: 3px solid #333; border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</div>
 <div id="login_screen" class="login-screen" style="display: none;">
   <div class="login-box">
     <h1>ПРОИЗВОДСТВО РУСИЧЪ</h1>
@@ -1118,15 +1126,32 @@ function renderChatParticipants(chatId) {
   } else { selectEl.style.display = "none"; document.querySelector("#chat_participants_bar button").style.display = "none"; }
 }
 
-function addChatParticipant() {
+async function addChatParticipant() {
   const chatId = _currentChatId; if (!chatId) return;
   const selectEl = document.getElementById("chat_add_participant"); const empId = selectEl.value;
   if (!empId) return alert("Выберите сотрудника");
+  
   data.chat_participants = data.chat_participants || [];
   const exists = data.chat_participants.find(p => String(p.chat_id) === String(chatId) && String(p.employee_id) === String(empId));
   if (exists) return alert("Уже добавлен");
-  data.chat_participants.push({ chat_id: chatId, employee_id: empId });
-  save(); renderChatParticipants(chatId);
+  
+  const newParticipant = { chat_id: chatId, employee_id: empId };
+  data.chat_participants.push(newParticipant);
+  
+  // Сохраняем локально
+  save(); 
+  renderChatParticipants(chatId);
+  
+  // МГНОВЕННО отправляем в облако, чтобы у других участников он появился сразу
+  try {
+    const sb = await initCloud();
+    if (sb) {
+      await sb.from('chat_participants').upsert(newParticipant);
+      showToast("✅ Участник добавлен и отправлен в облако", "success");
+    }
+  } catch (e) {
+    console.error("Ошибка добавления участника:", e);
+  }
 }
 
 function removeChatParticipant(chatId, empId) {
@@ -1246,6 +1271,14 @@ function checkSession() {
     const session = getAuthSession();
     if (session && session.id) { user = session; }
   }
+  
+  // Прячем экран загрузки
+  const splash = document.getElementById("splash_screen");
+  if (splash) {
+    splash.style.opacity = "0";
+    setTimeout(() => { splash.remove(); }, 300); // Удаляем из DOM через 0.3 сек
+  }
+  
   if (user) showApp(); else hideApp();
 }
 
