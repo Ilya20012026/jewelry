@@ -548,18 +548,6 @@
     </div>
   </div>
 
-  <div id="company-boards" class="tab">
-    <div class="card master-hidden">
-      <h3>Создать новую доску</h3>
-      <p class="hint">Например: Wildberries, Производство, Закупки.</p>
-      <div class="row">
-        <input id="new_board_name" placeholder="Название доски" style="width:280px">
-        <button class="action" onclick="createBoard()">+ Создать доску</button>
-      </div>
-    </div>
-    
-    <div id="boards_list"></div>
-  </div>
 
   <div id="company-boards" class="tab">
     <div class="card">
@@ -2141,35 +2129,6 @@ async function initApp() {
   console.log("✅ Приложение запущено.");
 }
 
-function renderBoards() {
-  const list = document.getElementById("boards_list");
-  if (!list) return;
-  const boards = data.boards || [];
-  if (boards.length === 0) { list.innerHTML = `<p class="hint">Пока нет досок. Создайте первую!</p>`; return; }
-  
-  list.innerHTML = boards.map(b => `
-    <div class="card" style="margin-bottom:12px; border-left:4px solid #000;">
-      <h4 style="margin:0 0 10px 0;">${escapeHtml(b.title)}</h4>
-      <button class="action danger" onclick="deleteBoard('${b.id}')" style="float:right;">× Удалить</button>
-      <div id="board-tasks-${b.id}" style="margin-top:10px;"></div>
-    </div>
-  `).join("");
-}
-
-function addBoard() {
-  const title = document.getElementById("board_title").value.trim();
-  if (!title) return alert("Введите название доски");
-  data.boards = data.boards || [];
-  data.boards.push({ id: uid(), title, createdAt: new Date().toISOString() });
-  document.getElementById("board_title").value = "";
-  save(); renderBoards(); showToast("✅ Доска создана", "success");
-}
-
-function deleteBoard(id) {
-  if (!confirm("Удалить доску?")) return;
-  data.boards = (data.boards || []).filter(b => String(b.id) !== String(id));
-  save(); renderBoards();
-}
 
 initApp();
 // Страховка от вечной загрузки
