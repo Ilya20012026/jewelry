@@ -1222,7 +1222,7 @@ function renderBoards() {
     const header = document.createElement("div");
     header.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;";
     header.innerHTML = `
-      <h3 style="margin:0; border:none; padding:0;">${escapeHtml(b.name)}</h3>
+      <h3 style="margin:0; border:none; padding:0;">${escapeHtml(b.title)}</h3>
       <div>
         <button class="action" onclick="addColumn('${b.id}')">+ Колонка</button>
         <button class="action danger" onclick="deleteBoard('${b.id}')">× Удалить доску</button>
