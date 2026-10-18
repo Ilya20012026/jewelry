@@ -11,23 +11,23 @@
 <meta name="apple-mobile-web-app-title" content="Ювелирка">
 <style>
   /* =========================================
-     ЦВЕТОВАЯ ПАЛИТРА (PREMIUM DARK)
+     ЦВЕТОВАЯ ПАЛИТРА (ГРАФИТОВЫЙ ПРЕМИУМ)
      ========================================= */
   :root {
-    --bg-main: #000000;       /* Глубокий черный фон, как на входе */
-    --bg-card: #121212;       /* Темно-серый для карточек (чтобы выделялись) */
-    --bg-input: #1e1e1e;      /* Фон для полей ввода */
-    --bg-hover: #2a2a2a;      /* Фон при наведении */
+    --bg-body: #121212;       /* Глубокий графитовый фон */
+    --bg-panel: #1E1E1E;      /* Панели и карточки */
+    --bg-input: #2A2A2A;      /* Поля ввода */
+    --bg-hover: #333333;      /* Наведение */
     
-    --border: #333333;        /* Цвет рамок */
-    --border-focus: #666666;  /* Цвет рамок при клике */
+    --text-main: #F5F5F5;     /* Мягкий белый (не режет глаз) */
+    --text-muted: #999999;    /* Серый для подсказок */
     
-    --text-main: #ffffff;     /* Белый текст */
-    --text-muted: #888888;    /* Серый текст для подсказок */
+    --border: #333333;        /* Рамки */
+    --border-focus: #666666;  /* Рамка при клике */
     
-    --radius: 12px;
-    --radius-sm: 8px;
-    --transition: all 0.2s ease;
+    --radius: 12px;           /* Скругление карточек */
+    --radius-sm: 8px;         /* Скругление кнопок/полей */
+    --shadow-card: 0 8px 30px rgba(0,0,0,0.4);
   }
 
   * { box-sizing: border-box; }
@@ -35,36 +35,37 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0; 
-    background: var(--bg-main); 
+    background: var(--bg-body); 
     color: var(--text-main);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    line-height: 1.5;
   }
 
   /* =========================================
-     ШАПКА И МЕНЮ
+     ШАПКА И НАВИГАЦИЯ
      ========================================= */
   header {
-    background: var(--bg-main); color: var(--text-main);
-    padding: 0 40px; height: 72px;
-    font-size: 16px; font-weight: 700; letter-spacing: 2px;
+    background: var(--bg-body); color: var(--text-main);
+    padding: 0 32px; height: 64px;
+    font-size: 15px; font-weight: 700; letter-spacing: 1.5px;
     display: flex; align-items: center; justify-content: space-between;
     border-bottom: 1px solid var(--border);
     position: sticky; top: 0; z-index: 100;
   }
   header span:first-child { text-transform: uppercase; }
-  #cloud_dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15); flex-shrink: 0; transition: 0.3s; }
+  #cloud_dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15); }
 
   .main-tabs {
-    display: flex; background: var(--bg-main);
+    display: flex; background: var(--bg-body);
     border-bottom: 1px solid var(--border);
-    padding: 0 40px; gap: 40px;
+    padding: 0 32px; gap: 32px;
   }
   .main-tabs button {
     background: none; border: none; color: var(--text-muted);
-    padding: 24px 0; cursor: pointer; font-size: 13px; font-weight: 600;
-    letter-spacing: 2px; text-transform: uppercase;
-    transition: var(--transition); border-bottom: 2px solid transparent;
+    padding: 20px 0; cursor: pointer; font-size: 13px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    transition: 0.2s; border-bottom: 2px solid transparent;
   }
   .main-tabs button:hover { color: var(--text-main); }
   .main-tabs button.active { color: var(--text-main); border-bottom-color: var(--text-main); }
@@ -72,41 +73,41 @@
   .tabs {
     display: flex; background: transparent; flex-wrap: wrap;
     border-bottom: 1px solid var(--border);
-    padding: 0 40px; gap: 32px;
+    padding: 0 32px; gap: 24px;
   }
   .tabs button {
     background: none; border: none; color: var(--text-muted);
-    padding: 20px 0; cursor: pointer; font-size: 13px; font-weight: 500;
+    padding: 16px 0; cursor: pointer; font-size: 13px; font-weight: 500;
     letter-spacing: 1px; text-transform: uppercase;
-    border-bottom: 2px solid transparent; transition: var(--transition);
+    border-bottom: 2px solid transparent; transition: 0.2s;
   }
   .tabs button:hover { color: var(--text-main); }
   .tabs button.active { color: var(--text-main); border-bottom-color: var(--text-main); font-weight: 700; }
 
   /* =========================================
-     КАРТОЧКИ И КОНТЕНТ
+     КАРТОЧКИ И СЕТКА
      ========================================= */
   .main-section { display: none; }
   .main-section.active { display: block; }
 
-  .tab { display: none; padding: 40px; max-width: 1200px; margin: 0 auto; }
+  .tab { display: none; padding: 32px; max-width: 1200px; margin: 0 auto; }
   .tab.active { display: block; animation: fadeIn 0.3s ease; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
   .card {
-    background: var(--bg-card); padding: 32px;
+    background: var(--bg-panel); padding: 32px;
     border: 1px solid var(--border); border-radius: var(--radius);
-    margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    margin-bottom: 24px; box-shadow: var(--shadow-card);
     overflow-x: auto;
   }
   
   h3 {
     margin-top: 0; margin-bottom: 24px; font-weight: 700; font-size: 16px;
-    letter-spacing: 1px; color: var(--text-main); padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    letter-spacing: 0.5px; color: var(--text-main); padding-bottom: 16px; border-bottom: 1px solid var(--border);
   }
 
-  .hint { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; line-height: 1.6; }
-  .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 16px; }
+  .hint { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
 
   /* =========================================
      ФОРМЫ И КНОПКИ
@@ -114,31 +115,31 @@
   input, select, textarea {
     padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm);
     font-size: 14px; background: var(--bg-input); color: var(--text-main);
-    transition: var(--transition); max-width: 100%; font-family: inherit;
+    transition: 0.2s; max-width: 100%; font-family: inherit;
   }
+  input::placeholder { color: #666; }
   input:focus, select:focus, textarea:focus {
-    outline: none; border-color: var(--border-focus); background: #111;
+    outline: none; border-color: var(--border-focus); background: #222;
   }
   input[type=number] { width: 120px; }
-  /* Делаем иконку календаря белой для темной темы */
-  ::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+  ::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; cursor: pointer; }
 
   button.action {
-    background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);
+    background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border);
     padding: 12px 24px; border-radius: var(--radius-sm); cursor: pointer;
-    font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
-    transition: var(--transition);
+    font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
+    transition: 0.2s;
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   }
   button.action:hover { background: var(--bg-hover); border-color: var(--border-focus); }
   
-  /* Главные кнопки (Сохранить, Создать) - делаем белыми, как на входе */
-  button.action.ok { background: var(--text-main); color: var(--bg-main); border-color: var(--text-main); }
-  button.action.ok:hover { background: #cccccc; }
+  /* Главные кнопки - белые с черным текстом */
+  button.action.ok { background: var(--text-main); color: var(--bg-body); border-color: var(--text-main); font-weight: 700; }
+  button.action.ok:hover { background: #ddd; }
   
-  /* Кнопки удаления - красные */
-  button.action.danger { background: transparent; color: #ef4444; border-color: #7f1d1d; }
-  button.action.danger:hover { background: #ef4444; color: var(--text-main); border-color: #ef4444; }
+  /* Кнопки удаления - аккуратные красные */
+  button.action.danger { background: transparent; color: #ff5555; border-color: #ff5555; }
+  button.action.danger:hover { background: #ff5555; color: #fff; }
 
   /* =========================================
      ТАБЛИЦЫ
@@ -147,25 +148,23 @@
   th, td { padding: 16px; border-bottom: 1px solid var(--border); text-align: left; font-size: 14px; }
   th { font-size: 12px; letter-spacing: 1px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
   tr:hover td { background: var(--bg-hover); }
+  td { color: var(--text-main); }
 
   /* =========================================
-     ЭТАПЫ ПРОИЗВОДСТВА (STAGES)
+     ПРОГРЕСС И ЭТАПЫ
      ========================================= */
   .progress-track { display: flex; align-items: center; justify-content: space-between; margin: 24px 0; position: relative; }
   .progress-track::before { content: ''; position: absolute; top: 50%; left: 12px; right: 12px; height: 2px; background: var(--border); z-index: 1; transform: translateY(-50%); }
-  .progress-step { width: 28px; height: 28px; border-radius: 50%; background: var(--bg-card); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text-muted); position: relative; z-index: 2; transition: var(--transition); }
-  .progress-step.done { background: var(--text-main); border-color: var(--text-main); color: var(--bg-main); }
+  .progress-step { width: 28px; height: 28px; border-radius: 50%; background: var(--bg-panel); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--text-muted); position: relative; z-index: 2; transition: 0.3s; }
+  .progress-step.done { background: var(--text-main); border-color: var(--text-main); color: var(--bg-body); }
   .progress-step.current { border-color: var(--text-main); color: var(--text-main); box-shadow: 0 0 0 4px rgba(255,255,255,0.1); }
 
-  .stage { border-left: 2px solid var(--border); padding: 20px 24px; margin-bottom: 16px; background: var(--bg-input); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
-  .stage.active { border-left-color: var(--text-main); background: var(--bg-card); border: 1px solid var(--border); border-left-width: 2px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-  .stage.done { border-left-color: #10b981; background: #0a1f14; }
+  .stage { border-left: 3px solid var(--border); padding: 20px 24px; margin-bottom: 16px; background: var(--bg-input); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .stage.active { border-left-color: var(--text-main); background: var(--bg-panel); border: 1px solid var(--border); border-left-width: 3px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+  .stage.done { border-left-color: #10b981; background: rgba(16, 185, 129, 0.05); }
   .stage-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; color: var(--text-main); }
   .stage-info { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
 
-  /* Уведомления */
-  .toast-item { background: var(--bg-card) !important; border: 1px solid var(--border); color: var(--text-main) !important; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-  
   /* Адаптивность */
   @media (max-width: 768px) {
     header, .main-tabs, .tabs { padding-left: 16px; padding-right: 16px; }
@@ -174,9 +173,6 @@
     .card { padding: 20px; }
     .row { gap: 12px; }
     input, select { width: 100% !important; margin-right: 0; }
-    .chat-message { max-width: 95%; background: var(--bg-card); border: 1px solid var(--border); }
-    .chat-message.own { background: var(--text-main); color: var(--bg-main); border-color: var(--text-main); }
-    .chat-message.own .chat-message-header { color: #555; }
   }
 </style>
    
