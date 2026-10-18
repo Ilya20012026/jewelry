@@ -1205,7 +1205,7 @@ function renderBoards() {
           <button class="action danger" onclick="deleteBoard('${b.id}')">× Удалить доску</button>
         </div>
       </div>
-      <div style="display:flex; gap:12px; overflow-x:auto; padding-bottom:8px;">
+            <div style="display:flex; flex-wrap: wrap; gap:12px; padding-bottom:8px; align-items: flex-start;">
         ${renderColumns(b.id)}
       </div>
     </div>
