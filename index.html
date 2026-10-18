@@ -34,571 +34,196 @@
     transition: background .2s;
     flex-shrink: 0;
   }
-  /* ============================================================
-     СКРЫТИЕ ДЛЯ МАСТЕРА (роль "master")
-     ============================================================ */
-  body.is-master .master-hidden {
-    display: none !important;
+
+  body.is-master .master-hidden { display: none !important; }
+
+  /* НОВОЕ: Прогресс-бар партии */
+  .progress-track {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 12px 0; position: relative;
   }
-  /* ============================================================
-     ЧАТ / СООБЩЕНИЯ
-     ============================================================ */
-  .chat-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 18px;
-    background: #fff;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    margin-bottom: 8px;
-    cursor: pointer;
-    transition: background .15s, border-color .15s;
+  .progress-track::before {
+    content: ''; position: absolute; top: 50%; left: 10px; right: 10px; height: 2px;
+    background: #eee; z-index: 1; transform: translateY(-50%);
   }
-  .chat-item:hover {
-    background: #f5f5f5;
-    border-color: #ccc;
+  .progress-step {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; border: 2px solid #ccc;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #888;
+    position: relative; z-index: 2; transition: all 0.3s ease;
   }
-  .chat-item.pinned {
-    border-left: 4px solid #000;
-    background: #fafafa;
+  .progress-step.done { background: #000; border-color: #000; color: #fff; }
+  .progress-step.current {
+    border-color: #000; color: #000;
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.1); animation: pulse 1.5s infinite;
   }
-  .chat-item-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .chat-item-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #000;
-  }
-  .chat-item-meta {
-    font-size: 12px;
-    color: #888;
-  }
-  .chat-item-badge {
-    background: #000;
-    color: #fff;
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 10px;
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0,0,0,0.2); }
+    70% { box-shadow: 0 0 0 6px rgba(0,0,0,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
   }
 
-  .chat-message {
-    padding: 10px 14px;
-    margin-bottom: 10px;
-    border-radius: 6px;
-    background: #fff;
-    border: 1px solid #eee;
-    max-width: 80%;
-    word-wrap: break-word;
+  /* НОВОЕ: Всплывающие уведомления */
+  #toast_box {
+    position: fixed; right: 16px; bottom: 16px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none; max-width: 320px;
   }
-  .chat-message.own {
-    background: #000;
-    color: #fff;
-    margin-left: auto;
-    border-color: #000;
+  .toast-item {
+    padding: 10px 16px; border-radius: 8px; font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    opacity: 0; transform: translateY(10px);
+    transition: opacity .25s, transform .25s;
+    pointer-events: auto; color: #fff;
   }
-  .chat-message-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    font-size: 12px;
-    margin-bottom: 4px;
-  }
-  .chat-message.own .chat-message-header {
-    color: #ccc;
-  }
-  .chat-message-sender {
-    font-weight: 700;
-  }
-  .chat-message-time {
-    color: #888;
-    font-size: 11px;
-  }
-  .chat-message.own .chat-message-time {
-    color: #999;
-  }
-  .chat-message-text {
-    font-size: 14px;
-    line-height: 1.4;
-    white-space: pre-wrap;
-  }
-  .chat-message-file {
-    margin-top: 8px;
-  }
-  .chat-message-file img {
-    max-width: 300px;
-    max-height: 300px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  .chat-message-file a {
-    color: #2b6cb0;
-    text-decoration: underline;
-    font-size: 13px;
-  }
-  .chat-message.own .chat-message-file a {
-    color: #ccc;
-  }
+  .toast-item.show { opacity: 1; transform: translateY(0); }
+  .toast-item.info    { background: #2b6cb0; }
+  .toast-item.success { background: #2f855a; }
+  .toast-item.error   { background: #c53030; }
+  .toast-item.warn    { background: #b7791f; }
 
-  .chat-participant-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    background: #fff;
-    border: 1px solid #ccc;
-    border-radius: 12px;
-    font-size: 12px;
-    margin: 2px;
-  }
-  .chat-participant-chip button {
-    background: none;
-    border: none;
-    color: #c53030;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: bold;
-    padding: 0;
-    line-height: 1;
-  }
+  /* ============================================================ */
+  .chat-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: #fff; border: 1px solid #eee; border-radius: 4px; margin-bottom: 8px; cursor: pointer; transition: background .15s, border-color .15s; }
+  .chat-item:hover { background: #f5f5f5; border-color: #ccc; }
+  .chat-item.pinned { border-left: 4px solid #000; background: #fafafa; }
+  .chat-item-info { display: flex; flex-direction: column; gap: 4px; }
+  .chat-item-title { font-size: 14px; font-weight: 600; color: #000; }
+  .chat-item-meta { font-size: 12px; color: #888; }
+  .chat-item-badge { background: #000; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
 
-  /* ============================================================
-     ЭКРАН ВХОДА
-     ============================================================ */
-  .login-screen {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: #000;
-    color: #fff;
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .login-screen.hidden {
-    display: none;
-  }
-  .login-box {
-    max-width: 400px;
-    width: 100%;
-    text-align: center;
-  }
-  .login-box h1 {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin: 0 0 30px 0;
-    color: #fff;
-  }
-  .login-box h2 {
-    font-size: 14px;
-    font-weight: 400;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: #888;
-    margin: 0 0 30px 0;
-  }
-  .login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    text-align: left;
-  }
-  .login-form label {
-    font-size: 12px;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: -6px;
-  }
-  .login-form input {
-    width: 100%;
-    padding: 14px 16px;
-    font-size: 16px;
-    background: #1a1a1a;
-    color: #fff;
-    border: 1px solid #333;
-    border-radius: 4px;
-    box-sizing: border-box;
-    margin: 0;
-  }
-  .login-form input:focus {
-    outline: none;
-    border-color: #fff;
-  }
-  .login-form button.action {
-    width: 100%;
-    padding: 16px;
-    font-size: 14px;
-    letter-spacing: 2px;
-    margin-top: 10px;
-    background: #fff;
-    color: #000;
-    border: 1px solid #fff;
-  }
-  .login-form button.action:hover {
-    background: #ddd;
-  }
-  .login-error {
-    color: #ff5555;
-    font-size: 13px;
-    min-height: 18px;
-    text-align: center;
-  }
+  .chat-message { padding: 10px 14px; margin-bottom: 10px; border-radius: 6px; background: #fff; border: 1px solid #eee; max-width: 80%; word-wrap: break-word; }
+  .chat-message.own { background: #000; color: #fff; margin-left: auto; border-color: #000; }
+  .chat-message-header { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; margin-bottom: 4px; }
+  .chat-message.own .chat-message-header { color: #ccc; }
+  .chat-message-sender { font-weight: 700; }
+  .chat-message-time { color: #888; font-size: 11px; }
+  .chat-message.own .chat-message-time { color: #999; }
+  .chat-message-text { font-size: 14px; line-height: 1.4; white-space: pre-wrap; }
+  .chat-message-file { margin-top: 8px; }
+  .chat-message-file img { max-width: 300px; max-height: 300px; border-radius: 4px; cursor: pointer; }
+  .chat-message-file a { color: #2b6cb0; text-decoration: underline; font-size: 13px; }
+  .chat-message.own .chat-message-file a { color: #ccc; }
 
-  /* ============================================================
-     КАЛЕНДАРЬ
-     ============================================================ */
-  .calendar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    gap: 12px;
-  }
-  .calendar-header h3 {
-    margin: 0;
-    border: none;
-    padding: 0;
-    text-transform: none;
-    letter-spacing: 0;
-    font-size: 18px;
-    font-weight: 700;
-  }
-  .calendar-header button.action {
-    padding: 6px 14px;
-    font-size: 16px;
-  }
+  .chat-participant-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fff; border: 1px solid #ccc; border-radius: 12px; font-size: 12px; margin: 2px; }
+  .chat-participant-chip button { background: none; border: none; color: #c53030; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0; line-height: 1; }
 
-  .calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-    margin-top: 12px;
-  }
-  .calendar-grid .day-name {
-    padding: 8px 4px;
-    text-align: center;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #888;
-    font-weight: 700;
-  }
-  .calendar-grid .day {
-    min-height: 68px;
-    padding: 6px;
-    background: #fafafa;
-    border: 1px solid #eee;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background .15s, border-color .15s;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    position: relative;
-  }
-  .calendar-grid .day:hover {
-    background: #f0f0f0;
-    border-color: #ccc;
-  }
-  .calendar-grid .day.empty {
-    background: transparent;
-    border: none;
-    cursor: default;
-  }
-  .calendar-grid .day.today {
-    border-color: #000;
-    border-width: 2px;
-    background: #fff;
-  }
-  .calendar-grid .day.selected {
-    background: #000;
-    color: #fff;
-    border-color: #000;
-  }
+  .login-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; color: #fff; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-screen.hidden { display: none; }
+  .login-box { max-width: 400px; width: 100%; text-align: center; }
+  .login-box h1 { font-size: 22px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 30px 0; color: #fff; }
+  .login-box h2 { font-size: 14px; font-weight: 400; letter-spacing: 3px; text-transform: uppercase; color: #888; margin: 0 0 30px 0; }
+  .login-form { display: flex; flex-direction: column; gap: 12px; text-align: left; }
+  .login-form label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: -6px; }
+  .login-form input { width: 100%; padding: 14px 16px; font-size: 16px; background: #1a1a1a; color: #fff; border: 1px solid #333; border-radius: 4px; box-sizing: border-box; margin: 0; }
+  .login-form input:focus { outline: none; border-color: #fff; }
+  .login-form button.action { width: 100%; padding: 16px; font-size: 14px; letter-spacing: 2px; margin-top: 10px; background: #fff; color: #000; border: 1px solid #fff; }
+  .login-form button.action:hover { background: #ddd; }
+  .login-error { color: #ff5555; font-size: 13px; min-height: 18px; text-align: center; }
+
+  .calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
+  .calendar-header h3 { margin: 0; border: none; padding: 0; text-transform: none; letter-spacing: 0; font-size: 18px; font-weight: 700; }
+  .calendar-header button.action { padding: 6px 14px; font-size: 16px; }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; }
+  .calendar-grid .day-name { padding: 8px 4px; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #888; font-weight: 700; }
+  .calendar-grid .day { min-height: 68px; padding: 6px; background: #fafafa; border: 1px solid #eee; border-radius: 3px; cursor: pointer; transition: background .15s, border-color .15s; display: flex; flex-direction: column; gap: 4px; position: relative; }
+  .calendar-grid .day:hover { background: #f0f0f0; border-color: #ccc; }
+  .calendar-grid .day.empty { background: transparent; border: none; cursor: default; }
+  .calendar-grid .day.today { border-color: #000; border-width: 2px; background: #fff; }
+  .calendar-grid .day.selected { background: #000; color: #fff; border-color: #000; }
   .calendar-grid .day.selected .day-number { color: #fff; }
-  .calendar-grid .day .day-number {
-    font-size: 13px;
-    font-weight: 600;
-    color: #333;
-  }
-  .calendar-grid .day .dots {
-    display: flex;
-    gap: 3px;
-    flex-wrap: wrap;
-  }
+  .calendar-grid .day .day-number { font-size: 13px; font-weight: 600; color: #333; }
+  .calendar-grid .day .dots { display: flex; gap: 3px; flex-wrap: wrap; }
 
-  /* Точки */
-  .dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ccc;
-  }
-  .dot-restock { background: #d32f2f; }   /* красный */
-  .dot-new     { background: #2e7d32; }   /* зелёный */
-  .dot-task    { background: #1976d2; }   /* синий */
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
+  .dot-restock { background: #d32f2f; }
+  .dot-new     { background: #2e7d32; }
+  .dot-task    { background: #1976d2; }
 
-  /* Легенда */
-  .calendar-legend {
-    display: flex;
-    gap: 18px;
-    margin-top: 16px;
-    font-size: 12px;
-    color: #666;
-    flex-wrap: wrap;
-  }
-  .calendar-legend > span {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+  .calendar-legend { display: flex; gap: 18px; margin-top: 16px; font-size: 12px; color: #666; flex-wrap: wrap; }
+  .calendar-legend > span { display: flex; align-items: center; gap: 6px; }
 
-  /* ============================================================
-     ВЕРХНЕЕ МЕНЮ — ПРОИЗВОДСТВО / КОМПАНИЯ / СЕРВИС
-     ============================================================ */
-    .main-tabs {
-    display: flex;
-    background: #000;
-    border-bottom: 3px solid #444;
-  }
-  .main-tabs button {
-    flex: 1;
-    background: none;
-    border: none;
-    color: #666;
-    padding: 18px 24px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    transition: color .15s, background .15s;
-    border-bottom: 3px solid transparent;
-  }
+  .main-tabs { display: flex; background: #000; border-bottom: 3px solid #444; }
+  .main-tabs button { flex: 1; background: none; border: none; color: #666; padding: 18px 24px; cursor: pointer; font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; transition: color .15s, background .15s; border-bottom: 3px solid transparent; }
   .main-tabs button:hover { color: #fff; }
-  .main-tabs button.active {
-    color: #fff;
-    background: #000;
-    border-bottom-color: #fff;
-  }
+  .main-tabs button.active { color: #fff; background: #000; border-bottom-color: #fff; }
   .main-section { display: none; }
   .main-section.active { display: block; }
 
-    .tabs {
-    display: flex; background: #2a2a2a; flex-wrap: wrap;
-    border-bottom: 1px solid #1a1a1a;
-  }
-  .tabs button {
-    background: none; border: none; color: #999;
-    padding: 14px 22px; cursor: pointer; font-size: 14px;
-    letter-spacing: 0.5px; text-transform: uppercase;
-    border-bottom: 2px solid transparent;
-    transition: color .15s, border-color .15s;
-  }
+  .tabs { display: flex; background: #2a2a2a; flex-wrap: wrap; border-bottom: 1px solid #1a1a1a; }
+  .tabs button { background: none; border: none; color: #999; padding: 14px 22px; cursor: pointer; font-size: 14px; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
   .tabs button:hover { color: #fff; }
-   .tabs button.active {
-    color: #fff; border-bottom-color: #fff;
-    background: #000;
-  }
-  .tabs button:hover { color: #fff; }
+  .tabs button.active { color: #fff; border-bottom-color: #fff; background: #000; }
 
   .tab { display: none; padding: 28px; }
-
   .tab.active { display: block; }
 
-  .card {
-
-    background: #fff; padding: 24px;
-    border: 1px solid #e5e5e5;
-    border-radius: 4px; margin-bottom: 20px;
-    overflow-x: auto;
-  }
-
-  h3 {
-    margin-top: 0; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.5px;
-    font-size: 14px; color: #000;
-    padding-bottom: 10px; border-bottom: 1px solid #eee;
-  }
-
+  .card { background: #fff; padding: 24px; border: 1px solid #e5e5e5; border-radius: 4px; margin-bottom: 20px; overflow-x: auto; }
+  h3 { margin-top: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 14px; color: #000; padding-bottom: 10px; border-bottom: 1px solid #eee; }
   table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-  th, td {
-    padding: 10px 12px; border-bottom: 1px solid #eee;
-    text-align: left; font-size: 14px;
-    white-space: nowrap;
-  }
-  th {
-    background: #fafafa; text-transform: uppercase;
-    font-size: 11px; letter-spacing: 0.5px;
-    color: #666; font-weight: 600;
-  }
+  th, td { padding: 10px 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; white-space: nowrap; }
+  th { background: #fafafa; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; color: #666; font-weight: 600; }
 
-  input, select {
-    padding: 9px 12px; border: 1px solid #ccc;
-    border-radius: 3px; font-size: 14px;
-    margin: 3px 4px 3px 0;
-    background: #fff; color: #111;
-    transition: border-color .15s;
-    max-width: 100%;
-  }
-  input:focus, select:focus {
-    outline: none; border-color: #000;
-  }
+  input, select { padding: 9px 12px; border: 1px solid #ccc; border-radius: 3px; font-size: 14px; margin: 3px 4px 3px 0; background: #fff; color: #111; transition: border-color .15s; max-width: 100%; }
+  input:focus, select:focus { outline: none; border-color: #000; }
   input[type=number] { width: 110px; }
 
-  button.action {
-    background: #000; color: #fff; border: 1px solid #000;
-    padding: 9px 18px; border-radius: 3px;
-    cursor: pointer; font-size: 13px;
-    text-transform: uppercase; letter-spacing: 0.5px;
-    transition: background .15s, color .15s;
-    white-space: nowrap;
-  }
+  button.action { background: #000; color: #fff; border: 1px solid #000; padding: 9px 18px; border-radius: 3px; cursor: pointer; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; transition: background .15s, color .15s; white-space: nowrap; }
   button.action:hover { background: #333; }
-
   button.action.ok { background: #000; }
   button.action.ok:hover { background: #333; }
-
-  button.action.danger {
-    background: #fff; color: #000; border: 1px solid #ccc;
-    padding: 5px 12px; font-size: 12px;
-  }
+  button.action.danger { background: #fff; color: #000; border: 1px solid #ccc; padding: 5px 12px; font-size: 12px; }
   button.action.danger:hover { background: #000; color: #fff; border-color: #000; }
-
   button.action.warn { background: #000; color: #fff; }
   button.action.warn:hover { background: #333; }
+  
+  button.action:disabled { background: #ccc !important; color: #666 !important; border-color: #ccc !important; cursor: not-allowed; }
 
   .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
-
-  .result {
-    background: #f5f5f5; border: 1px solid #ddd;
-    padding: 16px; border-radius: 3px; margin-top: 12px;
-  }
-  .warnbox {
-    background: #fafafa; border: 1px solid #ddd;
-    padding: 12px; border-radius: 3px; margin-top: 10px; font-size: 14px;
-  }
+  .result { background: #f5f5f5; border: 1px solid #ddd; padding: 16px; border-radius: 3px; margin-top: 12px; }
+  .warnbox { background: #fafafa; border: 1px solid #ddd; padding: 12px; border-radius: 3px; margin-top: 10px; font-size: 14px; }
   .hint { color: #888; font-size: 13px; margin-bottom: 10px; }
 
-  .stage {
-    border-left: 3px solid #ddd; padding: 14px 18px;
-    margin-bottom: 10px; background: #fafafa;
-    border-radius: 2px;
-  }
+  .stage { border-left: 3px solid #ddd; padding: 14px 18px; margin-bottom: 10px; background: #fafafa; border-radius: 2px; }
   .stage.done { border-left-color: #000; background: #f5f5f5; }
   .stage.active { border-left-color: #000; background: #fff; border: 1px solid #000; }
   .stage-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
   .stage-info { font-size: 13px; color: #666; margin-bottom: 6px; }
-
-  .badge {
-    display: inline-block; padding: 2px 8px;
-    font-size: 11px; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.5px;
-    border-radius: 2px;
-  }
+  .badge { display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; }
   .badge-done { background: #000; color: #fff; }
   .badge-active { background: #fff; color: #000; border: 1px solid #000; }
   .badge-wait { background: #eee; color: #666; }
 
   .summary { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
-  .summary .box {
-    background: #fafafa; padding: 14px 20px;
-    border: 1px solid #e5e5e5; border-radius: 3px;
-    min-width: 140px;
-  }
-  .summary .box .label {
-    font-size: 11px; color: #888;
-    text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .summary .box .value {
-    font-size: 20px; font-weight: 700; color: #000;
-    margin-top: 4px;
-  }
+  .summary .box { background: #fafafa; padding: 14px 20px; border: 1px solid #e5e5e5; border-radius: 3px; min-width: 140px; }
+  .summary .box .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .summary .box .value { font-size: 20px; font-weight: 700; color: #000; margin-top: 4px; }
   .profit { color: #000; font-weight: 700; }
   .loss { color: #888; font-weight: 700; }
 
-  /* ============================================================
-     МОБИЛЬНАЯ ВЕРСИЯ — для экранов меньше 700px
-     ============================================================ */
   @media (max-width: 700px) {
-    header {
-      padding: 14px 16px;
-      font-size: 15px;
-      letter-spacing: 1px;
-    }
-
-    #chat_messages {
-      max-height: 50vh !important; /* Ограничиваем высоту половиной экрана телефона */
-      min-height: 200px;
-    }
-    .chat-message { max-width: 95%; } /* Сообщения шире на телефоне */
-    .tabs button {
-      padding: 12px 12px;
-      font-size: 11px;
-      letter-spacing: 0;
-    }
-
-    .main-tabs {
-      flex-wrap: wrap;
-    }
-    .main-tabs button {
-      padding: 12px 8px;
-      font-size: 11px;
-      letter-spacing: 1px;
-      flex: 1 1 30%;
-      min-width: 0;
-    }
-
+    header { padding: 14px 16px; font-size: 15px; letter-spacing: 1px; }
+    #chat_messages { max-height: 50vh !important; min-height: 200px; }
+    .chat-message { max-width: 95%; }
+    .tabs button { padding: 12px 12px; font-size: 11px; letter-spacing: 0; }
+    .main-tabs { flex-wrap: wrap; }
+    .main-tabs button { padding: 12px 8px; font-size: 11px; letter-spacing: 1px; flex: 1 1 30%; min-width: 0; }
     .tab { padding: 12px; }
-
-    .card {
-      padding: 14px;
-      margin-bottom: 12px;
-      border-radius: 3px;
-    }
-
+    .card { padding: 14px; margin-bottom: 12px; border-radius: 3px; }
     h3 { font-size: 12px; padding-bottom: 8px; }
-
-    th, td {
-      padding: 8px 6px;
-      font-size: 12px;
-    }
+    th, td { padding: 8px 6px; font-size: 12px; }
     th { font-size: 10px; }
-
-    input, select {
-      padding: 8px 10px;
-      font-size: 13px;
-      margin: 2px 3px 2px 0;
-    }
+    input, select { padding: 8px 10px; font-size: 13px; margin: 2px 3px 2px 0; }
     input[type=number] { width: 80px; }
-
-    button.action {
-      padding: 8px 12px;
-      font-size: 11px;
-      letter-spacing: 0;
-    }
-
-    .stage {
-      padding: 10px 12px;
-      margin-bottom: 8px;
-    }
+    button.action { padding: 8px 12px; font-size: 11px; letter-spacing: 0; }
+    
+    .stage .row button.action { width: 100%; padding: 14px; font-size: 14px; margin-top: 4px; }
+    
+    .stage { padding: 10px 12px; margin-bottom: 8px; }
     .stage-title { font-size: 13px; }
     .stage-info { font-size: 12px; }
-
-    .summary .box {
-      padding: 10px 14px;
-      min-width: 110px;
-    }
+    .summary .box { padding: 10px 14px; min-width: 110px; }
     .summary .box .value { font-size: 16px; }
-
     .hint { font-size: 12px; }
     .calendar-grid { gap: 2px; }
     .calendar-grid .day { min-height: 48px; padding: 4px; }
@@ -612,22 +237,16 @@
 </style>
 </head>
 <body>
-
-<!-- ЭКРАН ВХОДА -->
 <div id="login_screen" class="login-screen" style="display: none;">
   <div class="login-box">
     <h1>ПРОИЗВОДСТВО РУСИЧЪ</h1>
     <h2>ВХОД</h2>
-
     <div class="login-form">
       <label>ФИО:</label>
       <input id="login_name" type="text" placeholder="Иван Петров" autocomplete="off">
-
       <label>PIN:</label>
       <input id="login_pin" type="password" placeholder="••••" inputmode="numeric" maxlength="6" autocomplete="off">
-
       <div id="login_error" class="login-error"></div>
-
       <button class="action ok" onclick="doLogin()">ВОЙТИ</button>
     </div>
   </div>
@@ -641,67 +260,60 @@
     <button onclick="doLogout()" class="action danger" style="padding:5px 10px; font-size:11px;">ВЫЙТИ</button>
   </span>
 </header>
-<!-- ВЕРХНЕЕ МЕНЮ -->
 <div class="main-tabs">
   <button class="active" onclick="showMain('production', this)">ПРОИЗВОДСТВО</button>
   <button onclick="showMain('company', this)">КОМПАНИЯ</button>
   <button onclick="showMain('service', this)">СЕРВИС</button>
 </div>
-
 <!-- ОБЁРТКА: ПРОИЗВОДСТВО -->
 <div id="main-production" class="main-section active">
 <div class="tabs">
-
   <button class="active" onclick="showTab('sku', this)">Склад материалов</button>
   <button onclick="showTab('products', this)">Изделия</button>
   <button onclick="showTab('refs', this)">Справочники</button>
   <button onclick="showTab('batches', this)">Партии</button>
   <button onclick="showTab('stock', this)">Склад готовой</button>
   <button onclick="showTab('archive', this)">Архив списаний</button>
-  
 </div>
-
 
 <!-- СКЛАД МАТЕРИАЛОВ -->
 <div id="sku" class="tab active">
   <div class="card master-hidden">
     <h3>Добавить материал на склад</h3>
     <p class="hint">Здесь всё, что расходуется: воск, формомасса, вода, металлы, электролит, расходники, упаковка, электроэнергия.</p>
-     <div class="row">
-    <input id="m_name" placeholder="Название" style="width:180px">
-    <input id="m_brand" placeholder="Бренд (опц.)" style="width:120px">
-    <input id="m_unit" placeholder="Ед. (г/мл/шт)" value="г" style="width:90px">
-    <input id="m_price" type="number" step="0.01" placeholder="Цена за ед.">
-    <input id="m_stock" type="number" step="0.01" placeholder="Остаток" value="0">
-    <button class="action" onclick="addMaterial()">Добавить</button>
+    <div class="row">
+      <input id="m_name" placeholder="Название" style="width:180px">
+      <input id="m_brand" placeholder="Бренд (опц.)" style="width:120px">
+      <input id="m_unit" placeholder="Ед. (г/мл/шт)" value="г" style="width:90px">
+      <input id="m_price" type="number" step="0.01" placeholder="Цена за ед.">
+      <input id="m_stock" type="number" step="0.01" placeholder="Остаток" value="0">
+      <button class="action" onclick="addMaterial()">Добавить</button>
+    </div>
   </div>
-</div>
-
-<div class="card">
-  <table>
-    <thead><tr><th>Название</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
-    <tbody id="m_table"></tbody>
-  </table>
-</div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Название</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
+      <tbody id="m_table"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- ИЗДЕЛИЯ -->
 <div id="products" class="tab">
- <div class="card master-hidden">
+  <div class="card master-hidden">
     <h3>Добавить изделие</h3>
     <p class="hint">Нормы расхода на 1 изделие — используются системой автоматически на этапах.</p>
     <div class="row">
-  <input id="p_article" placeholder="Артикул" style="width:120px">
-  <input id="p_name" placeholder="Название" style="width:180px">
-  <input id="p_cat" placeholder="Категория" style="width:140px">
-</div>
-
-<div class="row" style="align-items:center;margin-top:8px">
-  <input id="p_photo_file" type="file" accept="image/*" style="display:none" onchange="uploadProductPhoto(this)">
-  <button type="button" class="action" onclick="document.getElementById('p_photo_file').click()">📷 Загрузить фото</button>
-  <img id="p_photo_preview" src="" alt="" style="display:none;width:80px;height:80px;object-fit:cover;border-radius:4px;border:1px solid #ddd;">
-  <span id="p_photo_status" style="font-size:13px;color:#888;"></span>
-</div>
+      <input id="p_article" placeholder="Артикул" style="width:120px">
+      <input id="p_name" placeholder="Название" style="width:180px">
+      <input id="p_cat" placeholder="Категория" style="width:140px">
+    </div>
+    <div class="row" style="align-items:center;margin-top:8px">
+      <input id="p_photo_file" type="file" accept="image/*" style="display:none" onchange="uploadProductPhoto(this)">
+      <button type="button" class="action" onclick="document.getElementById('p_photo_file').click()">📷 Загрузить фото</button>
+      <img id="p_photo_preview" src="" alt="" style="display:none;width:80px;height:80px;object-fit:cover;border-radius:4px;border:1px solid #ddd;">
+      <span id="p_photo_status" style="font-size:13px;color:#888;"></span>
+    </div>
     <table>
       <thead><tr><th>Этап / параметр</th><th>Норма на 1 шт</th><th>Ед.</th><th>Материал</th></tr></thead>
       <tbody>
@@ -742,41 +354,38 @@
   <div class="card master-hidden">
     <h3>Циклы прокалки</h3>
     <p class="hint">Время × мощность печи = кВт·ч на цикл. Мастер выберет цикл на этапе прокалки.</p>
-      <div class="row">
-    <input id="c_name" placeholder="Название (Короткий)" style="width:160px">
-    <input id="c_hours" type="number" step="0.1" placeholder="Время, ч">
-    <input id="c_kw" type="number" step="0.1" placeholder="Мощность, кВт">
-    <select id="c_energy_mat"></select>
-    <button class="action" onclick="addCycle()">Добавить</button>
+    <div class="row">
+      <input id="c_name" placeholder="Название (Короткий)" style="width:160px">
+      <input id="c_hours" type="number" step="0.1" placeholder="Время, ч">
+      <input id="c_kw" type="number" step="0.1" placeholder="Мощность, кВт">
+      <select id="c_energy_mat"></select>
+      <button class="action" onclick="addCycle()">Добавить</button>
+    </div>
   </div>
-</div>
-
-<div class="card">
-  <table>
-    <thead><tr><th>Название</th><th>Время, ч</th><th>Мощность, кВт</th><th>кВт·ч</th><th>Материал</th><th></th></tr></thead>
-    <tbody id="c_table"></tbody>
-  </table>
-</div>
-
+  <div class="card">
+    <table>
+      <thead><tr><th>Название</th><th>Время, ч</th><th>Мощность, кВт</th><th>кВт·ч</th><th>Материал</th><th></th></tr></thead>
+      <tbody id="c_table"></tbody>
+    </table>
+  </div>
   <div class="card master-hidden">
     <h3>Размеры опок</h3>
     <p class="hint">На каждый размер — расход формомассы и воды.</p>
     <div class="row">
-    <input id="o_name" placeholder="Название (Опока №1)" style="width:160px">
-    <input id="o_mass" type="number" step="0.1" placeholder="Формомасса, г">
-    <select id="o_mass_mat_sel"></select>
-    <input id="o_water" type="number" step="0.1" placeholder="Вода, мл">
-    <select id="o_water_mat_sel"></select>
-    <button class="action" onclick="addOpoka()">Добавить</button>
+      <input id="o_name" placeholder="Название (Опока №1)" style="width:160px">
+      <input id="o_mass" type="number" step="0.1" placeholder="Формомасса, г">
+      <select id="o_mass_mat_sel"></select>
+      <input id="o_water" type="number" step="0.1" placeholder="Вода, мл">
+      <select id="o_water_mat_sel"></select>
+      <button class="action" onclick="addOpoka()">Добавить</button>
+    </div>
   </div>
-</div>
-
-<div class="card">
-  <table>
-    <thead><tr><th>Название</th><th>Формомасса</th><th>Материал</th><th>Вода</th><th>Материал</th><th></th></tr></thead>
-    <tbody id="o_table"></tbody>
-  </table>
-</div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Название</th><th>Формомасса</th><th>Материал</th><th>Вода</th><th>Материал</th><th></th></tr></thead>
+      <tbody id="o_table"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- ПАРТИИ -->
@@ -784,19 +393,16 @@
 <div class="card master-hidden">
     <h3>Создать производственное задание</h3>
     <p class="hint">Одна строка — обычная партия. Нажмите «+ Ещё изделие», чтобы создать группу из нескольких партий.</p>
-
     <div id="batch_items_rows">
       <div class="row batch-item-row">
         <select class="batch-product" style="min-width:220px"></select>
         <input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px">
       </div>
     </div>
-
     <div class="row" style="margin-top:8px">
       <button class="action" onclick="addBatchItemRow()">+ Ещё изделие</button>
       <button class="action danger" onclick="removeLastBatchItemRow()">− Убрать последнюю</button>
     </div>
-
     <div class="row" style="margin-top:12px">
       <input id="b_title" placeholder="Название задания (например, Заказ №5)" style="width:280px">
       <select id="b_responsible" style="min-width:180px"></select>
@@ -806,17 +412,14 @@
       <label style="font-size:13px;color:#555">по: <input id="b_date_end" type="date"></label>
       <input id="b_note" placeholder="Комментарий" style="width:280px">
     </div>
-
     <div class="row" style="margin-top:12px">
       <button class="action ok" onclick="createBatch()">СОЗДАТЬ</button>
     </div>
   </div>
-
   <div class="card">
     <h3>Активные партии</h3>
     <div id="active_batches"></div>
   </div>
-
   <div class="card">
     <h3>Завершённые партии</h3>
     <div id="done_batches"></div>
@@ -833,12 +436,9 @@
       <tbody id="stock_table"></tbody>
     </table>
   </div>
-
   <div class="card" id="writeoff_card" style="display:none">
     <h3>Списать изделия</h3>
-    <div class="row">
-      <select id="w_product" disabled style="min-width:280px"></select>
-    </div>
+    <div class="row"><select id="w_product" disabled style="min-width:280px"></select></div>
     <div class="row">
       <input id="w_qty" type="number" placeholder="Кол-во, шт" style="width:120px">
       <input id="w_price" type="number" step="0.01" placeholder="Цена за 1 шт" style="width:130px">
@@ -871,153 +471,114 @@
       <label style="font-size:13px;color:#555">по <input type="date" id="f_to" onchange="renderArchive()"></label>
       <button class="action" onclick="resetFilters()">Сбросить</button>
     </div>
-
     <div class="summary" id="archive_summary"></div>
-
     <table>
       <thead><tr><th>Дата</th><th>Изделие</th><th>Кол-во</th><th>Цена</th><th>Сумма</th><th>Себест.</th><th>Прибыль</th><th>Канал</th><th>Комментарий</th><th></th></tr></thead>
       <tbody id="archive_table"></tbody>
     </table>
   </div>
-
   <div class="card">
     <h3>Сводка по каналам</h3>
     <table>
       <thead><tr><th>Канал</th><th>Продано, шт</th><th>Выручка</th><th>Себестоимость</th><th>Прибыль</th><th>Маржа, %</th></tr></thead>
       <tbody id="channel_summary"></tbody>
     </table>
-</div>
+  </div>
 </div>
 </div>
 <!-- /ОБЁРТКА: ПРОИЗВОДСТВО -->
 
 <!-- ОБЁРТКА: КОМПАНИЯ -->
 <div id="main-company" class="main-section">
-
-  <!-- Внутренние вкладки компании -->
   <div class="tabs">
     <button class="active" onclick="showCompanyTab('calendar', this)">Календарь</button>
     <button onclick="showCompanyTab('employees', this)">Сотрудники</button>
     <button onclick="showCompanyTab('chat', this)">Сообщения</button>
   </div>
 
-  <!-- Вкладка: КАЛЕНДАРЬ -->
-<div id="company-calendar" class="tab active">
-
-  <!-- ФОРМА ДОБАВЛЕНИЯ ПЛАНА -->
-  <div class="card master-hidden">
-    <h3>Добавить план</h3>
-    <p class="hint">Пополнение и новая позиция — автоматически создадут партию в производстве, когда наступит дата. Задача — просто напоминание.</p>
-    <div class="row">
-      <select id="task_type" onchange="onTaskTypeChange()" style="width:180px">
-        <option value="task">Задача</option>
-        <option value="restock">Пополнение позиций</option>
-        <option value="new_item">Новая позиция</option>
-      </select>
-      <select id="task_product" style="width:220px"></select>
-      <input id="task_qty" type="number" placeholder="Кол-во, шт" style="width:110px">
+  <div id="company-calendar" class="tab active">
+    <div class="card master-hidden">
+      <h3>Добавить план</h3>
+      <p class="hint">Пополнение и новая позиция — автоматически создадут партию в производстве, когда наступит дата. Задача — просто напоминание.</p>
+      <div class="row">
+        <select id="task_type" onchange="onTaskTypeChange()" style="width:180px">
+          <option value="task">Задача</option>
+          <option value="restock">Пополнение позиций</option>
+          <option value="new_item">Новая позиция</option>
+        </select>
+        <select id="task_product" style="width:220px"></select>
+        <input id="task_qty" type="number" placeholder="Кол-во, шт" style="width:110px">
+      </div>
+      <div class="row">
+        <input id="task_title" placeholder="Название задачи" style="width:280px">
+        <input id="task_date_start" type="date" title="Дата начала">
+        <input id="task_date_end" type="date" title="Дата окончания (необязательно)">
+      </div>
+      <div class="row">
+        <select id="task_responsible" style="width:220px"></select>
+        <input id="task_note" placeholder="Комментарий" style="width:320px">
+        <button class="action" onclick="addTask()">ДОБАВИТЬ</button>
+      </div>
     </div>
-    <div class="row">
-      <input id="task_title" placeholder="Название задачи" style="width:280px">
-      <input id="task_date_start" type="date" title="Дата начала">
-      <input id="task_date_end" type="date" title="Дата окончания (необязательно)">
+    <div class="card">
+      <div class="calendar-header">
+        <button class="action" onclick="changeMonth(-1)">←</button>
+        <h3 id="calendar_title">Месяц</h3>
+        <button class="action" onclick="changeMonth(1)">→</button>
+      </div>
+      <div class="calendar-grid" id="calendar_grid"></div>
+      <div class="calendar-legend">
+        <span><span class="dot dot-restock"></span> Пополнение</span>
+        <span><span class="dot dot-new"></span> Новая позиция</span>
+        <span><span class="dot dot-task"></span> Задача</span>
+      </div>
     </div>
-    <div class="row">
-      <select id="task_responsible" style="width:220px"></select>
-      <input id="task_note" placeholder="Комментарий" style="width:320px">
-      <button class="action" onclick="addTask()">ДОБАВИТЬ</button>
-    </div>
-  </div>
-
-  <!-- КАЛЕНДАРЬ -->
-  <div class="card">
-    <div class="calendar-header">
-      <button class="action" onclick="changeMonth(-1)">←</button>
-      <h3 id="calendar_title">Месяц</h3>
-      <button class="action" onclick="changeMonth(1)">→</button>
-    </div>
-
-    <div class="calendar-grid" id="calendar_grid">
-      <!-- Генерируется в JS -->
-    </div>
-
-    <div class="calendar-legend">
-      <span><span class="dot dot-restock"></span> Пополнение</span>
-      <span><span class="dot dot-new"></span> Новая позиция</span>
-      <span><span class="dot dot-task"></span> Задача</span>
+    <div class="card" id="day_tasks_card" style="display:none">
+      <h3 id="day_tasks_title">Задачи дня</h3>
+      <div id="day_tasks_list"></div>
     </div>
   </div>
 
-  <!-- СПИСОК ЗАДАЧ ДНЯ -->
-  <div class="card" id="day_tasks_card" style="display:none">
-    <h3 id="day_tasks_title">Задачи дня</h3>
-    <div id="day_tasks_list"></div>
-  </div>
-
-</div>
-
-  <!-- Вкладка: СОТРУДНИКИ -->
   <div id="company-employees" class="tab">
-
-    <!-- Форма добавления -->
     <div class="card">
       <h3>Добавить сотрудника</h3>
       <p class="hint">Сотрудники будут использоваться при назначении ответственных за задачи.</p>
-       <div class="row">
-    <input id="emp_name" placeholder="ФИО" style="width:220px">
-    <select id="emp_role" style="width:180px">
-      <option value="master">Сотрудник</option>
-      <option value="admin">Руководитель</option>
-    </select>
-    <input id="emp_pin" placeholder="PIN (4 цифры)" maxlength="6" style="width:130px">
-    <input id="emp_phone" placeholder="Телефон (опц.)" style="width:150px">
-    <input id="emp_note" placeholder="Комментарий" style="width:180px">
-    <button class="action" onclick="addEmployee()">Добавить</button>
-  </div>
+      <div class="row">
+        <input id="emp_name" placeholder="ФИО" style="width:220px">
+        <select id="emp_role" style="width:180px">
+          <option value="master">Сотрудник</option>
+          <option value="admin">Руководитель</option>
+        </select>
+        <input id="emp_pin" placeholder="PIN (4 цифры)" maxlength="6" style="width:130px">
+        <input id="emp_phone" placeholder="Телефон (опц.)" style="width:150px">
+        <input id="emp_note" placeholder="Комментарий" style="width:180px">
+        <button class="action" onclick="addEmployee()">Добавить</button>
+      </div>
     </div>
-
-    <!-- Список сотрудников -->
     <div class="card">
       <h3>Список сотрудников</h3>
       <table>
-       <thead>
-  <tr>
-    <th>ФИО</th>
-    <th>Роль</th>
-    <th>PIN</th>
-    <th>Телефон</th>
-    <th>Комментарий</th>
-    <th></th>
-  </tr>
-</thead>
+        <thead><tr><th>ФИО</th><th>Роль</th><th>PIN</th><th>Телефон</th><th>Комментарий</th><th></th></tr></thead>
         <tbody id="employees_table"></tbody>
       </table>
     </div>
-
   </div>
 
-  <!-- Вкладка: СООБЩЕНИЯ -->
   <div id="company-chat" class="tab">
-
-    <!-- Список чатов -->
     <div class="card">
       <h3>Сообщения</h3>
       <div class="row" style="margin-bottom:12px">
         <button class="action" onclick="createCustomChat()">+ Создать чат</button>
       </div>
-     <div id="chats_list"></div>
-<p id="chats_empty" class="hint" style="display:none;">Нет чатов. Нажмите «+ Создать чат».</p>
+      <div id="chats_list"></div>
+      <p id="chats_empty" class="hint" style="display:none;">Нет чатов. Нажмите «+ Создать чат».</p>
     </div>
-
-    <!-- Окно чата -->
     <div class="card" id="chat_window" style="display:none">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
         <button class="action" onclick="closeChatWindow()">← Назад к списку</button>
         <h3 id="chat_title" style="margin:0;"></h3>
         <button class="action danger master-hidden" onclick="deleteCurrentChat()">× Удалить чат</button>
       </div>
-
-      <!-- Участники (только для админа) -->
       <div id="chat_participants_bar" class="row" style="margin-bottom:12px;padding:10px;background:#f5f5f5;border-radius:4px;">
         <span style="font-size:13px;color:#666;">Участники:</span>
         <span id="chat_participants_list"></span>
@@ -1026,12 +587,8 @@
         </select>
         <button class="action master-hidden" onclick="addChatParticipant()">+ Добавить</button>
       </div>
-
-      <!-- История сообщений -->
       <div id="chat_messages" style="max-height:500px;overflow-y:auto;padding:10px;background:#fafafa;border:1px solid #eee;border-radius:4px;margin-bottom:12px;"></div>
-
-      <!-- Поле ввода -->
-           <div class="row" style="flex-wrap: nowrap; gap: 8px;">
+      <div class="row" style="flex-wrap: nowrap; gap: 8px;">
         <button class="action" onclick="closeChatWindow()" style="padding: 8px 12px; flex-shrink: 0;" title="Назад к списку">←</button>
         <input id="chat_input" placeholder="Написать сообщение..." style="flex:1; min-width: 100px;" onkeydown="if(event.key==='Enter'){sendMessage();}">
         <input id="chat_file" type="file" style="display:none" onchange="uploadChatFile(this)">
@@ -1039,7 +596,7 @@
         <button class="action ok" onclick="sendMessage()" style="flex-shrink: 0;">➤</button>
       </div>
       <div id="chat_file_status" style="font-size:13px;color:#888;margin-top:6px;"></div>
-  </div>
+    </div>
   </div>
 </div>
 <!-- /ОБЁРТКА: КОМПАНИЯ -->
@@ -1070,7 +627,6 @@
         <button class="action danger" onclick="clearAll()">Удалить все данные</button>
       </div>
     </div>
-
     <div class="card">
       <h3>Синхронизация с облаком</h3>
       <p class="hint">Одна база на всех устройствах: ПК, телефон, планшет.</p>
@@ -1083,8 +639,6 @@
     </div>
   </div>
 </div>
-<!-- /ОБЁРТКА: СЕРВИС -->
-
 </div>
 
 <script src="db.js"></script>
@@ -1102,52 +656,79 @@ const EMPTY_DATA = {
 let data = JSON.parse(JSON.stringify(EMPTY_DATA));
 let writeOffStockId = null;
 
+function load() { return EMPTY_DATA; }
 
-function load() {
-  // Оставлено для совместимости — реальная загрузка происходит в initApp()
-  return EMPTY_DATA;
-}
 function save() {
-  // 1. Сохраняем локально (IndexedDB)
   saveData(data).catch(err => console.error("Ошибка сохранения:", err));
-
-  // 2. Планируем автосинхронизацию через 5 сек
-  if (window.__scheduleAutosync) {
-    window.__scheduleAutosync();
-  }
+  if (window.__scheduleAutosync) { window.__scheduleAutosync(); }
 }
 function uid() { return Date.now() + Math.floor(Math.random()*1000); }
+
+/* ============================================================
+   НОВОЕ: Красивые уведомления (Toasts) вместо alert
+   ============================================================ */
+function showToast(msg, type) {
+  const colors = {
+    info:    { bg: '#2b6cb0', text: '#fff' },
+    success: { bg: '#2f855a', text: '#fff' },
+    error:   { bg: '#c53030', text: '#fff' },
+    warn:    { bg: '#b7791f', text: '#fff' },
+  };
+  const c = colors[type] || colors.info;
+
+  let box = document.getElementById('toast_box');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'toast_box';
+    document.body.appendChild(box);
+  }
+
+  const el = document.createElement('div');
+  el.className = 'toast-item ' + (type || 'info');
+  el.textContent = msg;
+  box.appendChild(el);
+
+  requestAnimationFrame(() => el.classList.add('show'));
+
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 300);
+  }, 3000);
+}
+
+// Перехватываем стандартный alert, чтобы он вызывал красивые уведомления
+const originalAlert = window.alert;
+window.alert = function(message) {
+  if (typeof showToast === 'function') {
+    let type = "info";
+    const lowerMsg = String(message).toLowerCase();
+    if (lowerMsg.includes("ошибка") || lowerMsg.includes("неверные") || lowerMsg.includes("недостаточно")) type = "error";
+    if (lowerMsg.includes("введите") || lowerMsg.includes("выберите") || lowerMsg.includes("укажите")) type = "warn";
+    if (lowerMsg.includes("успешно") || lowerMsg.includes("создана") || lowerMsg.includes("готово")) type = "success";
+    showToast(message, type);
+  } else {
+    originalAlert(message);
+  }
+};
+
 /* ---------- КАЛЕНДАРЬ: состояние ---------- */
 let _calYear = new Date().getFullYear();
-let _calMonth = new Date().getMonth(); // 0-11
+let _calMonth = new Date().getMonth();
 let _calSelectedDay = null;
+const MONTH_NAMES = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 
-const MONTH_NAMES = ["Январь","Февраль","Март","Апрель","Май","Июнь",
-                     "Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-
-/* ---------- Переключение типа задачи ---------- */
 function onTaskTypeChange() {
   const type = document.getElementById("task_type").value;
   const productSel = document.getElementById("task_product");
   const qtyInput = document.getElementById("task_qty");
-  const titleInput = document.getElementById("task_title");
-
   if (type === "task") {
-    // Задача: изделие не нужно
-    productSel.style.display = "none";
-    qtyInput.style.display = "none";
+    productSel.style.display = "none"; qtyInput.style.display = "none";
   } else {
-    // Пополнение / Новая позиция: изделие + количество
-    productSel.style.display = "inline-block";
-    qtyInput.style.display = "inline-block";
-    // Заполняем список изделий
-    productSel.innerHTML = data.products.map(p =>
-      `<option value="${p.id}">${escapeHtml(p.name)}${p.article ? " ("+escapeHtml(p.article)+")" : ""}</option>`
-    ).join("");
+    productSel.style.display = "inline-block"; qtyInput.style.display = "inline-block";
+    productSel.innerHTML = data.products.map(p => `<option value="${p.id}">${escapeHtml(p.name)}${p.article ? " ("+escapeHtml(p.article)+")" : ""}</option>`).join("");
   }
 }
 
-/* ---------- Навигация по месяцам ---------- */
 function changeMonth(delta) {
   _calMonth += delta;
   if (_calMonth > 11) { _calMonth = 0; _calYear++; }
@@ -1156,40 +737,25 @@ function changeMonth(delta) {
   renderCalendar();
 }
 
-/* ---------- Рендер календаря ---------- */
 function renderCalendar() {
   const title = document.getElementById("calendar_title");
   if (!title) return;
-
   title.textContent = MONTH_NAMES[_calMonth] + " " + _calYear;
-
   const grid = document.getElementById("calendar_grid");
   if (!grid) return;
 
   const firstDay = new Date(_calYear, _calMonth, 1);
-  const startWeekday = (firstDay.getDay() + 6) % 7; // Пн=0
+  const startWeekday = (firstDay.getDay() + 6) % 7;
   const daysInMonth = new Date(_calYear, _calMonth + 1, 0).getDate();
-
   const today = new Date();
-  const todayStr = today.getFullYear() + "-" +
-    String(today.getMonth()+1).padStart(2,"0") + "-" +
-    String(today.getDate()).padStart(2,"0");
+  const todayStr = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,"0") + "-" + String(today.getDate()).padStart(2,"0");
 
   let html = "";
-  // Заголовки дней
-  ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(d => {
-    html += `<div class="day-name">${d}</div>`;
-  });
-  // Пустые ячейки до первого дня
-  for (let i = 0; i < startWeekday; i++) {
-    html += `<div class="day empty"></div>`;
-  }
-  // Дни месяца
+  ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(d => { html += `<div class="day-name">${d}</div>`; });
+  for (let i = 0; i < startWeekday; i++) { html += `<div class="day empty"></div>`; }
+  
   for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = _calYear + "-" +
-      String(_calMonth+1).padStart(2,"0") + "-" +
-      String(d).padStart(2,"0");
-
+    const dateStr = _calYear + "-" + String(_calMonth+1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
     const tasks = getTasksForDay(dateStr);
     const dots = tasks.map(t => {
       let cls = "dot-task";
@@ -1200,9 +766,7 @@ function renderCalendar() {
 
     const isToday = dateStr === todayStr;
     const isSelected = dateStr === _calSelectedDay;
-
-    html += `<div class="day ${isToday?'today':''} ${isSelected?'selected':''}"
-                  onclick="selectDay('${dateStr}')">
+    html += `<div class="day ${isToday?'today':''} ${isSelected?'selected':''}" onclick="selectDay('${dateStr}')">
       <div class="day-number">${d}</div>
       <div class="dots">${dots}</div>
     </div>`;
@@ -1210,7 +774,6 @@ function renderCalendar() {
   grid.innerHTML = html;
 }
 
-/* ---------- Получить задачи на день ---------- */
 function getTasksForDay(dateStr) {
   if (!data.tasks) return [];
   return data.tasks.filter(t => {
@@ -1220,14 +783,12 @@ function getTasksForDay(dateStr) {
   });
 }
 
-/* ---------- Клик по дню ---------- */
 function selectDay(dateStr) {
   _calSelectedDay = dateStr;
   renderCalendar();
   renderDayTasks(dateStr);
 }
 
-/* ---------- Показать список задач дня ---------- */
 function renderDayTasks(dateStr) {
   const card = document.getElementById("day_tasks_card");
   const title = document.getElementById("day_tasks_title");
@@ -1245,19 +806,10 @@ function renderDayTasks(dateStr) {
       let typeLabel = "ЗАДАЧА", typeCls = "dot-task";
       if (t.type === "restock")  { typeLabel = "ПОПОЛНЕНИЕ"; typeCls = "dot-restock"; }
       if (t.type === "new_item") { typeLabel = "НОВАЯ ПОЗИЦИЯ"; typeCls = "dot-new"; }
-
       const done = t.done ? "text-decoration:line-through;opacity:0.5;" : "";
-
       return `<div class="stage" style="${done}">
-        <div class="stage-title">
-          <span class="dot ${typeCls}"></span>
-          ${typeLabel}: ${escapeHtml(t.title || t.product_name || "Без названия")}
-          ${t.qty ? " × " + t.qty + " шт" : ""}
-        </div>
-        <div class="stage-info">
-          ${t.date_start}${t.date_end && t.date_end !== t.date_start ? " — " + t.date_end : ""}
-          ${t.responsible ? " • Ответственный: " + escapeHtml(t.responsible) : ""}
-        </div>
+        <div class="stage-title"><span class="dot ${typeCls}"></span> ${typeLabel}: ${escapeHtml(t.title || t.product_name || "Без названия")} ${t.qty ? " × " + t.qty + " шт" : ""}</div>
+        <div class="stage-info">${t.date_start}${t.date_end && t.date_end !== t.date_start ? " — " + t.date_end : ""} ${t.responsible ? " • Ответственный: " + escapeHtml(t.responsible) : ""}</div>
         ${t.note ? `<div class="stage-info">💬 ${escapeHtml(t.note)}</div>` : ""}
         ${t.batch_created ? `<div class="stage-info">📦 Партия создана в производстве</div>` : ""}
         <div class="row" style="margin-top:8px"> <button class="action" onclick="openTaskChat('${t.id}', '${escapeHtml(t.title || t.product_name)}')">💬 Обсудить</button> ${!t.done ? `<button class="action ok master-hidden" onclick="toggleTaskDone('${t.id}')">✔ Выполнено</button>` : `<button class="action master-hidden" onclick="toggleTaskDone('${t.id}')">↩ Вернуть</button>`} <button class="action danger master-hidden" onclick="delTask('${t.id}')">× Удалить</button> </div>
@@ -1267,7 +819,6 @@ function renderDayTasks(dateStr) {
   card.style.display = "block";
 }
 
-/* ---------- Добавить задачу ---------- */
 function addTask() {
   const type = document.getElementById("task_type").value;
   const title = document.getElementById("task_title").value.trim();
@@ -1278,7 +829,6 @@ function addTask() {
 
   if (!dateStart) return alert("Укажите дату начала");
   if (!dateEnd) dateEnd = dateStart;
-
   if (type === "task" && !title) return alert("Введите название задачи");
 
   let productId = null, productName = null, qty = null;
@@ -1293,323 +843,168 @@ function addTask() {
 
   data.tasks = data.tasks || [];
   const task = {
-    id: uid(),
-    type,
-    title: title || (productName ? `${productName} × ${qty}` : ""),
-    product_id: productId,
-    product_name: productName,
-    qty,
-    date_start: dateStart,
-    date_end: dateEnd,
-    responsible,
-    note,
-    batch_created: false,
-    batch_id: null,
-    done: false,
+    id: uid(), type, title: title || (productName ? `${productName} × ${qty}` : ""),
+    product_id: productId, product_name: productName, qty,
+    date_start: dateStart, date_end: dateEnd, responsible, note,
+    batch_created: false, batch_id: null, done: false,
     updatedAt: new Date().toISOString(),
   };
   data.tasks.push(task);
 
-  // Очистить форму
   ["task_title","task_date_start","task_date_end","task_note","task_qty"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
 
-  save();
-  renderCalendar();
+  save(); renderCalendar();
   if (_calSelectedDay === dateStart) renderDayTasks(dateStart);
   showToast("✅ План добавлен", "success");
 }
 
-/* ---------- Удалить задачу ---------- */
 function delTask(id) {
   if (!confirm("Удалить план?")) return;
   markDeleted(data, "tasks", id);
-  save();
-  renderCalendar();
+  save(); renderCalendar();
   if (_calSelectedDay) renderDayTasks(_calSelectedDay);
 }
 
-/* ---------- Переключить "выполнено" ---------- */
 function toggleTaskDone(id) {
   const t = (data.tasks || []).find(x => String(x.id) === String(id));
   if (!t) return;
   t.done = !t.done;
   t.updatedAt = new Date().toISOString();
-  
-  // Если задачу выполнили — архивируем её чат
   const chat = (data.chats || []).find(c => String(c.linked_id) === String(t.id));
   if (chat) {
-    if (t.done) {
-      chat.archived = true;
-      showToast("📦 Чат задачи перенесён в архив", "success");
-    } else {
-      chat.archived = false;
-    }
+    if (t.done) { chat.archived = true; showToast("📦 Чат задачи перенесён в архив", "success"); } 
+    else { chat.archived = false; }
     chat.updatedAt = new Date().toISOString();
   }
-  
-  save();
-  renderCalendar();
+  save(); renderCalendar();
   if (_calSelectedDay) renderDayTasks(_calSelectedDay);
 }
-/* ---------- АВТОСОЗДАНИЕ ПАРТИЙ ИЗ ПЛАНОВ ---------- */
+
 function checkScheduledTasks() {
   if (!data.tasks || !data.batches) return;
-
-  // Сегодняшняя дата по МСК
   const now = new Date();
   const msk = new Date(now.getTime() + (3 * 60 * 60 * 1000) + (now.getTimezoneOffset() * 60 * 1000));
-  const today = msk.toISOString().slice(0, 10);   // YYYY-MM-DD
-
+  const today = msk.toISOString().slice(0, 10);
   let created = 0;
 
   for (const task of data.tasks) {
-    // Только "пополнение" и "новая позиция"
     if (task.type !== "restock" && task.type !== "new_item") continue;
-
-    // Уже создана партия — пропускаем
     if (task.batch_created) continue;
-
-    // Дата ещё не наступила — пропускаем
-    if (!task.date_start) continue;
-    if (task.date_start > today) continue;
-
-    // Нет изделия или количества — пропускаем
+    if (!task.date_start || task.date_start > today) continue;
     if (!task.product_id || !task.qty || task.qty <= 0) continue;
 
     const product = data.products.find(p => String(p.id) === String(task.product_id));
     if (!product) continue;
 
-    // Создаём партию на этапе 1 (Восковки)
     const batch = {
-      id: uid(),
-      productId: product.id,
-      productName: product.name,
-      qty: task.qty,
-      created: new Date().toLocaleString(),
-      stage: 1,
-      stages: {
-        1: { done: false, waxUsed: null },
-        2: { done: false, opokaId: null },
-        3: { done: false, cycleId: null },
-        4: { done: false, metalUsed: null, metalReturned: null },
-        5: { done: false },
-        6: { done: false },
-        7: { done: false },
-        8: { done: false },
-      },
-      stageCosts: {},
-      totalCost: 0,
-      fromTaskId: task.id,
+      id: uid(), productId: product.id, productName: product.name, qty: task.qty,
+      created: new Date().toLocaleString(), stage: 1,
+      stages: { 1:{done:false,waxUsed:null}, 2:{done:false,opokaId:null}, 3:{done:false,cycleId:null}, 4:{done:false,metalUsed:null,metalReturned:null}, 5:{done:false}, 6:{done:false}, 7:{done:false}, 8:{done:false} },
+      stageCosts: {}, totalCost: 0, fromTaskId: task.id,
     };
     data.batches.push(batch);
-
-    // Помечаем задачу
-    task.batch_created = true;
-    task.batch_id = batch.id;
-    task.updatedAt = new Date().toISOString();
+    task.batch_created = true; task.batch_id = batch.id; task.updatedAt = new Date().toISOString();
     created++;
   }
-
   if (created > 0) {
-    save();
-    renderBatches();
+    save(); renderBatches();
     if (_calSelectedDay) renderDayTasks(_calSelectedDay);
     showToast(`📦 Создано партий по плану: ${created}`, "success");
   }
 }
 
-
-/* ---------- Заполнить список ответственных ---------- */
-
 function renderResponsibleSelect() {
   const sel = document.getElementById("task_responsible");
   if (!sel) return;
   const list = data.employees || [];
-  sel.innerHTML = `<option value="">— Ответственный —</option>` +
-    list.map(e => `<option value="${escapeHtml(e.name)}">${escapeHtml(e.name)}${e.role ? " ("+escapeHtml(e.role)+")" : ""}</option>`).join("");
+  sel.innerHTML = `<option value="">— Ответственный —</option>` + list.map(e => `<option value="${escapeHtml(e.name)}">${escapeHtml(e.name)}${e.role ? " ("+escapeHtml(e.role)+")" : ""}</option>`).join("");
 }
 
-/* ============================================================
-   ЧАТ / СООБЩЕНИЯ
-   ============================================================ */
+/* ЧАТ */
+let _currentChatId = null;
+let _pendingChatFile = null;
 
-let _currentChatId = null;     // ID открытого чата
-let _pendingChatFile = null;   // Загруженный файл, ждёт отправки
-
-/* ---------- Список чатов ---------- */
 function renderChats() {
   const listEl = document.getElementById("chats_list");
   if (!listEl) return;
-
   const user = getCurrentUser();
   if (!user) return;
-
   const isAdmin = user.role === "admin";
 
-  // Скрываем чаты задач и архивные
   let chats = (data.chats || []).filter(c => c.type !== "task" && !c.archived);
-
   if (!isAdmin) {
-    const myChatIds = new Set(
-      (data.chat_participants || [])
-        .filter(p => String(p.employee_id) === String(user.id))
-        .map(p => String(p.chat_id))
-    );
-    chats = chats.filter(c =>
-      myChatIds.has(String(c.id)) ||
-      c.type === "announcements" ||
-      c.type === "general"
-    );
+    const myChatIds = new Set((data.chat_participants || []).filter(p => String(p.employee_id) === String(user.id)).map(p => String(p.chat_id)));
+    chats = chats.filter(c => myChatIds.has(String(c.id)) || c.type === "announcements" || c.type === "general");
   }
+  chats.sort((a, b) => { if (a.pinned && !b.pinned) return -1; if (!a.pinned && b.pinned) return 1; return 0; });
 
-  chats.sort((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return 0;
-  });
-
-  if (chats.length === 0) {
-    listEl.innerHTML = `<p class="hint">Нет чатов. Нажмите «+ Создать чат».</p>`;
-    return;
-  }
+  if (chats.length === 0) { listEl.innerHTML = `<p class="hint">Нет чатов. Нажмите «+ Создать чат».</p>`; return; }
 
   listEl.innerHTML = chats.map(c => {
     const parts = (data.chat_participants || []).filter(p => String(p.chat_id) === String(c.id));
     const partsCount = parts.length;
     const msgCount = (data.messages || []).filter(m => String(m.chat_id) === String(c.id)).length;
-
-    return `
-      <div class="chat-item ${c.pinned ? 'pinned' : ''}" onclick="openChat('${c.id}')">
+    return `<div class="chat-item ${c.pinned ? 'pinned' : ''}" onclick="openChat('${c.id}')">
         <div class="chat-item-info">
           <div class="chat-item-title">${escapeHtml(c.title || "Без названия")}</div>
-          <div class="chat-item-meta">
-            ${partsCount > 0 ? partsCount + " участн." : "без участников"}
-            ${msgCount > 0 ? " • " + msgCount + " сообщ." : ""}
-          </div>
-        </div>
-        ${c.pinned ? '<span class="chat-item-badge">закреплён</span>' : ''}
-      </div>
-    `;
+          <div class="chat-item-meta">${partsCount > 0 ? partsCount + " участн." : "без участников"} ${msgCount > 0 ? " • " + msgCount + " сообщ." : ""}</div>
+        </div>${c.pinned ? '<span class="chat-item-badge">закреплён</span>' : ''}</div>`;
   }).join("");
 }
 
-/* ---------- Создать кастомный чат ---------- */
 function createCustomChat() {
   const user = getCurrentUser();
   if (!user || user.role !== "admin") return alert("Только руководитель может создавать чаты");
-
   const title = prompt("Название чата:");
   if (!title || !title.trim()) return;
-
-  const newChat = {
-    id: "c_" + Date.now() + "_" + Math.floor(Math.random()*1000),
-    type: "custom",
-    title: title.trim(),
-    linked_id: null,
-    linked_type: null,
-    pinned: false,
-    created_by: String(user.id),
-    updatedAt: new Date().toISOString(),
-  };
-
-  data.chats = data.chats || [];
-  data.chats.push(newChat);
-
-  save();
-  renderChats();
-  showToast("✅ Чат создан: " + title, "success");
+  const newChat = { id: "c_" + Date.now() + "_" + Math.floor(Math.random()*1000), type: "custom", title: title.trim(), linked_id: null, linked_type: null, pinned: false, created_by: String(user.id), updatedAt: new Date().toISOString() };
+  data.chats = data.chats || []; data.chats.push(newChat);
+  save(); renderChats(); showToast("✅ Чат создан: " + title, "success");
 }
-/* ---------- Открыть или создать чат для задачи/партии ---------- */
+
 async function openTaskChat(linkedId, title) {
   const user = getCurrentUser();
   if (!user) return alert("Войдите заново");
-
   let chat = (data.chats || []).find(c => String(c.linked_id) === String(linkedId));
-
   if (!chat) {
-    chat = {
-      id: "c_" + Date.now() + "_" + Math.floor(Math.random()*1000),
-      type: "task",
-      title: "📦 " + title,
-      linked_id: String(linkedId),
-      linked_type: linkedId.startsWith("batch_") ? "batch" : "task",
-      pinned: false,
-      created_by: String(user.id),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    data.chats = data.chats || [];
-    data.chats.push(chat);
-    
-    data.chat_participants = data.chat_participants || [];
-    data.chat_participants.push({ chat_id: chat.id, employee_id: String(user.id) });
-
-    save();
-    renderChats();
-    showToast("✅ Чат для задачи создан", "success");
+    chat = { id: "c_" + Date.now() + "_" + Math.floor(Math.random()*1000), type: "task", title: "📦 " + title, linked_id: String(linkedId), linked_type: linkedId.startsWith("batch_") ? "batch" : "task", pinned: false, created_by: String(user.id), updatedAt: new Date().toISOString() };
+    data.chats = data.chats || []; data.chats.push(chat);
+    data.chat_participants = data.chat_participants || []; data.chat_participants.push({ chat_id: chat.id, employee_id: String(user.id) });
+    save(); renderChats(); showToast("✅ Чат для задачи создан", "success");
   }
-
   const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
   showCompanyTab('chat', chatTabBtn);
-
   openChat(chat.id);
 }
 
-/* ---------- Удалить текущий чат ---------- */
 function deleteCurrentChat() {
   if (!_currentChatId) return;
   const chat = (data.chats || []).find(c => String(c.id) === String(_currentChatId));
   if (!chat) return;
-
-  if (chat.type === "announcements" || chat.type === "general") {
-    return alert("Системный чат удалить нельзя");
-  }
-
+  if (chat.type === "announcements" || chat.type === "general") return alert("Системный чат удалить нельзя");
   if (!confirm("Удалить чат «" + chat.title + "» и все сообщения?")) return;
-
   data.chats = data.chats.filter(c => String(c.id) !== String(_currentChatId));
   data.messages = (data.messages || []).filter(m => String(m.chat_id) !== String(_currentChatId));
   data.chat_participants = (data.chat_participants || []).filter(p => String(p.chat_id) !== String(_currentChatId));
-
-  save();
-  closeChatWindow();
-  showToast("✅ Чат удалён", "success");
+  save(); closeChatWindow(); showToast("✅ Чат удалён", "success");
 }
 
-/* ---------- Открыть чат ---------- */
 function openChat(chatId) {
-  const user = getCurrentUser();
-  if (!user) return;
-
+  const user = getCurrentUser(); if (!user) return;
   const chat = (data.chats || []).find(c => String(c.id) === String(chatId));
   if (!chat) return alert("Чат не найден");
-
   _currentChatId = chatId;
-
-  // Заголовок
   document.getElementById("chat_title").textContent = chat.title || "Без названия";
-
-  // Скрываем список, показываем окно
   document.querySelector("#company-chat > .card").style.display = "none";
   document.getElementById("chat_window").style.display = "block";
-
-  // Участники
   renderChatParticipants(chatId);
-
-  // Сообщения
   renderChatMessages(chatId);
-
-  // Фокус на поле ввода
-  setTimeout(() => {
-    const inp = document.getElementById("chat_input");
-    if (inp) inp.focus();
-  }, 100);
+  setTimeout(() => { const inp = document.getElementById("chat_input"); if (inp) inp.focus(); }, 100);
 }
 
-/* ---------- Закрыть чат ---------- */
 function closeChatWindow() {
   _currentChatId = null;
   document.getElementById("chat_window").style.display = "none";
@@ -1617,468 +1012,181 @@ function closeChatWindow() {
   renderChats();
 }
 
-/* ---------- Отрисовать сообщения ---------- */
 function renderChatMessages(chatId) {
-  const el = document.getElementById("chat_messages");
-  if (!el) return;
-
-  const user = getCurrentUser();
-  const myId = user ? String(user.id) : null;
-
-  const messages = (data.messages || [])
-    .filter(m => String(m.chat_id) === String(chatId))
-    .sort((a, b) => {
-      const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return tA - tB;
-    });
-
-  if (messages.length === 0) {
-    el.innerHTML = `<p class="hint" style="text-align:center;">Пока нет сообщений. Напишите первым!</p>`;
-    return;
-  }
+  const el = document.getElementById("chat_messages"); if (!el) return;
+  const user = getCurrentUser(); const myId = user ? String(user.id) : null;
+  const messages = (data.messages || []).filter(m => String(m.chat_id) === String(chatId)).sort((a, b) => (a.created_at ? new Date(a.created_at).getTime() : 0) - (b.created_at ? new Date(b.created_at).getTime() : 0));
+  if (messages.length === 0) { el.innerHTML = `<p class="hint" style="text-align:center;">Пока нет сообщений. Напишите первым!</p>`; return; }
 
   el.innerHTML = messages.map(m => {
     const isOwn = String(m.sender_id) === myId;
-    const timeStr = m.created_at
-      ? new Date(m.created_at).toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })
-      : "";
-
+    const timeStr = m.created_at ? new Date(m.created_at).toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }) : "";
     let fileHtml = "";
     if (m.file_url) {
       const isImage = (m.file_type || "").startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(m.file_name || "");
-      if (isImage) {
-        fileHtml = `<div class="chat-message-file"><img src="${escapeHtml(m.file_url)}" onclick="window.open('${escapeHtml(m.file_url)}','_blank')" alt=""></div>`;
-      } else {
-        fileHtml = `<div class="chat-message-file">📎 <a href="${escapeHtml(m.file_url)}" target="_blank">${escapeHtml(m.file_name || "Файл")}</a></div>`;
-      }
+      if (isImage) fileHtml = `<div class="chat-message-file"><img src="${escapeHtml(m.file_url)}" onclick="window.open('${escapeHtml(m.file_url)}','_blank')" alt=""></div>`;
+      else fileHtml = `<div class="chat-message-file">📎 <a href="${escapeHtml(m.file_url)}" target="_blank">${escapeHtml(m.file_name || "Файл")}</a></div>`;
     }
-
-    return `
-      <div class="chat-message ${isOwn ? 'own' : ''}">
-        <div class="chat-message-header">
-          <span class="chat-message-sender">${escapeHtml(m.sender_name || "—")}</span>
-          <span class="chat-message-time">${timeStr}</span>
-        </div>
-        ${m.text ? `<div class="chat-message-text">${escapeHtml(m.text)}</div>` : ""}
-        ${fileHtml}
-      </div>
-    `;
+    return `<div class="chat-message ${isOwn ? 'own' : ''}">
+        <div class="chat-message-header"><span class="chat-message-sender">${escapeHtml(m.sender_name || "—")}</span><span class="chat-message-time">${timeStr}</span></div>
+        ${m.text ? `<div class="chat-message-text">${escapeHtml(m.text)}</div>` : ""}${fileHtml}</div>`;
   }).join("");
-
-  // Прокрутить вниз
   el.scrollTop = el.scrollHeight;
 }
 
-/* ---------- Отправить сообщение ---------- */
 async function sendMessage() {
   if (!_currentChatId) return;
-
   let user = getCurrentUser();
   if (!user) {
-    try {
-      const sb = await initCloud();
-      if (sb) {
-        const { data: remote } = await sb.from("employees").select("*");
-        if (remote && remote.length > 0) {
-          data.employees = remote;
-          await saveData(data);
-          user = getCurrentUser();
-        }
-      }
-    } catch (e) {
-      console.error("Ошибка pull employees:", e);
-    }
+    try { const sb = await initCloud(); if (sb) { const { data: remote } = await sb.from("employees").select("*"); if (remote && remote.length > 0) { data.employees = remote; await saveData(data); user = getCurrentUser(); } } } catch (e) { console.error("Ошибка pull employees:", e); }
   }
-    if (!user) {
-    // Попытка восстановить сессию из localStorage напрямую
-    const raw = localStorage.getItem("jewelry_auth");
-    if (raw) {
-      try { user = JSON.parse(raw); } catch(e) {}
-    }
-    if (!user) return alert("Войдите заново");
-  }
-
-  const input = document.getElementById("chat_input");
-  const text = (input.value || "").trim();
-
+  if (!user) { const raw = localStorage.getItem("jewelry_auth"); if (raw) { try { user = JSON.parse(raw); } catch(e) {} } if (!user) return alert("Войдите заново"); }
+  const input = document.getElementById("chat_input"); const text = (input.value || "").trim();
   if (!text && !_pendingChatFile) return;
-
-  const msg = {
-    id: "m_" + Date.now() + "_" + Math.floor(Math.random()*1000),
-    chat_id: _currentChatId,
-    sender_id: String(user.id),
-    sender_name: user.name + (user.role === "admin" ? " (админ)" : ""),
-    text: text || null,
-    file_url: _pendingChatFile ? _pendingChatFile.url : null,
-    file_name: _pendingChatFile ? _pendingChatFile.name : null,
-    file_type: _pendingChatFile ? _pendingChatFile.type : null,
-    created_at: new Date().toISOString(),
- updatedAt: new Date().toISOString(),
-  };
-
-  data.messages = data.messages || [];
-  data.messages.push(msg);
-
-  input.value = "";
-  _pendingChatFile = null;
-  document.getElementById("chat_file_status").textContent = "";
-
-  save();
-  renderChatMessages(_currentChatId);
-
-  // МГНОВЕННАЯ ОТПРАВКА В ОБЛАКО (не ждем Autosync)
-  try {
-    const sb = await initCloud();
-    if (sb) {
-      await sb.from('messages').upsert(msg);
-      console.log("✅ Сообщение мгновенно отправлено в облако");
-    }
-  } catch (e) {
-    console.error("Ошибка мгновенной отправки:", e);
-  }
+  const msg = { id: "m_" + Date.now() + "_" + Math.floor(Math.random()*1000), chat_id: _currentChatId, sender_id: String(user.id), sender_name: user.name + (user.role === "admin" ? " (админ)" : ""), text: text || null, file_url: _pendingChatFile ? _pendingChatFile.url : null, file_name: _pendingChatFile ? _pendingChatFile.name : null, file_type: _pendingChatFile ? _pendingChatFile.type : null, created_at: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  data.messages = data.messages || []; data.messages.push(msg);
+  input.value = ""; _pendingChatFile = null; document.getElementById("chat_file_status").textContent = "";
+  save(); renderChatMessages(_currentChatId);
+  try { const sb = await initCloud(); if (sb) { await sb.from('messages').upsert(msg); } } catch (e) { console.error("Ошибка мгновенной отправки:", e); }
 }
 
-/* ---------- Загрузить файл ---------- */
 async function uploadChatFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-
+  const file = input.files[0]; if (!file) return;
   const statusEl = document.getElementById("chat_file_status");
-  statusEl.textContent = "Загрузка файла: " + file.name + "...";
-  statusEl.style.color = "#b7791f";
-
+  statusEl.textContent = "Загрузка файла: " + file.name + "..."; statusEl.style.color = "#b7791f";
   try {
-    const sb = await initCloud();
-    if (!sb) throw new Error("Нет клиента Supabase");
-
+    const sb = await initCloud(); if (!sb) throw new Error("Нет клиента Supabase");
     const ext = file.name.split('.').pop() || 'bin';
     const fileName = "c_" + Date.now() + "_" + Math.floor(Math.random()*1000) + "." + ext;
-
-    const { error: uploadError } = await sb.storage
-      .from('chat-files')
-      .upload(fileName, file, { cacheControl: '3600', upsert: false });
-
+    const { error: uploadError } = await sb.storage.from('chat-files').upload(fileName, file, { cacheControl: '3600', upsert: false });
     if (uploadError) throw uploadError;
-
-    const { data: urlData } = sb.storage
-      .from('chat-files')
-      .getPublicUrl(fileName);
-
-    _pendingChatFile = {
-      url: urlData.publicUrl,
-      name: file.name,
-      type: file.type || "application/octet-stream",
-    };
-
-    statusEl.textContent = "✅ Файл готов к отправке: " + file.name;
-    statusEl.style.color = "#2f855a";
-
-  } catch (e) {
-    console.error("Ошибка загрузки:", e);
-    statusEl.textContent = "❌ Ошибка: " + e.message;
-    statusEl.style.color = "#c53030";
-  }
+    const { data: urlData } = sb.storage.from('chat-files').getPublicUrl(fileName);
+    _pendingChatFile = { url: urlData.publicUrl, name: file.name, type: file.type || "application/octet-stream" };
+    statusEl.textContent = "✅ Файл готов к отправке: " + file.name; statusEl.style.color = "#2f855a";
+  } catch (e) { console.error("Ошибка загрузки:", e); statusEl.textContent = "❌ Ошибка: " + e.message; statusEl.style.color = "#c53030"; }
 }
 
-/* ---------- Участники чата ---------- */
 function renderChatParticipants(chatId) {
-  const listEl = document.getElementById("chat_participants_list");
-  const selectEl = document.getElementById("chat_add_participant");
+  const listEl = document.getElementById("chat_participants_list"); const selectEl = document.getElementById("chat_add_participant");
   if (!listEl || !selectEl) return;
-
-  const user = getCurrentUser();
-  const isAdmin = user && user.role === "admin";
-
+  const user = getCurrentUser(); const isAdmin = user && user.role === "admin";
   const chat = (data.chats || []).find(c => String(c.id) === String(chatId));
   const isSystemChat = chat && (chat.type === "announcements" || chat.type === "general");
+  const participants = (data.chat_participants || []).filter(p => String(p.chat_id) === String(chatId)).map(p => { const emp = (data.employees || []).find(e => String(e.id) === String(p.employee_id)); return { ...p, name: emp ? emp.name : "Неизвестный" }; });
+  if (participants.length === 0) listEl.innerHTML = `<span style="font-size:13px;color:#888;">пока никого</span>`;
+  else listEl.innerHTML = participants.map(p => `<span class="chat-participant-chip">${escapeHtml(p.name)} ${isAdmin ? `<button onclick="removeChatParticipant('${p.chat_id}', '${p.employee_id}')">×</button>` : ''}</span>`).join("");
 
-  const participants = (data.chat_participants || [])
-    .filter(p => String(p.chat_id) === String(chatId))
-    .map(p => {
-      const emp = (data.employees || []).find(e => String(e.id) === String(p.employee_id));
-      return { ...p, name: emp ? emp.name : "Неизвестный" };
-    });
-
-  // Список участников
-  if (participants.length === 0) {
-    listEl.innerHTML = `<span style="font-size:13px;color:#888;">пока никого</span>`;
-  } else {
-    listEl.innerHTML = participants.map(p => `
-      <span class="chat-participant-chip">
-        ${escapeHtml(p.name)}
-        ${isAdmin ? `<button onclick="removeChatParticipant('${p.chat_id}', '${p.employee_id}')">×</button>` : ''}
-      </span>
-    `).join("");
-  }
-
-  // Список для добавления
   if (isAdmin && !isSystemChat) {
     const participantIds = new Set(participants.map(p => String(p.employee_id)));
     const available = (data.employees || []).filter(e => !participantIds.has(String(e.id)));
     selectEl.style.display = "inline-block";
-    selectEl.innerHTML = `<option value="">— Добавить —</option>` +
-      available.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join("");
+    selectEl.innerHTML = `<option value="">— Добавить —</option>` + available.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join("");
     document.querySelector("#chat_participants_bar button").style.display = "inline-block";
-  } else {
-    selectEl.style.display = "none";
-    document.querySelector("#chat_participants_bar button").style.display = "none";
-  }
+  } else { selectEl.style.display = "none"; document.querySelector("#chat_participants_bar button").style.display = "none"; }
 }
 
 function addChatParticipant() {
-  const chatId = _currentChatId;
-  if (!chatId) return;
-
-  const selectEl = document.getElementById("chat_add_participant");
-  const empId = selectEl.value;
+  const chatId = _currentChatId; if (!chatId) return;
+  const selectEl = document.getElementById("chat_add_participant"); const empId = selectEl.value;
   if (!empId) return alert("Выберите сотрудника");
-
   data.chat_participants = data.chat_participants || [];
-  const exists = data.chat_participants.find(p =>
-    String(p.chat_id) === String(chatId) && String(p.employee_id) === String(empId)
-  );
+  const exists = data.chat_participants.find(p => String(p.chat_id) === String(chatId) && String(p.employee_id) === String(empId));
   if (exists) return alert("Уже добавлен");
-
   data.chat_participants.push({ chat_id: chatId, employee_id: empId });
-  save();
-  renderChatParticipants(chatId);
+  save(); renderChatParticipants(chatId);
 }
 
 function removeChatParticipant(chatId, empId) {
   if (!confirm("Убрать участника из чата?")) return;
-  data.chat_participants = (data.chat_participants || []).filter(p =>
-    !(String(p.chat_id) === String(chatId) && String(p.employee_id) === String(empId))
-  );
-  save();
-  renderChatParticipants(chatId);
+  data.chat_participants = (data.chat_participants || []).filter(p => !(String(p.chat_id) === String(chatId) && String(p.employee_id) === String(empId)));
+  save(); renderChatParticipants(chatId);
 }
 
-
- 
-
-/* ---------- Переключение вкладок внутри компании ---------- */
 function showCompanyTab(id, btn) {
   document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
   document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
   document.getElementById("company-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
   if (id === "employees") renderEmployees();
-  
-  if (id === "chat") {
-    renderChats();
-    document.getElementById("chat_window").style.display = "none";
-    document.querySelector("#company-chat > .card").style.display = "block";
-  } else {
-    // Если мы уходим из Сообщений — принудительно прячем окно чата
-    document.getElementById("chat_window").style.display = "none";
-    _currentChatId = null; // Сбрасываем текущий чат, чтобы не тянулся таймер
-  }
+  if (id === "chat") { renderChats(); document.getElementById("chat_window").style.display = "none"; document.querySelector("#company-chat > .card").style.display = "block"; } 
+  else { document.getElementById("chat_window").style.display = "none"; _currentChatId = null; }
 }
 
-/* ---------- СОТРУДНИКИ ---------- */
 function addEmployee() {
   const name = document.getElementById("emp_name").value.trim();
   if (!name) return alert("Введите ФИО сотрудника");
-
-  const role = document.getElementById("emp_role").value;
-  const pin = document.getElementById("emp_pin").value.trim();
-
-  if (!pin) return alert("Введите PIN");
-  if (pin.length < 4) return alert("PIN должен быть не короче 4 символов");
-
-  // Проверяем, что PIN не занят другим сотрудником
+  const role = document.getElementById("emp_role").value; const pin = document.getElementById("emp_pin").value.trim();
+  if (!pin) return alert("Введите PIN"); if (pin.length < 4) return alert("PIN должен быть не короче 4 символов");
   const existing = (data.employees || []).find(e => e.pin && e.pin === pin);
   if (existing) return alert("Такой PIN уже используется сотрудником: " + existing.name);
-
   data.employees = data.employees || [];
-  data.employees.push({
-    id: uid(),
-    name,
-    role: role,
-    pin: pin,
-    phone: document.getElementById("emp_phone").value.trim(),
-    note: document.getElementById("emp_note").value.trim(),
-    updatedAt: new Date().toISOString(),
-  });
-
-  ["emp_name","emp_phone","emp_note","emp_pin"].forEach(id => {
-    document.getElementById(id).value = "";
-  });
+  data.employees.push({ id: uid(), name, role, pin, phone: document.getElementById("emp_phone").value.trim(), note: document.getElementById("emp_note").value.trim(), updatedAt: new Date().toISOString() });
+  ["emp_name","emp_phone","emp_note","emp_pin"].forEach(id => { document.getElementById(id).value = ""; });
   document.getElementById("emp_role").value = "master";
-
-  save();
-  renderEmployees();
+  save(); renderEmployees();
 }
 
 function delEmployee(id) {
   if (!confirm("Удалить сотрудника?")) return;
-  markDeleted(data, "employees", id);
-  save();
-  renderEmployees();
+  markDeleted(data, "employees", id); save(); renderEmployees();
 }
 
 function renderEmployees() {
-  const tbody = document.getElementById("employees_table");
-  if (!tbody) return;
+  const tbody = document.getElementById("employees_table"); if (!tbody) return;
   const list = data.employees || [];
-  if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Пока нет сотрудников. Добавьте первого.</td></tr>`;
-    return;
-  }
+  if (list.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Пока нет сотрудников. Добавьте первого.</td></tr>`; return; }
   tbody.innerHTML = list.map(e => {
     const roleLabel = e.role === "admin" ? "Руководитель" : "Сотрудник";
     const roleClass = e.role === "admin" ? "badge-done" : "badge-active";
-    return `
-    <tr>
-      <td>${escapeHtml(e.name)}</td>
-      <td><span class="badge ${roleClass}">${roleLabel}</span></td>
-      <td>${e.pin ? escapeHtml(e.pin) : "—"}</td>
-      <td>${escapeHtml(e.phone) || "—"}</td>
-      <td>${escapeHtml(e.note) || "—"}</td>
-      <td><button class="action danger" onclick="delEmployee('${e.id}')">×</button></td>
-    </tr>`;
+    return `<tr><td>${escapeHtml(e.name)}</td><td><span class="badge ${roleClass}">${roleLabel}</span></td><td>${e.pin ? escapeHtml(e.pin) : "—"}</td><td>${escapeHtml(e.phone) || "—"}</td><td>${escapeHtml(e.note) || "—"}</td><td><button class="action danger" onclick="delEmployee('${e.id}')">×</button></td></tr>`;
   }).join("");
 }
 
-/* ============================================================
-   АВТОРИЗАЦИЯ: вход, выход, сессия
-   ============================================================ */
-
 const AUTH_KEY = "jewelry_auth";
-
-/* Получить текущую сессию из localStorage */
-function getAuthSession() {
-  try {
-    const raw = localStorage.getItem(AUTH_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (e) { return null; }
-}
-
-/* Сохранить сессию */
-function setAuthSession(emp) {
-  localStorage.setItem(AUTH_KEY, JSON.stringify({
-    id: emp.id,
-    name: emp.name,
-    role: emp.role,
-    loggedAt: new Date().toISOString(),
-  }));
-}
-
-/* Удалить сессию */
-function clearAuthSession() {
-  localStorage.removeItem(AUTH_KEY);
-}
-
-/* Получить текущего пользователя */
+function getAuthSession() { try { const raw = localStorage.getItem(AUTH_KEY); if (!raw) return null; return JSON.parse(raw); } catch (e) { return null; } }
+function setAuthSession(emp) { localStorage.setItem(AUTH_KEY, JSON.stringify({ id: emp.id, name: emp.name, role: emp.role, loggedAt: new Date().toISOString() })); }
+function clearAuthSession() { localStorage.removeItem(AUTH_KEY); }
 function getCurrentUser() {
-  const session = getAuthSession();
-  if (!session) return null;
-  
-  // Если массив сотрудников еще не загрузился или стал null — не выкидываем!
-  if (!data.employees || !Array.isArray(data.employees) || data.employees.length === 0) {
-    return session;
-  }
-
+  const session = getAuthSession(); if (!session) return null;
+  if (!data.employees || !Array.isArray(data.employees) || data.employees.length === 0) return session;
   const emp = data.employees.find(e => String(e.id) === String(session.id));
-  
- 
-  if (!emp) {
-    return session; 
-  }
-  return emp;
+  if (!emp) return session; return emp;
 }
+function isAdmin() { const user = getCurrentUser(); return user && user.role === "admin"; }
 
-/* Проверка: админ ли текущий пользователь */
-function isAdmin() {
-  const user = getCurrentUser();
-  return user && user.role === "admin";
-}
-
-/* Вход */
 async function doLogin() {
   const name = (document.getElementById("login_name").value || "").trim();
   const pin = (document.getElementById("login_pin").value || "").trim();
   const errEl = document.getElementById("login_error");
-
   errEl.textContent = "";
-
-  if (!name || !pin) {
-    errEl.textContent = "Введите ФИО и PIN";
-    return;
-  }
-
-    // Сначала ищем локально
-  let emp = (data.employees || []).find(e =>
-    e.name && e.name.toLowerCase() === name.toLowerCase() && e.pin === pin
-  );
-
-  // Если локально нет — запрашиваем из Supabase
+  if (!name || !pin) { errEl.textContent = "Введите ФИО и PIN"; return; }
+  let emp = (data.employees || []).find(e => e.name && e.name.toLowerCase() === name.toLowerCase() && e.pin === pin);
   if (!emp) {
-    errEl.textContent = "Проверка через облако...";
-    errEl.style.color = "#b7791f";
-    try {
-      const sb = await initCloud();
-      if (sb) {
-        const { data: remote, error } = await sb.from("employees").select("*");
-        if (!error && remote && remote.length > 0) {
-          data.employees = remote;
-          await saveData(data);
-          emp = remote.find(e =>
-            e.name && e.name.toLowerCase() === name.toLowerCase() && e.pin === pin
-          );
-        }
-      }
-    } catch (e) {
-      console.error("Ошибка запроса к облаку:", e);
-    }
+    errEl.textContent = "Проверка через облако..."; errEl.style.color = "#b7791f";
+    try { const sb = await initCloud(); if (sb) { const { data: remote, error } = await sb.from("employees").select("*"); if (!error && remote && remote.length > 0) { data.employees = remote; await saveData(data); emp = remote.find(e => e.name && e.name.toLowerCase() === name.toLowerCase() && e.pin === pin); } } } catch (e) { console.error("Ошибка запроса к облаку:", e); }
   }
-
-  errEl.textContent = "";
-  errEl.style.color = "";
-
-  if (!emp) {
-    errEl.textContent = "Неверные ФИО или PIN";
-    return;
-  }
-
-  setAuthSession(emp);
-  showApp();
+  errEl.textContent = ""; errEl.style.color = "";
+  if (!emp) { errEl.textContent = "Неверные ФИО или PIN"; return; }
+  setAuthSession(emp); showApp();
 }
 
-/* Показать приложение (после успешного входа) */
 function showApp() {
-document.getElementById("login_screen").style.display = "none";
-  document.getElementById("login_screen").classList.add("hidden");
+  document.getElementById("login_screen").style.display = "none"; document.getElementById("login_screen").classList.add("hidden");
   document.getElementById("app_main").style.display = "block";
-
-  const user = getCurrentUser();
-  applyRoleRestrictions(user);
-  // Защита: если мастер — принудительно переключаем на ПРОИЗВОДСТВО
-  if (user && user.role === "master") {
-    const prodBtn = document.querySelector(".main-tabs button[onclick*='production']");
-    if (prodBtn) showMain("production", prodBtn);
-  }
-  // Показать имя в шапке
-  const nameEl = document.getElementById("current_user_name");
-  if (nameEl && user) {
-    nameEl.textContent = user.name;
-  }
-
-  // Перерисовываем, чтобы применить права
-  if (typeof renderAll === "function") renderAll();
-  if (typeof renderEmployees === "function") renderEmployees();
+  const user = getCurrentUser(); applyRoleRestrictions(user);
+  if (user && user.role === "master") { const prodBtn = document.querySelector(".main-tabs button[onclick*='production']"); if (prodBtn) showMain("production", prodBtn); }
+  const nameEl = document.getElementById("current_user_name"); if (nameEl && user) nameEl.textContent = user.name;
+  if (typeof renderAll === "function") renderAll(); if (typeof renderEmployees === "function") renderEmployees();
 }
 
-/* Скрыть приложение (показать экран входа) */
 function hideApp() {
-  document.getElementById("login_screen").style.display = "flex"; // Показываем
+  document.getElementById("
+  document.getElementById("login_screen").style.display = "flex";
   document.getElementById("login_screen").classList.remove("hidden");
   document.getElementById("app_main").style.display = "none";
   document.body.classList.remove("is-master", "is-admin");
 }
-/* Выход */
+
 function doLogout() {
   if (!confirm("Выйти из приложения?")) return;
   clearAuthSession();
@@ -2088,118 +1196,69 @@ function doLogout() {
   hideApp();
 }
 
-/* Проверка сессии при загрузке */
 function checkSession() {
   let user = getCurrentUser();
-  
-  // Если пользователь не найден (вылетел), но в localStorage есть сессия — восстанавливаем принудительно
   if (!user) {
     const session = getAuthSession();
-    if (session && session.id) {
-      console.log("🔄 Сессия потеряна, но найдена в localStorage. Восстанавливаем...");
-      user = session; // Возвращаем пользователя
-    }
+    if (session && session.id) { user = session; }
   }
-
-  if (user) {
-    showApp();
-  } else {
-    hideApp();
-  }
+  if (user) showApp(); else hideApp();
 }
 
-/* Заглушка для прав (пока ничего не делает) */
 function applyRoleRestrictions(user) {
   const isMaster = user && user.role === "master";
   const isAdmin = user && user.role === "admin";
-
-  // Управляем CSS-классом на <body>
   document.body.classList.remove("is-master", "is-admin");
   if (isMaster) document.body.classList.add("is-master");
   if (isAdmin) document.body.classList.add("is-admin");
 
-  // 1. Скрыть СЕРВИС для мастера
   const serviceBtn = document.querySelector(".main-tabs button[onclick*='service']");
   if (serviceBtn) serviceBtn.style.display = isMaster ? "none" : "";
-
-  // 2. Скрыть вкладку "Архив списаний" для мастера (внутри ПРОИЗВОДСТВА)
   const archiveBtn = document.querySelector("#main-production .tabs button[onclick*='archive']");
   if (archiveBtn) archiveBtn.style.display = isMaster ? "none" : "";
-
-  // 3. Скрыть вкладки "Сотрудники" и "Контрагенты" для мастера (внутри КОМПАНИИ)
   const empBtn = document.querySelector("#main-company .tabs button[onclick*='employees']");
   if (empBtn) empBtn.style.display = isMaster ? "none" : "";
 
-  const counterpartiesBtn = document.querySelector("#main-company .tabs button[onclick*='counterparties']");
-  if (counterpartiesBtn) counterpartiesBtn.style.display = isMaster ? "none" : "";
-
-  // 4. Если мастер был на скрытой вкладке — переключаем на первую доступную
   if (isMaster) {
-    // Проверяем: если активна СЕРВИС — переключаем на ПРОИЗВОДСТВО
     const activeMain = document.querySelector(".main-section.active");
     if (activeMain && activeMain.id === "main-service") {
       const prodBtn = document.querySelector(".main-tabs button[onclick*='production']");
       if (prodBtn) showMain("production", prodBtn);
     }
-
-    // Если активна вкладка "Архив" — переключаем на "Партии"
     const activeTab = document.querySelector("#main-production .tab.active");
     if (activeTab && activeTab.id === "archive") {
       const batchesBtn = document.querySelector("#main-production .tabs button[onclick*='batches']");
       if (batchesBtn) showTab("batches", batchesBtn);
     }
-
-    // Если активна вкладка "Сотрудники" — переключаем на "Календарь"
     const activeCompanyTab = document.querySelector("#main-company .tab.active");
     if (activeCompanyTab && activeCompanyTab.id === "company-employees") {
       const calBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
-    if (calBtn) showCompanyTab("calendar", calBtn);
+      if (calBtn) showCompanyTab("calendar", calBtn);
     }
   }
 }
 
-
-/* ---------- Переключение главных разделов ---------- */
 function showMain(mainId, btn) {
-  // Скрываем все главные разделы
   document.querySelectorAll(".main-section").forEach(s => s.classList.remove("active"));
-
-  // Прячем окно чата и сбрасываем текущий чат
   document.getElementById("chat_window").style.display = "none";
   _currentChatId = null;
-
-  // Показываем нужный раздел
   const section = document.getElementById("main-" + mainId);
   if (section) section.classList.add("active");
-
-  // Подсветить активную кнопку верхнего меню
   document.querySelectorAll(".main-tabs button").forEach(b => b.classList.remove("active"));
   if (btn) btn.classList.add("active");
 
-  // ВАЖНО: при уходе с "Компании" сбрасываем активную внутреннюю вкладку,
-  // чтобы блок сообщений не оставался видимым
   if (mainId !== "company") {
     document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
     document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
-    
-    // Возвращаем по умолчанию "Календарь" активной
     const calTab = document.getElementById("company-calendar");
     if (calTab) calTab.classList.add("active");
     const calBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
     if (calBtn) calBtn.classList.add("active");
-    
-    // Принудительно показываем список чатов (на случай если он был скрыт окном чата)
     const chatListCard = document.querySelector("#company-chat > .card");
     if (chatListCard) chatListCard.style.display = "block";
   }
-
-  if (mainId === "service") {
-    // логика сервиса
-  }
-  if (mainId === "company") {
-    // логика компании
-  }
 }
+
 function showServiceTab(id, btn) {
   document.querySelectorAll("#main-service .tab").forEach(t => t.classList.remove("active"));
   document.querySelectorAll("#main-service > .tabs button").forEach(b => b.classList.remove("active"));
@@ -2209,18 +1268,13 @@ function showServiceTab(id, btn) {
 }
 
 function showTab(id, btn) {
-  // Определяем, с какой вкладки уходим
   const prevActive = document.querySelector(".tabs button.active");
   let prevTabId = null;
   if (prevActive) {
     const match = (prevActive.getAttribute("onclick") || "").match(/showTab\('([^']+)'/);
     if (match) prevTabId = match[1];
   }
-
-  // Если уходим с "Партий" — сворачиваем все задания
-  if (prevTabId === "batches" && id !== "batches") {
-    collapseAllGroups();
-  }
+  if (prevTabId === "batches" && id !== "batches") collapseAllGroups();
 
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
@@ -2235,273 +1289,155 @@ function showTab(id, btn) {
 function fmt(n, d=2) { return (+n || 0).toFixed(d); }
 function matById(id) { return data.materials.find(m => m.id === id); }
 function escapeHtml(s) {
-  return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
-    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 }
 
-/* ---------- СКЛАД МАТЕРИАЛОВ ---------- */
+/* Склад материалов */
 function addMaterial() {
   const name = document.getElementById("m_name").value.trim();
   if (!name) return alert("Введите название");
-  data.materials.push({
-    id: uid(),
-    name,
-    brand: document.getElementById("m_brand").value.trim(),
-    unit: document.getElementById("m_unit").value || "г",
-    price: +document.getElementById("m_price").value || 0,
-    stock: +document.getElementById("m_stock").value || 0,
-  });
+  data.materials.push({ id: uid(), name, brand: document.getElementById("m_brand").value.trim(), unit: document.getElementById("m_unit").value || "г", price: +document.getElementById("m_price").value || 0, stock: +document.getElementById("m_stock").value || 0 });
   ["m_name","m_brand","m_price","m_stock"].forEach(id => document.getElementById(id).value = "");
   save(); renderMaterials(); renderAllMaterialSelects();
 }
 function delMaterial(id) {
   if (!confirm("Удалить материал?")) return;
-  markDeleted(data, "materials", id);
-  save(); renderMaterials(); renderAllMaterialSelects();
+  markDeleted(data, "materials", id); save(); renderMaterials(); renderAllMaterialSelects();
 }
 function topUp(id) {
   const v = prompt("Сколько добавить на склад?");
   if (!v) return;
-  const m = matById(id);
-  if (!m) return;
+  const m = matById(id); if (!m) return;
   m.stock = (+m.stock || 0) + (+v || 0);
   save(); renderMaterials();
 }
 function renderMaterials() {
   document.getElementById("m_table").innerHTML = data.materials.map(m => `
-    <tr>
-      <td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.brand) || "—"}</td><td>${escapeHtml(m.unit)}</td>
-      <td>${fmt(m.price)} ₽</td><td>${fmt(m.stock,3)}</td>
-      <td><button class="action master-hidden" onclick="topUp(${m.id})">+</button></td>
-<td><button class="action danger master-hidden" onclick="delMaterial(${m.id})">×</button></td>
-    </tr>`).join("");
+    <tr><td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.brand) || "—"}</td><td>${escapeHtml(m.unit)}</td><td>${fmt(m.price)} ₽</td><td>${fmt(m.stock,3)}</td>
+    <td><button class="action master-hidden" onclick="topUp(${m.id})">+</button></td>
+    <td><button class="action danger master-hidden" onclick="delMaterial(${m.id})">×</button></td></tr>`).join("");
 }
 
-/* ---------- ИЗДЕЛИЯ ---------- */
+/* Изделия */
 function fillSelect(id) {
-  const sel = document.getElementById(id);
-  if (!sel) return;
+  const sel = document.getElementById(id); if (!sel) return;
   const v = sel.value;
-  sel.innerHTML = data.materials.map(m =>
-    `<option value="${m.id}">${escapeHtml(m.name)}${m.brand ? " / "+escapeHtml(m.brand) : ""}</option>`).join("");
+  sel.innerHTML = data.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)}${m.brand ? " / "+escapeHtml(m.brand) : ""}</option>`).join("");
   if (v) sel.value = v;
 }
 function renderAllMaterialSelects() {
-  ["n_wax_mat","n_proc_mat","n_galv_mat","n_blk_mat","n_pack_mat","n_metal_mat",
-   "c_energy_mat","o_mass_mat_sel","o_water_mat_sel"].forEach(fillSelect);
+  ["n_wax_mat","n_proc_mat","n_galv_mat","n_blk_mat","n_pack_mat","n_metal_mat","c_energy_mat","o_mass_mat_sel","o_water_mat_sel"].forEach(fillSelect);
 }
-/* ============================================================
-   ФОТО ИЗДЕЛИЙ (Supabase Storage)
-   ============================================================ */
 
-let _pendingPhotoUrl = null;  // URL загруженного фото, ждёт сохранения изделия
-
+let _pendingPhotoUrl = null;
 async function uploadProductPhoto(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  const statusEl = document.getElementById("p_photo_status");
-  const previewEl = document.getElementById("p_photo_preview");
-
-  statusEl.textContent = "Загрузка...";
-  statusEl.style.color = "#b7791f";
-
+  const file = input.files[0]; if (!file) return;
+  const statusEl = document.getElementById("p_photo_status"); const previewEl = document.getElementById("p_photo_preview");
+  statusEl.textContent = "Загрузка..."; statusEl.style.color = "#b7791f";
   try {
-    const sb = await initCloud();
-    if (!sb) throw new Error("Нет клиента Supabase");
-
-    // Уникальное имя файла
+    const sb = await initCloud(); if (!sb) throw new Error("Нет клиента Supabase");
     const ext = file.name.split('.').pop() || 'jpg';
     const fileName = "p_" + Date.now() + "_" + Math.floor(Math.random()*1000) + "." + ext;
-
-    // Загружаем в bucket "product-photos"
-    const { data: uploadData, error: uploadError } = await sb.storage
-      .from('product-photos')
-      .upload(fileName, file, { cacheControl: '3600', upsert: false });
-
+    const { data: uploadData, error: uploadError } = await sb.storage.from('product-photos').upload(fileName, file, { cacheControl: '3600', upsert: false });
     if (uploadError) throw uploadError;
-
-    // Получаем публичный URL
-    const { data: urlData } = sb.storage
-      .from('product-photos')
-      .getPublicUrl(fileName);
-
-    const publicUrl = urlData.publicUrl;
-    _pendingPhotoUrl = publicUrl;
-
-    // Показываем превью
-    previewEl.src = publicUrl;
-    previewEl.style.display = "block";
-    statusEl.textContent = "✅ Фото загружено";
-    statusEl.style.color = "#2f855a";
-
-  } catch (e) {
-    console.error("Ошибка загрузки фото:", e);
-    statusEl.textContent = "❌ Ошибка: " + e.message;
-    statusEl.style.color = "#c53030";
-  }
+    const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
+    _pendingPhotoUrl = urlData.publicUrl;
+    previewEl.src = _pendingPhotoUrl; previewEl.style.display = "block";
+    statusEl.textContent = "✅ Фото загружено"; statusEl.style.color = "#2f855a";
+  } catch (e) { console.error("Ошибка загрузки фото:", e); statusEl.textContent = "❌ Ошибка: " + e.message; statusEl.style.color = "#c53030"; }
 }
 
 function addProduct() {
   const name = document.getElementById("p_name").value.trim();
   if (!name) return alert("Введите название");
-   data.products.push({
-    id: uid(),
-    article: document.getElementById("p_article").value.trim(),
-    name,
-    category: document.getElementById("p_cat").value.trim(),
-    photo: _pendingPhotoUrl || null,
-    normWax: +document.getElementById("n_wax").value || 0,
-    normProc: +document.getElementById("n_proc").value || 0,
-    normGalv: +document.getElementById("n_galv").value || 0,
-    normBlk: +document.getElementById("n_blk").value || 0,
-    normPack: +document.getElementById("n_pack").value || 0,
-    matWax: +document.getElementById("n_wax_mat").value || null,
-    matProc: +document.getElementById("n_proc_mat").value || null,
-    matGalv: +document.getElementById("n_galv_mat").value || null,
-    matBlk: +document.getElementById("n_blk_mat").value || null,
-    matPack: +document.getElementById("n_pack_mat").value || null,
-    matMetal: +document.getElementById("n_metal_mat").value || null,
+  data.products.push({
+    id: uid(), article: document.getElementById("p_article").value.trim(), name, category: document.getElementById("p_cat").value.trim(), photo: _pendingPhotoUrl || null,
+    normWax: +document.getElementById("n_wax").value || 0, normProc: +document.getElementById("n_proc").value || 0, normGalv: +document.getElementById("n_galv").value || 0, normBlk: +document.getElementById("n_blk").value || 0, normPack: +document.getElementById("n_pack").value || 0,
+    matWax: +document.getElementById("n_wax_mat").value || null, matProc: +document.getElementById("n_proc_mat").value || null, matGalv: +document.getElementById("n_galv_mat").value || null, matBlk: +document.getElementById("n_blk_mat").value || null, matPack: +document.getElementById("n_pack_mat").value || null, matMetal: +document.getElementById("n_metal_mat").value || null,
   });
-    ["p_article","p_name","p_cat"].forEach(id => document.getElementById(id).value = "");
-  // Сброс фото
-  _pendingPhotoUrl = null;
-  const previewEl = document.getElementById("p_photo_preview");
-  if (previewEl) { previewEl.src = ""; previewEl.style.display = "none"; }
-  const statusEl = document.getElementById("p_photo_status");
-  if (statusEl) statusEl.textContent = "";
+  ["p_article","p_name","p_cat"].forEach(id => document.getElementById(id).value = "");
+  _pendingPhotoUrl = null; const previewEl = document.getElementById("p_photo_preview"); if (previewEl) { previewEl.src = ""; previewEl.style.display = "none"; }
+  const statusEl = document.getElementById("p_photo_status"); if (statusEl) statusEl.textContent = "";
   save(); renderProducts(); renderBatchProductSelect();
 }
 function delProduct(id) {
   if (!confirm("Удалить изделие?")) return;
-  markDeleted(data, "products", id);
-  save(); renderProducts(); renderBatchProductSelect();
+  markDeleted(data, "products", id); save(); renderProducts(); renderBatchProductSelect();
 }
 function renderProducts() {
-    document.getElementById("p_table").innerHTML = data.products.map(p => `
-    <tr>
-      <td>${p.photo ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "—"}</td>
-      <td>${escapeHtml(p.article) || "—"}</td>
-      <td>${escapeHtml(p.name)}</td>
-      <td>${escapeHtml(p.category) || "—"}</td>
-      <td><button class="action danger master-hidden" onclick="delProduct(${p.id})">×</button></td>
-    </tr>`).join("");
+  document.getElementById("p_table").innerHTML = data.products.map(p => `
+    <tr><td>${p.photo ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "—"}</td>
+    <td>${escapeHtml(p.article) || "—"}</td><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category) || "—"}</td>
+    <td><button class="action danger master-hidden" onclick="delProduct(${p.id})">×</button></td></tr>`).join("");
 }
 
-/* ---------- СПРАВОЧНИКИ ---------- */
+/* Справочники */
 function addCycle() {
-  const name = document.getElementById("c_name").value.trim();
-  if (!name) return alert("Введите название");
-  data.cycles.push({
-    id: uid(),
-    name,
-    hours: +document.getElementById("c_hours").value || 0,
-    kw: +document.getElementById("c_kw").value || 0,
-    matEnergy: +document.getElementById("c_energy_mat").value || null,
-  });
+  const name = document.getElementById("c_name").value.trim(); if (!name) return alert("Введите название");
+  data.cycles.push({ id: uid(), name, hours: +document.getElementById("c_hours").value || 0, kw: +document.getElementById("c_kw").value || 0, matEnergy: +document.getElementById("c_energy_mat").value || null });
   ["c_name","c_hours","c_kw"].forEach(id => document.getElementById(id).value = "");
   save(); renderCycles();
 }
-function delCycle(id) {
-  markDeleted(data, "cycles", id);
-  save(); renderCycles();
-}
+function delCycle(id) { markDeleted(data, "cycles", id); save(); renderCycles(); }
 function renderCycles() {
   document.getElementById("c_table").innerHTML = data.cycles.map(c => {
-    const m = matById(c.matEnergy);
-    const kwh = c.hours * c.kw;
-    return `<tr>
-      <td>${escapeHtml(c.name)}</td><td>${c.hours}</td><td>${c.kw}</td>
-      <td><b>${fmt(kwh,2)}</b></td>
-      <td>${m ? escapeHtml(m.name) : "—"}</td>
-      <td><button class="action danger master-hidden" onclick="delCycle(${c.id})">×</button></td>
-    </tr>`;
+    const m = matById(c.matEnergy); const kwh = c.hours * c.kw;
+    return `<tr><td>${escapeHtml(c.name)}</td><td>${c.hours}</td><td>${c.kw}</td><td><b>${fmt(kwh,2)}</b></td><td>${m ? escapeHtml(m.name) : "—"}</td><td><button class="action danger master-hidden" onclick="delCycle(${c.id})">×</button></td></tr>`;
   }).join("");
 }
 function addOpoka() {
-  const name = document.getElementById("o_name").value.trim();
-  if (!name) return alert("Введите название");
-  data.opokas.push({
-    id: uid(),
-    name,
-    mass: +document.getElementById("o_mass").value || 0,
-    water: +document.getElementById("o_water").value || 0,
-    matMass: +document.getElementById("o_mass_mat_sel").value || null,
-    matWater: +document.getElementById("o_water_mat_sel").value || null,
-  });
+  const name = document.getElementById("o_name").value.trim(); if (!name) return alert("Введите название");
+  data.opokas.push({ id: uid(), name, mass: +document.getElementById("o_mass").value || 0, water: +document.getElementById("o_water").value || 0, matMass: +document.getElementById("o_mass_mat_sel").value || null, matWater: +document.getElementById("o_water_mat_sel").value || null });
   ["o_name","o_mass","o_water"].forEach(id => document.getElementById(id).value = "");
   save(); renderOpokas();
 }
-function delOpoka(id) {
-  markDeleted(data, "opokas", id);
-  save(); renderOpokas();
-}
+function delOpoka(id) { markDeleted(data, "opokas", id); save(); renderOpokas(); }
 function renderOpokas() {
   document.getElementById("o_table").innerHTML = data.opokas.map(o => {
-    const mm = matById(o.matMass);
-    const mw = matById(o.matWater);
-    return `<tr>
-      <td>${escapeHtml(o.name)}</td><td>${o.mass} г</td><td>${mm ? escapeHtml(mm.name) : "—"}</td>
-      <td>${o.water} мл</td><td>${mw ? escapeHtml(mw.name) : "—"}</td>
-      <td><button class="action danger master-hidden" onclick="delOpoka(${o.id})">×</button></td>
-    </tr>`;
+    const mm = matById(o.matMass); const mw = matById(o.matWater);
+    return `<tr><td>${escapeHtml(o.name)}</td><td>${o.mass} г</td><td>${mm ? escapeHtml(mm.name) : "—"}</td><td>${o.water} мл</td><td>${mw ? escapeHtml(mw.name) : "—"}</td><td><button class="action danger master-hidden" onclick="delOpoka(${o.id})">×</button></td></tr>`;
   }).join("");
 }
-
-/* ---------- Партии: строки с изделиями ---------- */
+/* Партии: строки с изделиями */
 function renderBatchProductSelect() {
-  // Заполняем ВСЕ селекты .batch-product
   const selects = document.querySelectorAll(".batch-product");
-  const optionsHTML = data.products.map(p =>
-    `<option value="${p.id}">${escapeHtml(p.name)}${p.article ? " ("+escapeHtml(p.article)+")" : ""}</option>`
-  ).join("");
-
-  selects.forEach(sel => {
-    const current = sel.value;
-    sel.innerHTML = optionsHTML;
-    if (current) sel.value = current;
-  });
+  const optionsHTML = data.products.map(p => `<option value="${p.id}">${escapeHtml(p.name)}${p.article ? " ("+escapeHtml(p.article)+")" : ""}</option>`).join("");
+  selects.forEach(sel => { const current = sel.value; sel.innerHTML = optionsHTML; if (current) sel.value = current; });
 }
 
 function addBatchItemRow() {
-  const container = document.getElementById("batch_items_rows");
-  if (!container) return;
-
-  const row = document.createElement("div");
-  row.className = "row batch-item-row";
-  row.innerHTML = `
-    <select class="batch-product" style="min-width:220px"></select>
-    <input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px">
-  `;
-  container.appendChild(row);
-  renderBatchProductSelect();
+  const container = document.getElementById("batch_items_rows"); if (!container) return;
+  const row = document.createElement("div"); row.className = "row batch-item-row";
+  row.innerHTML = `<select class="batch-product" style="min-width:220px"></select><input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px">`;
+  container.appendChild(row); renderBatchProductSelect();
 }
 
 function removeLastBatchItemRow() {
-  const container = document.getElementById("batch_items_rows");
-  if (!container) return;
+  const container = document.getElementById("batch_items_rows"); if (!container) return;
   const rows = container.querySelectorAll(".batch-item-row");
   if (rows.length <= 1) return alert("Должна остаться хотя бы одна строка");
   rows[rows.length - 1].remove();
 }
 
-/* ---------- Заполнить список ответственных в форме партии ---------- */
 function renderBatchResponsibleSelect() {
-  const sel = document.getElementById("b_responsible");
-  if (!sel) return;
+  const sel = document.getElementById("b_responsible"); if (!sel) return;
   const list = data.employees || [];
-  sel.innerHTML = `<option value="">— Без ответственного —</option>` +
-    list.map(e => `<option value="${escapeHtml(e.name)}">${escapeHtml(e.name)}${e.role ? " ("+escapeHtml(e.role)+")" : ""}</option>`).join("");
+  sel.innerHTML = `<option value="">— Без ответственного —</option>` + list.map(e => `<option value="${escapeHtml(e.name)}">${escapeHtml(e.name)}${e.role ? " ("+escapeHtml(e.role)+")" : ""}</option>`).join("");
 }
 
 function createBatch() {
-  const container = document.getElementById("batch_items_rows");
-  if (!container) return;
+  // ЗАЩИТА ОТ ДВОЙНОГО КЛИКА
+  const btn = document.querySelector('button[onclick="createBatch()"]');
+  if (btn) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = "СОЗДАНИЕ...";
+    setTimeout(() => { btn.disabled = false; btn.textContent = "СОЗДАТЬ"; }, 2000);
+  }
 
-  const rows = container.querySelectorAll(".batch-item-row");
-  const items = [];
+  const container = document.getElementById("batch_items_rows"); if (!container) return;
+  const rows = container.querySelectorAll(".batch-item-row"); const items = [];
 
-  // Собираем данные из всех строк
   rows.forEach(row => {
     const pid = row.querySelector(".batch-product").value;
     const qty = +row.querySelector(".batch-qty").value || 0;
@@ -2519,619 +1455,300 @@ function createBatch() {
   const dateEnd = document.getElementById("b_date_end").value || null;
   const note = document.getElementById("b_note").value.trim();
 
-  // Общие параметры для всех партий
   const commonBatch = () => ({
-    id: uid(),
-    created: new Date().toLocaleString(),
-    responsible,
-    dateStart,
-    dateEnd,
-    note,
-    stage: 1,
-    stages: {
-      1: { done: false, waxUsed: null },
-      2: { done: false, opokaId: null },
-      3: { done: false, cycleId: null },
-      4: { done: false, metalUsed: null, metalReturned: null },
-      5: { done: false },
-      6: { done: false },
-      7: { done: false },
-      8: { done: false },
-    },
-    stageCosts: {},
-    totalCost: 0,
+    id: uid(), created: new Date().toLocaleString(), responsible, dateStart, dateEnd, note, stage: 1,
+    stages: { 1: { done: false, waxUsed: null }, 2: { done: false, opokaId: null }, 3: { done: false, cycleId: null }, 4: { done: false, metalUsed: null, metalReturned: null }, 5: { done: false }, 6: { done: false }, 7: { done: false }, 8: { done: false } },
+    stageCosts: {}, totalCost: 0,
   });
 
-  // Если одно изделие — обычная партия (без группы)
   if (items.length === 1) {
     const item = items[0];
-    const batch = {
-      ...commonBatch(),
-      productId: item.productId,
-      productName: item.productName,
-      qty: item.qty,
-      groupId: null,
-    };
+    const batch = { ...commonBatch(), productId: item.productId, productName: item.productName, qty: item.qty, groupId: null };
     data.batches.push(batch);
     showToast("Партия создана: " + item.productName + " × " + item.qty, "success");
   } else {
-    // Несколько изделий — создаём группу
     const groupId = "g_" + uid();
-    const group = {
-      id: groupId,
-      title: title || ("Задание от " + new Date().toLocaleDateString()),
-      type: "production",
-      responsible,
-      date_start: dateStart,
-      date_end: dateEnd,
-      note,
-      updatedAt: new Date().toISOString(),
-    };
-    data.groups = data.groups || [];
-    data.groups.push(group);
-
-    // Создаём партии
-    items.forEach(item => {
-      const batch = {
-        ...commonBatch(),
-        productId: item.productId,
-        productName: item.productName,
-        qty: item.qty,
-        groupId,
-      };
-      data.batches.push(batch);
-    });
-
+    const group = { id: groupId, title: title || ("Задание от " + new Date().toLocaleDateString()), type: "production", responsible, date_start: dateStart, date_end: dateEnd, note, updatedAt: new Date().toISOString() };
+    data.groups = data.groups || []; data.groups.push(group);
+    items.forEach(item => { const batch = { ...commonBatch(), productId: item.productId, productName: item.productName, qty: item.qty, groupId }; data.batches.push(batch); });
     showToast("Создано задание: " + items.length + " партий", "success");
   }
 
-  // Очищаем форму
-  document.getElementById("b_title").value = "";
-  document.getElementById("b_date_start").value = "";
-  document.getElementById("b_date_end").value = "";
-  document.getElementById("b_note").value = "";
-
-  // Оставляем одну строку
+  document.getElementById("b_title").value = ""; document.getElementById("b_date_start").value = ""; document.getElementById("b_date_end").value = ""; document.getElementById("b_note").value = "";
   const rowsContainer = document.getElementById("batch_items_rows");
-  rowsContainer.innerHTML = `
-    <div class="row batch-item-row">
-      <select class="batch-product" style="min-width:220px"></select>
-      <input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px">
-    </div>
-  `;
-  renderBatchProductSelect();
-
-  save();
-  renderBatches();
+  rowsContainer.innerHTML = `<div class="row batch-item-row"><select class="batch-product" style="min-width:220px"></select><input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px"></div>`;
+  renderBatchProductSelect(); save(); renderBatches();
 }
+
 function deleteBatch(id) {
   if (!confirm("Удалить партию?")) return;
-  markDeleted(data, "batches", id);
-  save(); renderBatches();
+  markDeleted(data, "batches", id); save(); renderBatches();
 }
 
-/**
- * Списывает материал, возвращает стоимость.
- * Проверка остатка: если не хватает — предупреждение, но списание всё равно происходит
- * (можно легко поменять на строгий режим).
- */
 function writeOffMaterial(matId, qty, strict = false) {
-  const m = matById(matId);
-  if (!m) return 0;
+  const m = matById(matId); if (!m) return 0;
   if (strict && (+m.stock || 0) < qty) {
-    alert(`Недостаточно материала "${m.name}": нужно ${fmt(qty,3)}, на складе ${fmt(m.stock,3)}. Списание отменено.`);
+    showToast(`Недостаточно материала "${m.name}": нужно ${fmt(qty,3)}, на складе ${fmt(m.stock,3)}. Списание отменено.`, "error");
     return null;
   }
-  const cost = qty * m.price;
-  m.stock = (+m.stock || 0) - qty;
-  return cost;
+  const cost = qty * m.price; m.stock = (+m.stock || 0) - qty; return cost;
 }
 
 function completeStage1(bid) {
-  const b = data.batches.find(x => x.id === bid);
-  const p = data.products.find(x => x.id === b.productId);
+  const b = data.batches.find(x => x.id === bid); const p = data.products.find(x => x.id === b.productId);
   const used = +document.getElementById("s1_"+bid).value || 0;
   if (used <= 0) return alert("Укажите вес воска");
-  const cost = writeOffMaterial(p.matWax, used);
-  if (cost === null) return;
-  b.stages[1].waxUsed = used;
-  b.stages[1].done = true;
-  b.stageCosts[1] = cost;
-  b.stage = 2;
-  save(); renderBatches();
+  const cost = writeOffMaterial(p.matWax, used, true); if (cost === null) return;
+  b.stages[1].waxUsed = used; b.stages[1].done = true; b.stageCosts[1] = cost; b.stage = 2; save(); renderBatches();
 }
+
 function completeStage2(bid) {
   const b = data.batches.find(x => x.id === bid);
   const opokaId = document.getElementById("s2_"+bid).value;
-  const opoka = data.opokas.find(o => String(o.id) === String(opokaId));;
-  if (!opoka) return alert("Выберите опоку");
-  const c1 = writeOffMaterial(opoka.matMass, opoka.mass);
-  if (c1 === null) return;
-  const c2 = writeOffMaterial(opoka.matWater, opoka.water);
-  if (c2 === null) return;
-  b.stages[2].opokaId = opokaId;
-  b.stages[2].done = true;
-  b.stageCosts[2] = c1 + c2;
-  b.stage = 3;
-  save(); renderBatches();
+  const opoka = data.opokas.find(o => String(o.id) === String(opokaId)); if (!opoka) return alert("Выберите опоку");
+  const c1 = writeOffMaterial(opoka.matMass, opoka.mass, true); if (c1 === null) return;
+  const c2 = writeOffMaterial(opoka.matWater, opoka.water, true); if (c2 === null) return;
+  b.stages[2].opokaId = opokaId; b.stages[2].done = true; b.stageCosts[2] = c1 + c2; b.stage = 3; save(); renderBatches();
 }
+
 function completeStage3(bid) {
   const b = data.batches.find(x => x.id === bid);
   const cycleId = document.getElementById("s3_"+bid).value;
-  const cycle = data.cycles.find(c => String(c.id) === String(cycleId));
-  if (!cycle) return alert("Выберите цикл");
+  const cycle = data.cycles.find(c => String(c.id) === String(cycleId)); if (!cycle) return alert("Выберите цикл");
   const kwh = cycle.hours * cycle.kw;
-  const cost = writeOffMaterial(cycle.matEnergy, kwh);
-  if (cost === null) return;
-  b.stages[3].cycleId = cycleId;
-  b.stages[3].done = true;
-  b.stageCosts[3] = cost;
-  b.stage = 4;
-  save(); renderBatches();
+  const cost = writeOffMaterial(cycle.matEnergy, kwh, true); if (cost === null) return;
+  b.stages[3].cycleId = cycleId; b.stages[3].done = true; b.stageCosts[3] = cost; b.stage = 4; save(); renderBatches();
 }
+
 function completeStage4(bid) {
-  const b = data.batches.find(x => x.id === bid);
-  const p = data.products.find(x => x.id === b.productId);
+  const b = data.batches.find(x => x.id === bid); const p = data.products.find(x => x.id === b.productId);
   const used = +document.getElementById("s4_used_"+bid).value || 0;
   const ret = +document.getElementById("s4_ret_"+bid).value || 0;
   if (used <= 0) return alert("Укажите использованный металл");
   if (ret < 0) return alert("Возврат не может быть отрицательным");
   if (ret > used) return alert("Возврат не может быть больше, чем использовано");
   const consumed = used - ret;
-  const cost = writeOffMaterial(p.matMetal, consumed);
-  if (cost === null) return;
-  b.stages[4].metalUsed = used;
-  b.stages[4].metalReturned = ret;
-  b.stages[4].done = true;
-  const m = matById(p.matMetal);
-  if (m) m.stock = (+m.stock || 0) + ret;
-  b.stageCosts[4] = cost;
-  b.stage = 5;
-  save(); renderBatches();
+  const cost = writeOffMaterial(p.matMetal, consumed, true); if (cost === null) return;
+  b.stages[4].metalUsed = used; b.stages[4].metalReturned = ret; b.stages[4].done = true;
+  const m = matById(p.matMetal); if (m) m.stock = (+m.stock || 0) + ret;
+  b.stageCosts[4] = cost; b.stage = 5; save(); renderBatches();
 }
+
 function completeStageN(bid, stageNum) {
-  const b = data.batches.find(x => x.id === bid);
-  const p = data.products.find(x => x.id === b.productId);
+  const b = data.batches.find(x => x.id === bid); const p = data.products.find(x => x.id === b.productId);
   let matId, qtyPerUnit;
   if (stageNum === 5) { matId = p.matProc; qtyPerUnit = p.normProc; }
   if (stageNum === 6) { matId = p.matGalv; qtyPerUnit = p.normGalv; }
   if (stageNum === 7) { matId = p.matBlk; qtyPerUnit = p.normBlk; }
   if (stageNum === 8) { matId = p.matPack; qtyPerUnit = p.normPack; }
   const qty = qtyPerUnit * b.qty;
-  const cost = matId ? writeOffMaterial(matId, qty) : 0;
-  if (cost === null) return;
-  b.stageCosts[stageNum] = cost;
-  b.stages[stageNum].done = true;
+  const cost = matId ? writeOffMaterial(matId, qty, true) : 0; if (cost === null) return;
+  b.stageCosts[stageNum] = cost; b.stages[stageNum].done = true;
   if (stageNum === 8) {
-    b.stage = 9;
-    b.finished = true;
-    b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
-    data.stock.push({
-      id: uid()+"_"+b.id,
-      batchId: b.id,
-      productId: b.productId,
-      productName: p.name,
-            remaining: b.qty,
-      costPerUnit: b.totalCost / b.qty,
-    });
-  } else {
-    b.stage = stageNum + 1;
-  }
+    b.stage = 9; b.finished = true; b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
+    data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: p.name, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
+  } else { b.stage = stageNum + 1; }
   save(); renderBatches(); if (b.finished) renderStock();
 }
 
-/* ---------- Отрисовка одной партии (используется внутри renderBatches) ---------- */
 function renderBatchCard(b) {
-  const p = data.products.find(x => x.id === b.productId);
-  if (!p) return "";
-  const s = b.stages;
-  const st = b.stage;
+  const p = data.products.find(x => x.id === b.productId); if (!p) return "";
+  const s = b.stages; const st = b.stage;
+  const photoHtml = p.photo ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "";
 
-   // Фото изделия (если есть)
-  const photoHtml = p.photo
-    ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">`
-    : "";
+  // ПРОГРЕСС-БАР
+  let progressHtml = '<div class="progress-track">';
+  for (let i = 1; i <= 8; i++) {
+    let cls = "progress-step";
+    if (s[i] && s[i].done) cls += " done";
+    else if (st === i) cls += " current";
+    progressHtml += `<div class="${cls}">${i}</div>`;
+  }
+  progressHtml += '</div>';
 
   let html = `<div class="stage ${st===1?'active':''}">
    <div class="stage-title" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-   <span style="display:flex;align-items:center;gap:10px;">
-     ${photoHtml}
-     <span>Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт
-       <span class="badge badge-active">Этап ${st}</span></span>
-   </span>
+   <span style="display:flex;align-items:center;gap:10px;">${photoHtml}<span>Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт</span></span>
    <div style="display:flex;gap:6px;">
      <button class="action" onclick="openTaskChat('batch_${b.id}', 'Партия #${b.id} — ${escapeHtml(b.productName)}')">💬 Обсудить</button>
      <button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">× Удалить</button>
    </div>
  </div>
+    ${progressHtml}
     <div class="stage-info">Создана: ${escapeHtml(b.created)}${b.responsible ? " • Ответственный: " + escapeHtml(b.responsible) : ""}</div>`;
 
-  // Этап 1 — восковки
   if (!s[1].done) {
     const norm = p.normWax * b.qty;
-    html += `<div class="stage ${st===1?'active':''}">
-      <div class="stage-title">1. Создание восковок ${st===1?'<span class="badge badge-active">активен</span>':''}</div>
-      <div class="stage-info">Норма: ${fmt(norm,3)} г воска. Введите фактический вес:</div>`;
-    if (st === 1) {
-      html += `<div class="row">
-        <input id="s1_${b.id}" type="number" step="0.001" placeholder="Вес воска, г">
-        <button class="action ok" onclick="completeStage1(${b.id})">Этап завершён</button>
-      </div>`;
-    }
+    html += `<div class="stage ${st===1?'active':''}"><div class="stage-title">1. Создание восковок ${st===1?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Норма: ${fmt(norm,3)} г воска. Введите фактический вес:</div>`;
+    if (st === 1) html += `<div class="row"><input id="s1_${b.id}" type="number" step="0.001" placeholder="Вес воска, г"><button class="action ok" onclick="completeStage1(${b.id})">Этап завершён</button></div>`;
     html += `</div>`;
   } else {
-    html += `<div class="stage done"><div class="stage-title">1. Восковки <span class="badge badge-done">завершён</span></div>
-      <div class="stage-info">Использовано: ${fmt(s[1].waxUsed,3)} г — ${fmt(b.stageCosts[1])} ₽</div></div>`;
+    html += `<div class="stage done"><div class="stage-title">1. Восковки <span class="badge badge-done">завершён</span></div><div class="stage-info">Использовано: ${fmt(s[1].waxUsed,3)} г — ${fmt(b.stageCosts[1])} ₽</div></div>`;
   }
 
-  // Этап 2 — формовка
   if (s[1].done && !s[2].done) {
-    html += `<div class="stage ${st===2?'active':''}">
-      <div class="stage-title">2. Формовка ${st===2?'<span class="badge badge-active">активен</span>':''}</div>
-      <div class="stage-info">Выберите размер опоки:</div>`;
-    if (st === 2) {
-      html += `<div class="row"><select id="s2_${b.id}">${data.opokas.map(o =>
-        `<option value="${o.id}">${escapeHtml(o.name)} (${o.mass} г формомассы + ${o.water} мл воды)</option>`).join("")}</select>
-        <button class="action ok" onclick="completeStage2(${b.id})">Этап завершён</button></div>`;
-    }
+    html += `<div class="stage ${st===2?'active':''}"><div class="stage-title">2. Формовка ${st===2?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Выберите размер опоки:</div>`;
+    if (st === 2) html += `<div class="row"><select id="s2_${b.id}">${data.opokas.map(o => `<option value="${o.id}">${escapeHtml(o.name)} (${o.mass} г формомассы + ${o.water} мл воды)</option>`).join("")}</select><button class="action ok" onclick="completeStage2(${b.id})">Этап завершён</button></div>`;
     html += `</div>`;
   } else if (s[2].done) {
     const o = data.opokas.find(x => x.id === s[2].opokaId);
-    html += `<div class="stage done"><div class="stage-title">2. Формовка <span class="badge badge-done">завершён</span></div>
-      <div class="stage-info">Опока: ${o ? escapeHtml(o.name) : "?"} — ${fmt(b.stageCosts[2])} ₽</div></div>`;
+    html += `<div class="stage done"><div class="stage-title">2. Формовка <span class="badge badge-done">завершён</span></div><div class="stage-info">Опока: ${o ? escapeHtml(o.name) : "?"} — ${fmt(b.stageCosts[2])} ₽</div></div>`;
   }
 
-  // Этап 3 — прокалка
   if (s[2].done && !s[3].done) {
-    html += `<div class="stage ${st===3?'active':''}">
-      <div class="stage-title">3. Прокалка ${st===3?'<span class="badge badge-active">активен</span>':''}</div>
-      <div class="stage-info">Выберите цикл:</div>`;
-    if (st === 3) {
-      html += `<div class="row"><select id="s3_${b.id}">${data.cycles.map(c =>
-        `<option value="${c.id}">${escapeHtml(c.name)} (${c.hours}ч × ${c.kw}кВт = ${fmt(c.hours*c.kw)} кВт·ч)</option>`).join("")}</select>
-        <button class="action ok" onclick="completeStage3(${b.id})">Этап завершён</button></div>`;
-    }
+    html += `<div class="stage ${st===3?'active':''}"><div class="stage-title">3. Прокалка ${st===3?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Выберите цикл:</div>`;
+    if (st === 3) html += `<div class="row"><select id="s3_${b.id}">${data.cycles.map(c => `<option value="${c.id}">${escapeHtml(c.name)} (${c.hours}ч × ${c.kw}кВт = ${fmt(c.hours*c.kw)} кВт·ч)</option>`).join("")}</select><button class="action ok" onclick="completeStage3(${b.id})">Этап завершён</button></div>`;
     html += `</div>`;
   } else if (s[3].done) {
     const c = data.cycles.find(x => x.id === s[3].cycleId);
-    html += `<div class="stage done"><div class="stage-title">3. Прокалка <span class="badge badge-done">завершён</span></div>
-      <div class="stage-info">Цикл: ${c ? escapeHtml(c.name) : "?"} — ${fmt(b.stageCosts[3])} ₽</div></div>`;
+    html += `<div class="stage done"><div class="stage-title">3. Прокалка <span class="badge badge-done">завершён</span></div><div class="stage-info">Цикл: ${c ? escapeHtml(c.name) : "?"} — ${fmt(b.stageCosts[3])} ₽</div></div>`;
   }
 
-  // Этап 4 — литьё
   if (s[3].done && !s[4].done) {
-    html += `<div class="stage ${st===4?'active':''}">
-      <div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div>
-      <div class="stage-info">Укажите использованный металл и возврат:</div>`;
-    if (st === 4) {
-      html += `<div class="row">
-        <input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г">
-        <input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0">
-        <button class="action ok" onclick="completeStage4(${b.id})">Этап завершён</button>
-      </div>`;
-    }
+    html += `<div class="stage ${st===4?'active':''}"><div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Укажите использованный металл и возврат:</div>`;
+    if (st === 4) html += `<div class="row"><input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г"><input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0"><button class="action ok" onclick="completeStage4(${b.id})">Этап завершён</button></div>`;
     html += `</div>`;
   } else if (s[4].done) {
-    html += `<div class="stage done"><div class="stage-title">4. Литьё <span class="badge badge-done">завершён</span></div>
-      <div class="stage-info">Использовано: ${fmt(s[4].metalUsed,3)} г, возврат: ${fmt(s[4].metalReturned,3)} г — ${fmt(b.stageCosts[4])} ₽</div></div>`;
+    html += `<div class="stage done"><div class="stage-title">4. Литьё <span class="badge badge-done">завершён</span></div><div class="stage-info">Использовано: ${fmt(s[4].metalUsed,3)} г, возврат: ${fmt(s[4].metalReturned,3)} г — ${fmt(b.stageCosts[4])} ₽</div></div>`;
   }
 
-  // Этапы 5–8
   const stageNames = {5:"Обработка", 6:"Гальваника", 7:"Чернение", 8:"Упаковка"};
   for (let n = 5; n <= 8; n++) {
     if (s[n-1].done && !s[n].done) {
-      html += `<div class="stage ${st===n?'active':''}">
-        <div class="stage-title">${n}. ${stageNames[n]} ${st===n?'<span class="badge badge-active">активен</span>':''}</div>
-        <div class="stage-info">Норма расхода применится автоматически.</div>`;
-      if (st === n) {
-        html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, ${n})">Этап завершён</button></div>`;
-      }
+      html += `<div class="stage ${st===n?'active':''}"><div class="stage-title">${n}. ${stageNames[n]} ${st===n?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Норма расхода применится автоматически.</div>`;
+      if (st === n) html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, ${n})">Этап завершён</button></div>`;
       html += `</div>`;
     } else if (s[n].done) {
-      html += `<div class="stage done"><div class="stage-title">${n}. ${stageNames[n]} <span class="badge badge-done">завершён</span></div>
-        <div class="stage-info">Стоимость: ${fmt(b.stageCosts[n])} ₽</div></div>`;
+      html += `<div class="stage done"><div class="stage-title">${n}. ${stageNames[n]} <span class="badge badge-done">завершён</span></div><div class="stage-info">Стоимость: ${fmt(b.stageCosts[n])} ₽</div></div>`;
     }
   }
 
-  html += `<div class="stage-info"><b>Себестоимость партии: ${fmt(Object.values(b.stageCosts).reduce((a,x)=>a+x,0))} ₽</b></div>`;
-  html += `</div>`;
+  html += `<div class="stage-info"><b>Себестоимость партии: ${fmt(Object.values(b.stageCosts).reduce((a,x)=>a+x,0))} ₽</b></div></div>`;
   return html;
 }
 
-/* ---------- Свернуть все задания (при уходе с вкладки) ---------- */
 function collapseAllGroups() {
   if (!data.groups || data.groups.length === 0) return;
   let changed = false;
-  data.groups.forEach(g => {
-    if (!g.collapsed) {
-      g.collapsed = true;
-      g.updatedAt = new Date().toISOString();
-      changed = true;
-    }
-  });
+  data.groups.forEach(g => { if (!g.collapsed) { g.collapsed = true; g.updatedAt = new Date().toISOString(); changed = true; } });
   if (changed) save();
 }
 
-/* ---------- Свернуть/развернуть производственное задание ---------- */
 function toggleGroupCollapsed(groupId) {
   if (!data.groups) return;
-  const g = data.groups.find(x => String(x.id) === String(groupId));
-  if (!g) return;
-  g.collapsed = !g.collapsed;
-  g.updatedAt = new Date().toISOString();
-  save();
-  renderBatches();
+  const g = data.groups.find(x => String(x.id) === String(groupId)); if (!g) return;
+  g.collapsed = !g.collapsed; g.updatedAt = new Date().toISOString(); save(); renderBatches();
 }
-/* ---------- Удалить производственное задание со всеми партиями ---------- */
+
 function deleteGroup(groupId) {
   if (!confirm("Удалить задание и все партии внутри?")) return;
-  // Собираем партии этой группы
   const groupBatches = data.batches.filter(b => String(b.groupId) === String(groupId));
-  // Помечаем каждую как удалённую (tombstones для синхронизации)
-  groupBatches.forEach(b => {
-    markDeleted(data, "batches", b.id);
-  });
-  // Удаляем группу
-  markDeleted(data, "groups", groupId);
-  save();
-  renderBatches();
+  groupBatches.forEach(b => { markDeleted(data, "batches", b.id); });
+  markDeleted(data, "groups", groupId); save(); renderBatches();
   showToast("Задание удалено: " + groupBatches.length + " партий", "success");
 }
 
 function renderBatches() {
   const active = data.batches.filter(b => !b.finished);
   const done = data.batches.filter(b => b.finished);
-
-  // Собираем партии по группам
-  const groupsMap = {};
-  const noGroup = [];
-  data.groups = data.groups || [];
+  const groupsMap = {}; const noGroup = []; data.groups = data.groups || [];
 
   active.forEach(b => {
-    if (b.groupId) {
-      if (!groupsMap[b.groupId]) groupsMap[b.groupId] = [];
-      groupsMap[b.groupId].push(b);
-    } else {
-      noGroup.push(b);
-    }
+    if (b.groupId) { if (!groupsMap[b.groupId]) groupsMap[b.groupId] = []; groupsMap[b.groupId].push(b); } 
+    else { noGroup.push(b); }
   });
 
-  // Строим HTML
   let html = "";
-
-  // Сначала — производственные задания (группы)
   Object.keys(groupsMap).forEach(gid => {
     const group = data.groups.find(g => String(g.id) === String(gid));
-    const items = groupsMap[gid];
-        if (items.length === 0) return;
-    // Если группа удалена, но партии остались — показываем их как обычные
-    if (!group) {
-      items.forEach(b => { html += renderBatchCard(b); });
-      return;
-    }
-
+    const items = groupsMap[gid]; if (items.length === 0) return;
+    if (!group) { items.forEach(b => { html += renderBatchCard(b); }); return; }
     const title = group.title || ("от " + (group.date_start || ""));
     const responsible = group.responsible || "—";
-    const period = group.date_start
-      ? (group.date_end && group.date_end !== group.date_start
-          ? group.date_start + " — " + group.date_end
-          : group.date_start)
-      : "—";
+    const period = group.date_start ? (group.date_end && group.date_end !== group.date_start ? group.date_start + " — " + group.date_end : group.date_start) : "—";
     const isCollapsed = !!group.collapsed;
 
-    html += `<div class="task-group">`;
-    html += `  <div class="task-group-header">`;
-    html += `    <div class="task-group-title">📦 ПРОИЗВОДСТВЕННОЕ ЗАДАНИЕ ${escapeHtml(title)}</div>`;
-    html += `    <div class="task-group-meta">Ответственный: ${escapeHtml(responsible)}</div>`;
-    html += `    <div class="task-group-meta">Срок: ${escapeHtml(period)}</div>`;
-    html += `    <div class="row" style="margin-top:8px">`;
-    html += `      <button class="action" onclick="toggleGroupCollapsed('${gid}')">${isCollapsed ? "▸ РАСКРЫТЬ" : "▾ СВЕРНУТЬ"}</button>`;
-html += `      <button class="action danger master-hidden" onclick="deleteGroup('${gid}')">× Удалить задание</button>`;
-    html += `    </div>`;
-    html += `  </div>`;
-
-    if (!isCollapsed) {
-      html += `  <div class="task-group-body">`;
-      items.forEach(b => {
-        html += renderBatchCard(b);
-      });
-      html += `  </div>`;
-    }
-
+    html += `<div class="task-group"><div class="task-group-header"><div class="task-group-title">📦 ПРОИЗВОДСТВЕННОЕ ЗАДАНИЕ ${escapeHtml(title)}</div><div class="task-group-meta">Ответственный: ${escapeHtml(responsible)}</div><div class="task-group-meta">Срок: ${escapeHtml(period)}</div><div class="row" style="margin-top:8px"><button class="action" onclick="toggleGroupCollapsed('${gid}')">${isCollapsed ? "▸ РАСКРЫТЬ" : "▾ СВЕРНУТЬ"}</button><button class="action danger master-hidden" onclick="deleteGroup('${gid}')">× Удалить задание</button></div></div>`;
+    if (!isCollapsed) { html += `<div class="task-group-body">`; items.forEach(b => { html += renderBatchCard(b); }); html += `</div>`; }
     html += `</div>`;
   });
 
-  // Потом — обычные партии без группы
-  noGroup.forEach(b => {
-    html += renderBatchCard(b);
-  });
-
+  noGroup.forEach(b => { html += renderBatchCard(b); });
   document.getElementById("active_batches").innerHTML = html || `<p class="hint">Нет активных партий</p>`;
-
-  // Завершённые партии
-  document.getElementById("done_batches").innerHTML = done.map(b => `
-    <div class="stage done">
-      <div class="stage-title">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></div>
-      <div class="stage-info">Себестоимость: ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div>
-            <div class="row"><button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">Удалить</button></div>
-    </div>`).join("");
+  document.getElementById("done_batches").innerHTML = done.map(b => `<div class="stage done"><div class="stage-title">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></div><div class="stage-info">Себестоимость: ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div><div class="row"><button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">Удалить</button></div></div>`).join("");
 }
 
-/* ---------- СКЛАД ГОТОВОЙ ---------- */
 function renderStock() {
-  document.getElementById("stock_table").innerHTML = data.stock.map(s => `
-    <tr>
-      <td>${escapeHtml(s.productName)}</td>
-      <td>#${s.batchId}</td>
-      <td>${s.remaining} шт</td>
-      <td>${fmt(s.costPerUnit)} ₽</td>
-      <td><button class="action warn" onclick="openWriteOff('${s.id}')">Списать</button></td>
-    </tr>`).join("");
+  document.getElementById("stock_table").innerHTML = data.stock.map(s => `<tr><td>${escapeHtml(s.productName)}</td><td>#${s.batchId}</td><td>${s.remaining} шт</td><td>${fmt(s.costPerUnit)} ₽</td><td><button class="action warn" onclick="openWriteOff('${s.id}')">Списать</button></td></tr>`).join("");
 }
 
 function openWriteOff(stockId) {
-  const s = data.stock.find(x => String(x.id) === String(stockId));
-  if (!s) return;
+  const s = data.stock.find(x => String(x.id) === String(stockId)); if (!s) return;
   writeOffStockId = stockId;
   document.getElementById("writeoff_card").style.display = "block";
-  document.getElementById("w_product").innerHTML =
-    `<option value="${s.id}">${escapeHtml(s.productName)} (партия #${s.batchId}, осталось ${s.remaining} шт)</option>`;
-  document.getElementById("w_qty").value = 1;
-  document.getElementById("w_price").value = fmt(s.costPerUnit);
-  document.getElementById("w_result").innerHTML = "";
+  document.getElementById("w_product").innerHTML = `<option value="${s.id}">${escapeHtml(s.productName)} (партия #${s.batchId}, осталось ${s.remaining} шт)</option>`;
+  document.getElementById("w_qty").value = 1; document.getElementById("w_price").value = fmt(s.costPerUnit); document.getElementById("w_result").innerHTML = "";
 }
 function closeWriteOff() {
-  writeOffStockId = null;
-  document.getElementById("writeoff_card").style.display = "none";
-  document.getElementById("w_qty").value = "";
-  document.getElementById("w_note").value = "";
-  document.getElementById("w_result").innerHTML = "";
+  writeOffStockId = null; document.getElementById("writeoff_card").style.display = "none";
+  document.getElementById("w_qty").value = ""; document.getElementById("w_note").value = ""; document.getElementById("w_result").innerHTML = "";
 }
-
 function writeOff() {
-  const s = data.stock.find(x => String(x.id) === String(writeOffStockId));
-  if (!s) return alert("Выберите изделие");
-  const qty = +document.getElementById("w_qty").value || 0;
-  const price = +document.getElementById("w_price").value || 0;
-  if (qty <= 0) return alert("Укажите количество");
-  if (qty > s.remaining) return alert("Недостаточно на складе");
+  const s = data.stock.find(x => String(x.id) === String(writeOffStockId)); if (!s) return alert("Выберите изделие");
+  const qty = +document.getElementById("w_qty").value || 0; const price = +document.getElementById("w_price").value || 0;
+  if (qty <= 0) return alert("Укажите количество"); if (qty > s.remaining) return alert("Недостаточно на складе");
   const sum = qty * price;
-  data.archive.push({
-    id: uid(),
-    date: new Date().toLocaleString(),
-    dateIso: new Date().toISOString().slice(0,10),
-    productName: s.productName,
-    batchId: s.batchId,
-    qty, price, sum,
-    channel: document.getElementById("w_channel").value,
-    note: document.getElementById("w_note").value.trim(),
-    cost: s.costPerUnit * qty,
-        profit: sum - s.costPerUnit * qty,
-    updatedAt: new Date().toISOString(),
-  });
+  data.archive.push({ id: uid(), date: new Date().toLocaleString(), dateIso: new Date().toISOString().slice(0,10), productName: s.productName, batchId: s.batchId, qty, price, sum, channel: document.getElementById("w_channel").value, note: document.getElementById("w_note").value.trim(), cost: s.costPerUnit * qty, profit: sum - s.costPerUnit * qty, updatedAt: new Date().toISOString() });
   s.remaining -= qty;
-  if (s.remaining <= 0) {
-    markDeleted(data, "stock", s.id);
-  } else {
-    s.updatedAt = new Date().toISOString();
-  }
+  if (s.remaining <= 0) markDeleted(data, "stock", s.id); else s.updatedAt = new Date().toISOString();
   save(); renderStock();
-  document.getElementById("w_result").innerHTML =
-    `<div class="result">Списано ${qty} шт на сумму ${fmt(sum)} ₽. Прибыль: ${fmt(sum - s.costPerUnit*qty)} ₽</div>`;
-  writeOffStockId = null;
-  document.getElementById("w_qty").value = "";
-  document.getElementById("w_note").value = "";
+  document.getElementById("w_result").innerHTML = `<div class="result">Списано ${qty} шт на сумму ${fmt(sum)} ₽. Прибыль: ${fmt(sum - s.costPerUnit*qty)} ₽</div>`;
+  writeOffStockId = null; document.getElementById("w_qty").value = ""; document.getElementById("w_note").value = "";
 }
 
-/* ---------- АРХИВ ---------- */
 function resetFilters() {
-  document.getElementById("f_channel").value = "";
-  document.getElementById("f_from").value = "";
-  document.getElementById("f_to").value = "";
-  renderArchive();
+  document.getElementById("f_channel").value = ""; document.getElementById("f_from").value = ""; document.getElementById("f_to").value = ""; renderArchive();
 }
-
 function getFilteredArchive() {
-  const ch = document.getElementById("f_channel").value;
-  const from = document.getElementById("f_from").value;
-  const to = document.getElementById("f_to").value;
-  return data.archive.filter(a => {
-    if (ch && a.channel !== ch) return false;
-    if (from && a.dateIso && a.dateIso < from) return false;
-    if (to && a.dateIso && a.dateIso > to) return false;
-    return true;
-  });
+  const ch = document.getElementById("f_channel").value; const from = document.getElementById("f_from").value; const to = document.getElementById("f_to").value;
+  return data.archive.filter(a => { if (ch && a.channel !== ch) return false; if (from && a.dateIso && a.dateIso < from) return false; if (to && a.dateIso && a.dateIso > to) return false; return true; });
 }
-
 function renderArchive() {
   const list = getFilteredArchive();
   document.getElementById("archive_table").innerHTML = list.slice().reverse().map(a => {
     const profitCls = a.profit >= 0 ? "profit" : "loss";
-    return `<tr>
-      <td>${escapeHtml(a.date)}</td>
-      <td>${escapeHtml(a.productName)} <small>(#${a.batchId})</small></td>
-      <td>${a.qty}</td>
-      <td>${fmt(a.price)} ₽</td>
-      <td>${fmt(a.sum)} ₽</td>
-      <td>${fmt(a.cost)} ₽</td>
-      <td class="${profitCls}">${fmt(a.profit)} ₽</td>
-      <td>${escapeHtml(a.channel)}</td>
-      <td>${escapeHtml(a.note) || "—"}</td>
-      <td><button class="action danger master-hidden" onclick="delArchive(${a.id})">×</button></td>
-    </tr>`;
+    return `<tr><td>${escapeHtml(a.date)}</td><td>${escapeHtml(a.productName)} <small>(#${a.batchId})</small></td><td>${a.qty}</td><td>${fmt(a.price)} ₽</td><td>${fmt(a.sum)} ₽</td><td>${fmt(a.cost)} ₽</td><td class="${profitCls}">${fmt(a.profit)} ₽</td><td>${escapeHtml(a.channel)}</td><td>${escapeHtml(a.note) || "—"}</td><td><button class="action danger master-hidden" onclick="delArchive(${a.id})">×</button></td></tr>`;
   }).join("");
 
-  // Итоги
-  const totalQty = list.reduce((s,a) => s + a.qty, 0);
-  const totalSum = list.reduce((s,a) => s + a.sum, 0);
-  const totalCost = list.reduce((s,a) => s + a.cost, 0);
-  const totalProfit = totalSum - totalCost;
-  const margin = totalSum > 0 ? (totalProfit / totalSum * 100) : 0;
-  document.getElementById("archive_summary").innerHTML = `
-    <div class="box"><div class="label">Продано, шт</div><div class="value">${totalQty}</div></div>
-    <div class="box"><div class="label">Выручка</div><div class="value">${fmt(totalSum)} ₽</div></div>
-    <div class="box"><div class="label">Себестоимость</div><div class="value">${fmt(totalCost)} ₽</div></div>
-    <div class="box"><div class="label">Прибыль</div><div class="value ${totalProfit>=0?'profit':'loss'}">${fmt(totalProfit)} ₽</div></div>
-    <div class="box"><div class="label">Маржа</div><div class="value">${fmt(margin,1)} %</div></div>
-  `;
+  const totalQty = list.reduce((s,a) => s + a.qty, 0); const totalSum = list.reduce((s,a) => s + a.sum, 0); const totalCost = list.reduce((s,a) => s + a.cost, 0); const totalProfit = totalSum - totalCost; const margin = totalSum > 0 ? (totalProfit / totalSum * 100) : 0;
+  document.getElementById("archive_summary").innerHTML = `<div class="box"><div class="label">Продано, шт</div><div class="value">${totalQty}</div></div><div class="box"><div class="label">Выручка</div><div class="value">${fmt(totalSum)} ₽</div></div><div class="box"><div class="label">Себестоимость</div><div class="value">${fmt(totalCost)} ₽</div></div><div class="box"><div class="label">Прибыль</div><div class="value ${totalProfit>=0?'profit':'loss'}">${fmt(totalProfit)} ₽</div></div><div class="box"><div class="label">Маржа</div><div class="value">${fmt(margin,1)} %</div></div>`;
 
-  // Сводка по каналам
   const byChannel = {};
-  list.forEach(a => {
-    if (!byChannel[a.channel]) byChannel[a.channel] = { qty:0, sum:0, cost:0 };
-    byChannel[a.channel].qty += a.qty;
-    byChannel[a.channel].sum += a.sum;
-    byChannel[a.channel].cost += a.cost;
-  });
+  list.forEach(a => { if (!byChannel[a.channel]) byChannel[a.channel] = { qty:0, sum:0, cost:0 }; byChannel[a.channel].qty += a.qty; byChannel[a.channel].sum += a.sum; byChannel[a.channel].cost += a.cost; });
   document.getElementById("channel_summary").innerHTML = Object.entries(byChannel).map(([ch, v]) => {
-    const p = v.sum - v.cost;
-    const m = v.sum > 0 ? (p / v.sum * 100) : 0;
-    const cls = p >= 0 ? "profit" : "loss";
-    return `<tr>
-      <td>${escapeHtml(ch)}</td>
-      <td>${v.qty}</td>
-      <td>${fmt(v.sum)} ₽</td>
-      <td>${fmt(v.cost)} ₽</td>
-      <td class="${cls}">${fmt(p)} ₽</td>
-      <td>${fmt(m,1)} %</td>
-    </tr>`;
+    const p = v.sum - v.cost; const m = v.sum > 0 ? (p / v.sum * 100) : 0; const cls = p >= 0 ? "profit" : "loss";
+    return `<tr><td>${escapeHtml(ch)}</td><td>${v.qty}</td><td>${fmt(v.sum)} ₽</td><td>${fmt(v.cost)} ₽</td><td class="${cls}">${fmt(p)} ₽</td><td>${fmt(m,1)} %</td></tr>`;
   }).join("");
 }
+function delArchive(id) { if (!confirm("Удалить запись из архива?")) return; markDeleted(data, "archive", id); save(); renderArchive(); }
 
-function delArchive(id) {
-  if (!confirm("Удалить запись из архива?")) return;
-  markDeleted(data, "archive", id);
-  save(); renderArchive();
-}
-
-/* ---------- ДАННЫЕ ---------- */
 function exportData() {
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "jewelry_backup_" + new Date().toISOString().slice(0,10) + ".json";
-  a.click();
-  URL.revokeObjectURL(url);
+  const url = URL.createObjectURL(blob); const a = document.createElement("a");
+  a.href = url; a.download = "jewelry_backup_" + new Date().toISOString().slice(0,10) + ".json"; a.click(); URL.revokeObjectURL(url);
 }
-
 function importData() {
-  const f = document.getElementById("import_file").files[0];
-  if (!f) return alert("Выберите файл");
+  const f = document.getElementById("import_file").files[0]; if (!f) return alert("Выберите файл");
   const reader = new FileReader();
   reader.onload = e => {
     try {
       const obj = JSON.parse(e.target.result);
       if (!confirm("Заменить все текущие данные?")) return;
-      data = obj;
-      save();
-      renderAll();
-      alert("Данные загружены");
+      data = obj; save(); renderAll(); alert("Данные загружены");
     } catch (err) { alert("Ошибка чтения файла: " + err.message); }
   };
   reader.readAsText(f);
 }
-
 function clearAll() {
   if (!confirm("Удалить ВСЕ данные? Это необратимо!")) return;
   if (!confirm("Точно удалить? Рекомендуем сначала скачать копию.")) return;
@@ -3139,250 +1756,34 @@ function clearAll() {
   data = { materials: [], products: [], cycles: [], opokas: [], batches: [], stock: [], archive: [] };
   renderAll();
 }
-
-/* ---------- ОБЩАЯ ОТРИСОВКА ---------- */
 function renderAll() {
-  renderMaterials();
-  renderAllMaterialSelects();
-  renderProducts();
-  renderBatchProductSelect();
-  renderBatchResponsibleSelect();
-  renderCycles();
-  renderOpokas();
-  renderBatches();
-  renderStock();
-  if (typeof renderChats === "function") renderChats();
-  renderArchive();
+  renderMaterials(); renderAllMaterialSelects(); renderProducts(); renderBatchProductSelect(); renderBatchResponsibleSelect();
+  renderCycles(); renderOpokas(); renderBatches(); renderStock();
+  if (typeof renderChats === "function") renderChats(); renderArchive();
 }
-/* ---------- UI СИНХРОНИЗАЦИИ ---------- */
+
 function setSyncStatus(msg, color) {
-  const el = document.getElementById('sync_status');
-  if (el) el.innerHTML = `<span style="color:${color || '#555'}">${msg}</span>`;
+  const el = document.getElementById('sync_status'); if (el) el.innerHTML = `<span style="color:${color || '#555'}">${msg}</span>`;
 }
-
 async function uiPushToCloud() {
-  setSyncStatus('⏳ Отправка в облако...', '#b7791f');
-  const res = await pushAll(data);
-  if (res.ok) {
-    const total = Object.values(res.summary).reduce((s,x) => s+x, 0);
-    setSyncStatus(`✅ Отправлено объектов: ${total}`, '#2f855a');
-  } else {
-    setSyncStatus(`❌ Ошибка: ${res.error}`, '#c53030');
-  }
+  setSyncStatus('⏳ Отправка в облако...', '#b7791f'); const res = await pushAll(data);
+  if (res.ok) { const total = Object.values(res.summary).reduce((s,x) => s+x, 0); setSyncStatus(`✅ Отправлено объектов: ${total}`, '#2f855a'); } 
+  else { setSyncStatus(`❌ Ошибка: ${res.error}`, '#c53030'); }
 }
-
 async function uiPullFromCloud() {
-  setSyncStatus('⏳ Скачивание из облака...', '#b7791f');
-  const res = await pullAll();
-  if (!res.ok) {
-    setSyncStatus(`❌ Ошибка: ${res.error}`, '#c53030');
-    return;
-  }
-  const merged = mergeData(data, res.data);
-  data = merged;
-  await saveData(data);
-  renderAll();
-  const total = Object.values(res.data).reduce((s, arr) => s + arr.length, 0);
-  setSyncStatus(`✅ Скачано объектов: ${total}`, '#2f855a');
+  setSyncStatus('⏳ Скачивание из облака...', '#b7791f'); const res = await pullAll();
+  if (!res.ok) { setSyncStatus(`❌ Ошибка: ${res.error}`, '#c53030'); return; }
+  const merged = mergeData(data, res.data); data = merged; await saveData(data); renderAll();
+  const total = Object.values(res.data).reduce((s, arr) => s + arr.length, 0); setSyncStatus(`✅ Скачано объектов: ${total}`, '#2f855a');
 }
-
 async function uiFullSync() {
-  setSyncStatus('⏳ Полная синхронизация...', '#b7791f');
-  const res = await syncAll(data);
-  if (!res.ok) {
-    setSyncStatus(`❌ Ошибка: ${res.error}`, '#c53030');
-    return;
-  }
-  data = res.data;
-  await saveData(data);
-  renderAll();
-  const total = Object.values(data).reduce((s, arr) => s + arr.length, 0);
-  setSyncStatus(`✅ Синхронизировано. Всего объектов: ${total}`, '#2f855a');
+  setSyncStatus('⏳ Полная синхронизация...', '#b7791f'); const res = await syncAll(data);
+  if (!res.ok) { setSyncStatus(`❌ Ошибка: ${res.error}`, '#c53030'); return; }
+  data = res.data; await saveData(data); renderAll();
+  const total = Object.values(data).reduce((s, arr) => s + arr.length, 0); setSyncStatus(`✅ Синхронизировано. Всего объектов: ${total}`, '#2f855a');
 }
-/* ---------- СТАРТ ПРИЛОЖЕНИЯ ---------- */
-/* ---------- Отрисовка Архива Чатов ---------- */
 function renderArchivedChats() {
-  const listEl = document.getElementById("archived_chats_list");
-  if (!listEl) return;
+  const listEl = document.getElementById("archived_chats_list"); if (!listEl) return;
   const archived = (data.chats || []).filter(c => c.archived === true);
-  
-  if (archived.length === 0) {
-    listEl.innerHTML = `<p class="hint">Архив пуст.</p>`;
-    return;
-  }
-  
-  listEl.innerHTML = archived.map(c => `
-    <div class="chat-item" onclick="openChat('${c.id}')">
-      <div class="chat-item-info">
-        <div class="chat-item-title">${escapeHtml(c.title)}</div>
-        <div class="chat-item-meta">Архивирован</div>
-      </div>
-    </div>
-  `).join("");
-}
-console.log("ДО initApp");
-async function initApp() {
-  let loaded = await migrateFromLocalStorage();
-  if (!loaded) loaded = await loadData();
-  data = loaded || JSON.parse(JSON.stringify(EMPTY_DATA));
-  ensureDeletedStruct(data);
-  stampUpdatedAt(data);
-  renderAll();
-  // Принудительная загрузка списка чатов при старте (чтобы не пропадали)
-  (async () => {
-    try {
-      const sb = await initCloud();
-      if (sb) {
-        const { data: remoteChats } = await sb.from('chats').select('*');
-        const { data: remoteParts } = await sb.from('chat_participants').select('*');
-        if (remoteChats) data.chats = remoteChats;
-        if (remoteParts) data.chat_participants = remoteParts;
-        renderChats(); // Перерисовываем список
-      }
-    } catch(e) { console.error("Ошибка загрузки чатов:", e); }
-  })();
-
-  renderEmployees();
-  checkScheduledTasks();
-  renderResponsibleSelect();
-  renderCalendar();
-  onTaskTypeChange();
-
-  window.__scheduleAutosync = () => scheduleAutosync(() => data, (d) => { data = d; });
-
-  setCloudIndicator(navigator.onLine ? 'online' : 'offline');
-
-    // --- ИНИЦИАЛИЗАЦИЯ REALTIME ---
-  initRealtime((table, payload) => {
-    console.log(`Получено Realtime-событие для таблицы ${table}`);
-
-    // Принудительно обновляем локальные данные данными из события
-    if (payload && payload.new && payload.new.id) {
-      if (!data[table]) data[table] = [];
-      const idx = data[table].findIndex(x => String(x.id) === String(payload.new.id));
-      if (idx >= 0) {
-        data[table][idx] = payload.new; // Обновляем (UPDATE)
-      } else if (payload.eventType === 'INSERT') {
-        data[table].push(payload.new); // Добавляем (INSERT)
-      } else if (payload.eventType === 'DELETE') {
-        data[table] = data[table].filter(x => String(x.id) !== String(payload.old.id)); // Удаляем
-      }
-    }
-
-    // 1. Чат
-    if (table === 'messages' || table === 'chat_participants') {
-      if (typeof _currentChatId !== 'undefined' && _currentChatId) {
-        renderChatMessages(_currentChatId);
-        renderChatParticipants(_currentChatId);
-      }
-      renderChats();
-    }
-
-    // 2. Календарь
-    if (table === 'tasks') {
-      renderCalendar();
-      if (typeof _calSelectedDay !== 'undefined' && _calSelectedDay) {
-        renderDayTasks(_calSelectedDay);
-      }
-    }
-
-    // 3. Производство
-    if (['batches', 'groups', 'employees'].includes(table)) {
-      renderBatches();
-      renderBatchResponsibleSelect();
-    }
-
-    // 4. Справочники
-    if (['materials', 'products', 'cycles', 'opokas'].includes(table)) {
-      renderMaterials();
-      renderProducts();
-      renderCycles();
-      renderOpokas();
-      renderAllMaterialSelects();
-      renderBatchProductSelect();
-    }
-
-    // 5. Склад и архив
-    if (table === 'stock' || table === 'archive') {
-      renderStock();
-      renderArchive();
-    }
-  });
-
-   // Первая синхронизация при запуске
-  setTimeout(async () => {
-    if (navigator.onLine) {
-      // Сначала ждем, пока данные скачаются
-      await runAutosync(() => data, (d) => { data = d; renderAll(); });
-      // И только ПОСЛЕ этого проверяем сессию
-      checkSession();
-    } else {
-      // Если интернета нет, проверяем сессию по локальным данным
-      checkSession();
-    }
-  }, 1000);
-  setInterval(() => {
-    checkScheduledTasks();
-  }, 60000);
- 
-   // --- АВАРИЙНЫЙ ТАЙМЕР ДЛЯ ЧАТА ---
-  setInterval(async () => {
-    if (typeof _currentChatId !== 'undefined' && _currentChatId && navigator.onLine) {
-      try {
-        const sb = await initCloud();
-        if (!sb) return;
-        
-        const { data: latestMessages, error } = await sb
-          .from('messages')
-          .select('*')
-          .eq('chat_id', _currentChatId)
-          .order('created_at', { ascending: false })
-          .limit(50);
-          
-        if (!error && latestMessages) {
-          latestMessages.reverse();
-          
-          let hasNew = false;
-          latestMessages.forEach(msg => {
-            const exists = (data.messages || []).find(m => String(m.id) === String(msg.id));
-            if (!exists) {
-              data.messages.push(msg);
-              hasNew = true;
-            }
-          });
-
-        if (hasNew) {
-            console.log('🔄 Таймер нашел новые сообщения, обновляю чат...');
-            renderChatMessages(_currentChatId);
-            renderChats();
-            
-            // Принудительная перерисовка (на случай, если DOM не обновился)
-            setTimeout(() => {
-              renderChatMessages(_currentChatId);
-            }, 100);
-          }
-}
-
-      } catch (e) {
-        console.error('❌ Ошибка таймера чата:', e);
-      }
-    }
-  }, 1500); // 1,5 секунды
-
-  console.log("✅ Приложение запущено. IndexedDB + автосинхронизация + Realtime.");
-}
-
-initApp();
-
-</script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('✅ Service Worker зарегистрирован:', reg.scope))
-        .catch(err => console.error('❌ Ошибка регистрации SW:', err));
-    });
-  }
-</script>
-</body>
-</html>
+  if (archived.length === 0) { listEl.innerHTML = `<p class="hint">Архив пуст.</p>`; return; }
+  listEl
