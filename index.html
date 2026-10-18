@@ -1774,6 +1774,28 @@ function renderAllMaterialSelects() {
 }
 
 let _pendingPhotoUrl = null;
+
+async function uploadStagePhoto(bid, stageNum, input) {
+  const file = input.files[0]; if (!file) return;
+  try {
+    const sb = await initCloud(); if (!sb) throw new Error("Нет клиента");
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = `stage_${bid}_${stageNum}_${Date.now()}.${ext}`;
+    const { error } = await sb.storage.from('product-photos').upload(fileName, file);
+    if (error) throw error;
+    const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
+    
+    const b = data.batches.find(x => String(x.id) === String(bid));
+    if (b) {
+      if (stageNum === 1) b.photoWax = urlData.publicUrl;
+      if (stageNum === 4) b.photoMetal = urlData.publicUrl;
+      b.updatedAt = new Date().toISOString();
+      save();
+      showToast("✅ Фото этапа загружено", "success");
+    }
+  } catch (e) { console.error(e); showToast("❌ Ошибка загрузки фото", "error"); }
+}
+
 async function uploadProductPhoto(input) {
   const file = input.files[0]; if (!file) return;
   const statusEl = document.getElementById("p_photo_status"); const previewEl = document.getElementById("p_photo_preview");
@@ -2051,10 +2073,10 @@ function completeStageN(bid, stageNum) {
   if (stageNum === 8) {
     b.stage = 9; 
     b.finished = true; 
+    b.finishedAt = new Date().toLocaleString(); // <-- ДОБАВИЛИ ДАТУ
     b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
     data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: p.name, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
     
-    // ПРОВЕРКА: ВСЕ ЛИ ПАРТИИ В ГРУППЕ ЗАВЕРШЕНЫ?
     if (b.groupId) {
       const groupBatches = data.batches.filter(x => String(x.groupId) === String(b.groupId));
       const allDone = groupBatches.every(x => x.finished);
@@ -2062,7 +2084,6 @@ function completeStageN(bid, stageNum) {
       if (allDone) {
         const group = data.groups.find(g => String(g.id) === String(b.groupId));
         if (group) {
-           // Закрываем задачу в календаре
            const calTask = data.tasks.find(t => t.type === "production_task" && t.title.includes(group.title));
            if (calTask) { 
              calTask.done = true; 
@@ -2072,7 +2093,6 @@ function completeStageN(bid, stageNum) {
         }
       }
     } else {
-      // Если партия одиночная (без группы)
       if (data.tasks && b.calTaskId) {
         const calTask = data.tasks.find(t => String(t.id) === String(b.calTaskId));
         if (calTask) { 
@@ -2120,7 +2140,7 @@ function renderBatchCard(b) {
   if (!s[1].done) {
     const norm = p.normWax * b.qty;
     html += `<div class="stage ${st===1?'active':''}"><div class="stage-title">1. Создание восковок ${st===1?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Норма: ${fmt(norm,3)} г воска. Введите фактический вес:</div>`;
-    if (st === 1) html += `<div class="row"><input id="s1_${b.id}" type="number" step="0.001" placeholder="Вес воска, г"><button class="action ok" onclick="completeStage1(${b.id})">Этап завершён</button></div>`;
+    if (st === 1) html += `<div class="row"><input id="s1_${b.id}" type="number" step="0.001" placeholder="Вес воска, г"><input type="file" id="s1_photo_${b.id}" accept="image/*" style="display:none" onchange="uploadStagePhoto('${b.id}', 1, this)"><button class="action" onclick="document.getElementById('s1_photo_${b.id}').click()">📷 Фото</button><button class="action ok" onclick="completeStage1(${b.id})">Этап завершён</button></div>`;
     html += `</div>`;
   } else {
     html += `<div class="stage done"><div class="stage-title">1. Восковки <span class="badge badge-done">завершён</span></div><div class="stage-info">Использовано: ${fmt(s[1].waxUsed,3)} г — ${fmt(b.stageCosts[1])} ₽</div></div>`;
@@ -2146,7 +2166,7 @@ function renderBatchCard(b) {
 
   if (s[3].done && !s[4].done) {
     html += `<div class="stage ${st===4?'active':''}"><div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Укажите использованный металл и возврат:</div>`;
-    if (st === 4) html += `<div class="row"><input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г"><input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0"><button class="action ok" onclick="completeStage4(${b.id})">Этап завершён</button></div>`;
+    if (st === 4) html += `<div class="row"><input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г"><input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0"><input type="file" id="s4_photo_${b.id}" accept="image/*" style="display:none" onchange="uploadStagePhoto('${b.id}', 4, this)"><button class="action" onclick="document.getElementById('s4_photo_${b.id}').click()">📷 Фото</button><button class="action ok" onclick="completeStage4(${b.id})">Этап завершён</button></div>`;
     html += `</div>`;
   } else if (s[4].done) {
     html += `<div class="stage done"><div class="stage-title">4. Литьё <span class="badge badge-done">завершён</span></div><div class="stage-info">Использовано: ${fmt(s[4].metalUsed,3)} г, возврат: ${fmt(s[4].metalReturned,3)} г — ${fmt(b.stageCosts[4])} ₽</div></div>`;
@@ -2248,7 +2268,6 @@ function renderBatches() {
   noGroup.forEach(b => { html += renderBatchCard(b); });
   document.getElementById("active_batches").innerHTML = html || `<p class="hint">Нет активных партий</p>`;
   
-  // БЛОК ЗАВЕРШЕННЫХ ПАРТИЙ С ДЕТАЛИЗАЦИЕЙ
   const doneGroups = {};
   done.forEach(b => {
     const gid = b.groupId || "no_group";
@@ -2268,8 +2287,11 @@ function renderBatches() {
           <summary style="cursor:pointer; font-size:14px; font-weight:600;">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></summary>
           <div style="margin-top:12px; font-size:13px;">
             <div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #eee;">
-              <b>Себестоимость:</b> ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)
+              <div><b>Себестоимость:</b> ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div>
+              <div><b>Ответственный:</b> ${escapeHtml(b.responsible) || "—"}</div>
+              <div><b>Завершено:</b> ${b.finishedAt || "—"}</div>
             </div>
+            
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
               <div><b>Воск:</b> ${fmt(b.stages[1].waxUsed, 3)} г — ${fmt(b.stageCosts[1])} ₽</div>
               <div><b>Формовка:</b> ${fmt(b.stageCosts[2])} ₽</div>
@@ -2280,6 +2302,10 @@ function renderBatches() {
               <div><b>Чернение:</b> ${fmt(b.stageCosts[7])} ₽</div>
               <div><b>Упаковка:</b> ${fmt(b.stageCosts[8])} ₽</div>
             </div>
+
+            ${b.photoWax ? `<div style="margin-top:12px;"><b>Фото восковки:</b><br><img src="${escapeHtml(b.photoWax)}" style="max-height:100px; border-radius:4px; margin-top:4px;"></div>` : ''}
+            ${b.photoMetal ? `<div style="margin-top:12px;"><b>Фото литья:</b><br><img src="${escapeHtml(b.photoMetal)}" style="max-height:100px; border-radius:4px; margin-top:4px;"></div>` : ''}
+
             <div style="margin-top:12px; border-top:1px solid #eee; padding-top:12px;">
               <button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">Удалить</button>
             </div>
