@@ -1161,13 +1161,11 @@ function showCompanyTab(id, btn) {
   
   if (id === "chat") {
     renderChats();
-    // Если мы открываем вкладку чата вручную (из меню), прячем окно и показываем список
     if (!_currentChatId) {
       document.getElementById("chat_window").style.display = "none";
       document.querySelector("#company-chat > .card").style.display = "block";
     }
   } else {
-    // Если уходим на другую вкладку — сбрасываем чат
     document.getElementById("chat_window").style.display = "none";
     _currentChatId = null;
   }
