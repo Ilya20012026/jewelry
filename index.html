@@ -1954,6 +1954,18 @@ async function initApp() {
 }
 
 initApp();
+// Страховка от вечной загрузки
+setTimeout(() => {
+  const splash = document.getElementById("splash_screen");
+  if (splash) {
+    splash.style.opacity = "0";
+    setTimeout(() => { splash.remove(); }, 300);
+  }
+  
+  // И принудительно показываем логин или приложение
+  let user = getCurrentUser();
+  if (user) showApp(); else hideApp();
+}, 3500); // Ждем 3.5 секунды и убираем загрузку
 // Страховка: если через 1.5 секунды оба экрана скрыты, показываем логин
 setTimeout(() => {
   const login = document.getElementById("login_screen");
