@@ -502,20 +502,39 @@
 <!-- ПОСТАВКИ -->
 <div id="supplies" class="tab">
   <div class="card master-hidden">
+      <div class="card master-hidden">
     <h3>Создать поставку</h3>
     <div class="row">
       <input id="sup_title" placeholder="Название (например, Собрать поставку WB)" style="width:280px">
       <input id="sup_date" type="date">
-      <input id="sup_counterparty" placeholder="Контрагент (WB, Озон)" style="width:180px">
+      <select id="sup_counterparty" style="width:180px">
+        <option value="">— Контрагент —</option>
+        <option>ВБ</option><option>Озон</option><option>Авито</option>
+        <option>Опт</option><option>Точка продаж</option><option>Церковь</option>
+        <option>Другое</option>
+      </select>
+    </div>
+    
+    <div style="margin-top:12px; padding:12px; background:#f9f9f9; border:1px solid #eee; border-radius:4px;">
+      <b style="font-size:13px;">Товары в поставке:</b>
+      <div id="supply_items_rows" style="margin-top:8px;">
+        <div class="row supply-item-row">
+          <select class="supply-stock-select" style="min-width:250px"></select>
+          <input class="supply-qty" type="number" value="1" min="1" placeholder="Кол-во" style="width:100px">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button class="action" onclick="addSupplyItemRow()">+ Ещё товар</button>
+        <button class="action danger" onclick="removeLastSupplyItemRow()">− Убрать</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
       <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
       <button class="action" onclick="document.getElementById('sup_pdf').click()">📎 PDF (штрихкоды)</button>
-      <button class="action" onclick="addSupply()">+ СОЗДАТЬ</button>
+      <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
+      <div id="sup_pdf_status" style="font-size:13px; color:#888;"></div>
     </div>
-    <div id="sup_pdf_status" style="font-size:13px; color:#888; margin-top:6px;"></div>
-  </div>
-  <div class="card">
-    <h3>Активные поставки</h3>
-    <div id="supplies_active_list"></div>
   </div>
   <div class="card">
     <h3>Архив поставок</h3>
@@ -2567,34 +2586,88 @@ async function uploadSupplyPDF(input) {
 function addSupply() {
   const title = document.getElementById("sup_title").value.trim();
   const date = document.getElementById("sup_date").value || new Date().toISOString().slice(0,10);
-  const counterparty = document.getElementById("sup_counterparty").value.trim();
+  const counterparty = document.getElementById("sup_counterparty").value;
   if (!title) return alert("Введите название");
-  
+
+  const rows = document.querySelectorAll(".supply-item-row");
+  const items = [];
+  rows.forEach(row => {
+    const stockId = row.querySelector(".supply-stock-select").value;
+    const qty = +row.querySelector(".supply-qty").value || 0;
+    if (!stockId || qty <= 0) return;
+    const stockItem = data.stock.find(s => String(s.id) === String(stockId));
+    if (!stockItem) return;
+    items.push({ stockId, qty, productName: stockItem.productName });
+  });
+
+  if (items.length === 0) return alert("Добавьте хотя бы одно изделие из списка");
+
   data.supplies = data.supplies || [];
   const newSupply = {
     id: uid(), title, date, counterparty,
-    status: 'new', 
+    status: 'new', items: items,
     pdfUrl: _pendingSupplyPdf ? _pendingSupplyPdf.url : null,
     pdfName: _pendingSupplyPdf ? _pendingSupplyPdf.name : null,
     photoBox: null, photoSent: null, note: '',
     updatedAt: new Date().toISOString()
   };
   data.supplies.push(newSupply);
+
+  const calTask = {
+    id: uid(), type: "supply_task", title: "Поставка: " + title,
+    date_start: date, date_end: date, responsible: "",
+    note: "Контрагент: " + (counterparty || "—") + " | Товаров: " + items.length,
+    done: false, supplyId: newSupply.id, updatedAt: new Date().toISOString()
+  };
+  data.tasks = data.tasks || [];
+  data.tasks.push(calTask);
   
   document.getElementById("sup_title").value = "";
   document.getElementById("sup_counterparty").value = "";
   document.getElementById("sup_pdf").value = "";
   document.getElementById("sup_pdf_status").textContent = "";
   _pendingSupplyPdf = null;
+  document.getElementById("supply_items_rows").innerHTML = `<div class="row supply-item-row"><select class="supply-stock-select" style="min-width:250px"></select><input class="supply-qty" type="number" value="1" min="1" style="width:100px"></div>`;
+  renderSupplyStockSelect();
   
   save(); renderSupplies();
+  setTimeout(() => renderCalendar(), 150);
   showToast("✅ Поставка создана", "success");
+}
+
+function renderSupplyStockSelect() {
+  const selects = document.querySelectorAll(".supply-stock-select");
+  const options = (data.stock || []).filter(s => s.remaining > 0).map(s => 
+    `<option value="${s.id}">${escapeHtml(s.productName)} (осталось ${s.remaining} шт)</option>`
+  ).join("");
+  selects.forEach(sel => {
+    const cur = sel.value;
+    sel.innerHTML = options || `<option value="">Нет товаров на складе</option>`;
+    if (cur) sel.value = cur;
+  });
+}
+
+function addSupplyItemRow() {
+  const container = document.getElementById("supply_items_rows");
+  const row = document.createElement("div");
+  row.className = "row supply-item-row";
+  row.innerHTML = `<select class="supply-stock-select" style="min-width:250px"></select><input class="supply-qty" type="number" value="1" min="1" placeholder="Кол-во" style="width:100px">`;
+  container.appendChild(row);
+  renderSupplyStockSelect();
+}
+
+function removeLastSupplyItemRow() {
+  const container = document.getElementById("supply_items_rows");
+  const rows = container.querySelectorAll(".supply-item-row");
+  if (rows.length <= 1) return;
+  rows[rows.length - 1].remove();
 }
 
 function renderSupplies() {
   const listEl = document.getElementById("supplies_active_list");
   if (!listEl) return;
-  
+  renderSupplyStockSelect();
+
   const supplies = data.supplies || [];
   const active = supplies.filter(s => s.status !== 'done');
   const archive = supplies.filter(s => s.status === 'done');
@@ -2608,7 +2681,10 @@ function renderSupplies() {
           <div>
             <h4 style="margin:0 0 4px 0;">${escapeHtml(s.title)}</h4>
             <div style="font-size:12px; color:#666; margin-bottom:8px;">${s.date} • ${escapeHtml(s.counterparty) || 'Без контрагента'}</div>
-            ${s.pdfUrl ? `<a href="${escapeHtml(s.pdfUrl)}" target="_blank" style="font-size:12px; color:#2b6cb0;">📎 Скачать PDF (штрихкоды)</a>` : ''}
+            <div style="font-size:13px; margin-bottom:8px;">
+              <b>Состав:</b> ${(s.items || []).map(i => `${escapeHtml(i.productName)} × ${i.qty}`).join(', ')}
+            </div>
+            ${s.pdfUrl ? `<a href="${escapeHtml(s.pdfUrl)}" target="_blank" style="font-size:12px; color:#2b6cb0;">📎 Скачать PDF</a>` : ''}
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button class="action" onclick="openSupplyChat('${s.id}', '${escapeHtml(s.title)}')">💬 Чат</button>
@@ -2630,7 +2706,7 @@ function renderSupplies() {
   } else {
     document.getElementById("supplies_archive_list").innerHTML = archive.map(s => `
       <div style="padding:8px; border-bottom:1px solid #eee; font-size:13px; opacity:0.6;">
-        <s>${escapeHtml(s.title)}</s> — ${s.date}
+        <s>${escapeHtml(s.title)}</s> — ${s.date} — ${(s.items||[]).map(i=>i.qty).reduce((a,b)=>a+b,0)} шт
       </div>
     `).join("");
   }
@@ -2713,17 +2789,36 @@ async function markSupplySent(id) {
 }
 
 function finishSupply(id) {
-  if (!confirm("Завершить поставку?")) return;
+  if (!confirm("Завершить поставку? Товары будут списаны со склада готовой продукции.")) return;
   const s = (data.supplies || []).find(x => String(x.id) === String(id));
   if (!s) return;
+  
+  // СПИСЫВАЕМ ТОВАРЫ СО СКЛАДА
+  if (s.items && s.items.length > 0) {
+    s.items.forEach(item => {
+      const stockItem = data.stock.find(st => String(st.id) === String(item.stockId));
+      if (stockItem) {
+        stockItem.remaining -= item.qty;
+        stockItem.updatedAt = new Date().toISOString();
+      }
+    });
+    // Удаляем пустые позиции со склада
+    data.stock = data.stock.filter(st => st.remaining > 0);
+  }
+
   s.status = 'done';
   s.updatedAt = new Date().toISOString();
   
+  // Закрываем задачу в календаре
+  const calTask = (data.tasks || []).find(t => t.supplyId === id);
+  if (calTask) { calTask.done = true; calTask.updatedAt = new Date().toISOString(); }
+
   const chat = (data.chats || []).find(c => String(c.linked_id) === String(id));
   if (chat) { chat.archived = true; chat.updatedAt = new Date().toISOString(); }
   
-  save(); renderSupplies(); renderChats();
-  showToast("✅ Поставка в архиве", "success");
+  save(); renderSupplies(); renderChats(); renderStock();
+  setTimeout(() => renderCalendar(), 150);
+  showToast("✅ Поставка завершена, товары списаны", "success");
 }
 
 // Подключаем отрисовку к общей функции
