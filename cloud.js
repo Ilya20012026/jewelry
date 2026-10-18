@@ -7,7 +7,7 @@ const SUPABASE_URL = 'https://kjiybjmisztrwymkwwsg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_08SQ7121NYScNVQYffjjyg_mj-VWYv-';
 
 const TABLES = ['materials','products','cycles','opokas','batches','stock','archive','tasks','employees','groups','chats','messages','chat_participants'];
-const SKIP_FIELDS = ['updated_at'];
+const SKIP_FIELDS = ['updated_at', 'updatedAt'];
 const TOMBSTONE_TTL_DAYS = 30;
 
 let _sb = null;
