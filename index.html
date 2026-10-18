@@ -1290,11 +1290,23 @@ function deleteColumn(colId) {
 function addBoardTask(columnId) {
   const title = prompt("Название задачи (например, 'Собрать заказ №5'):");
   if (!title || !title.trim()) return;
+  
   data.board_tasks = data.board_tasks || [];
-  data.board_tasks.push({ id: uid(), column_id: columnId, title: title.trim(), updatedAt: new Date().toISOString() });
-  save(); renderBoards(); showToast("✅ Задача добавлена", "success");
+  
+  const newTask = {
+    id: uid(), // Убедимся, что id это число (uid возвращает число)
+    column_id: Number(columnId), // Принудительно делаем числом, как в базе
+    title: title.trim(),
+    note: "",
+    updatedAt: new Date().toISOString()
+  };
+  
+  data.board_tasks.push(newTask);
+  
+  save(); 
+  renderBoards(); 
+  showToast("✅ Задача добавлена", "success");
 }
-
 function deleteBoardTask(taskId) {
   if (!confirm("Удалить задачу?")) return;
   markDeleted(data, "board_tasks", taskId);
