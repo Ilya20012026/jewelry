@@ -284,6 +284,7 @@
   <button onclick="showTab('batches', this)">Партии</button>
   <button onclick="showTab('stock', this)">Склад готовой</button>
   <button onclick="showTab('archive', this)">Архив списаний</button>
+  <button onclick="showTab('supplies', this)">Поставки</button>
 </div>
 
 <!-- СКЛАД МАТЕРИАЛОВ -->
@@ -497,6 +498,30 @@
 </div>
 </div>
 <!-- /ОБЁРТКА: ПРОИЗВОДСТВО -->
+
+<!-- ПОСТАВКИ -->
+<div id="supplies" class="tab">
+  <div class="card master-hidden">
+    <h3>Создать поставку</h3>
+    <div class="row">
+      <input id="sup_title" placeholder="Название (например, Собрать поставку WB)" style="width:280px">
+      <input id="sup_date" type="date">
+      <input id="sup_counterparty" placeholder="Контрагент (WB, Озон)" style="width:180px">
+      <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
+      <button class="action" onclick="document.getElementById('sup_pdf').click()">📎 PDF (штрихкоды)</button>
+      <button class="action" onclick="addSupply()">+ СОЗДАТЬ</button>
+    </div>
+    <div id="sup_pdf_status" style="font-size:13px; color:#888; margin-top:6px;"></div>
+  </div>
+  <div class="card">
+    <h3>Активные поставки</h3>
+    <div id="supplies_active_list"></div>
+  </div>
+  <div class="card">
+    <h3>Архив поставок</h3>
+    <div id="supplies_archive_list"></div>
+  </div>
+</div>
 
 <!-- ОБЁРТКА: КОМПАНИЯ -->
 <div id="main-company" class="main-section">
@@ -2515,6 +2540,198 @@ async function initApp() {
   console.log("✅ Приложение запущено.");
 }
 
+/* ============================================================
+   СИСТЕМА ПОСТАВОК
+   ============================================================ */
+let _pendingSupplyPdf = null;
+
+async function uploadSupplyPDF(input) {
+  const file = input.files[0]; if (!file) return;
+  const statusEl = document.getElementById("sup_pdf_status");
+  statusEl.textContent = "Загрузка PDF..."; statusEl.style.color = "#b7791f";
+  
+  try {
+    const sb = await initCloud(); if (!sb) throw new Error("Нет клиента");
+    const ext = file.name.split('.').pop() || 'pdf';
+    const fileName = `supply_${Date.now()}.${ext}`;
+    const { error } = await sb.storage.from('chat-files').upload(fileName, file);
+    if (error) throw error;
+    const { data: urlData } = sb.storage.from('chat-files').getPublicUrl(fileName);
+    
+    _pendingSupplyPdf = { url: urlData.publicUrl, name: file.name };
+    statusEl.textContent = "✅ PDF готов к созданию поставки: " + file.name; 
+    statusEl.style.color = "#2f855a";
+  } catch (e) { console.error(e); statusEl.textContent = "❌ Ошибка загрузки PDF"; statusEl.style.color = "#c53030"; }
+}
+
+function addSupply() {
+  const title = document.getElementById("sup_title").value.trim();
+  const date = document.getElementById("sup_date").value || new Date().toISOString().slice(0,10);
+  const counterparty = document.getElementById("sup_counterparty").value.trim();
+  if (!title) return alert("Введите название");
+  
+  data.supplies = data.supplies || [];
+  const newSupply = {
+    id: uid(), title, date, counterparty,
+    status: 'new', 
+    pdfUrl: _pendingSupplyPdf ? _pendingSupplyPdf.url : null,
+    pdfName: _pendingSupplyPdf ? _pendingSupplyPdf.name : null,
+    photoBox: null, photoSent: null, note: '',
+    updatedAt: new Date().toISOString()
+  };
+  data.supplies.push(newSupply);
+  
+  document.getElementById("sup_title").value = "";
+  document.getElementById("sup_counterparty").value = "";
+  document.getElementById("sup_pdf").value = "";
+  document.getElementById("sup_pdf_status").textContent = "";
+  _pendingSupplyPdf = null;
+  
+  save(); renderSupplies();
+  showToast("✅ Поставка создана", "success");
+}
+
+function renderSupplies() {
+  const listEl = document.getElementById("supplies_active_list");
+  if (!listEl) return;
+  
+  const supplies = data.supplies || [];
+  const active = supplies.filter(s => s.status !== 'done');
+  const archive = supplies.filter(s => s.status === 'done');
+
+  if (active.length === 0) {
+    listEl.innerHTML = `<p class="hint">Нет активных поставок</p>`;
+  } else {
+    listEl.innerHTML = active.map(s => `
+      <div class="card" style="margin-bottom:12px; border-left:4px solid #000;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h4 style="margin:0 0 4px 0;">${escapeHtml(s.title)}</h4>
+            <div style="font-size:12px; color:#666; margin-bottom:8px;">${s.date} • ${escapeHtml(s.counterparty) || 'Без контрагента'}</div>
+            ${s.pdfUrl ? `<a href="${escapeHtml(s.pdfUrl)}" target="_blank" style="font-size:12px; color:#2b6cb0;">📎 Скачать PDF (штрихкоды)</a>` : ''}
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button class="action" onclick="openSupplyChat('${s.id}', '${escapeHtml(s.title)}')">💬 Чат</button>
+            ${s.status === 'new' ? `<button class="action warn" onclick="markSupplyBox('${s.id}')">📦 Собрано</button>` : ''}
+            ${s.status === 'box' ? `<button class="action warn" onclick="markSupplySent('${s.id}')">🚚 Отправлено</button>` : ''}
+            ${s.status === 'sent' ? `<button class="action ok" onclick="finishSupply('${s.id}')">✔ Завершить</button>` : ''}
+          </div>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:12px; align-items:center;">
+          ${s.photoBox ? `<div style="text-align:center;"><img src="${escapeHtml(s.photoBox)}" style="height:60px; border-radius:4px;"><div style="font-size:10px; color:#888;">Фото коробки</div></div>` : ''}
+          ${s.photoSent ? `<div style="text-align:center;"><img src="${escapeHtml(s.photoSent)}" style="height:60px; border-radius:4px;"><div style="font-size:10px; color:#888;">Фото отправки</div></div>` : ''}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  if (archive.length === 0) {
+    document.getElementById("supplies_archive_list").innerHTML = `<p class="hint">Архив пуст</p>`;
+  } else {
+    document.getElementById("supplies_archive_list").innerHTML = archive.map(s => `
+      <div style="padding:8px; border-bottom:1px solid #eee; font-size:13px; opacity:0.6;">
+        <s>${escapeHtml(s.title)}</s> — ${s.date}
+      </div>
+    `).join("");
+  }
+}
+
+function openSupplyChat(supplyId, title) {
+  const user = getCurrentUser(); if (!user) return;
+  let chat = (data.chats || []).find(c => String(c.linked_id) === String(supplyId));
+  
+  if (!chat) {
+    chat = { id: "c_" + Date.now() + "_" + Math.floor(Math.random()*1000), type: "task", title: "📦 Поставка: " + title, linked_id: String(supplyId), linked_type: "supply", pinned: false, created_by: String(user.id), updatedAt: new Date().toISOString() };
+    data.chats = data.chats || []; data.chats.push(chat);
+    data.chat_participants = data.chat_participants || []; data.chat_participants.push({ chat_id: chat.id, employee_id: String(user.id) });
+    save(); renderChats();
+  }
+  
+  const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
+  if (companyBtn) showMain("company", companyBtn);
+  const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
+  if (chatTabBtn) showCompanyTab('chat', chatTabBtn);
+  
+  _currentChatId = chat.id;
+  document.getElementById("chat_title").textContent = chat.title || "Без названия";
+  document.querySelector("#company-chat > .card").style.display = "none";
+  document.getElementById("chat_window").style.display = "block";
+  renderChatParticipants(chat.id);
+  renderChatMessages(chat.id);
+}
+
+async function markSupplyBox(id) {
+  const s = (data.supplies || []).find(x => String(x.id) === String(id));
+  if (!s) return;
+  
+  const fileInput = document.createElement("input");
+  fileInput.type = "file"; fileInput.accept = "image/*";
+  fileInput.onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    showToast("⏳ Загрузка фото...", "info");
+    try {
+      const sb = await initCloud(); if (!sb) throw new Error("Нет клиента");
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = `box_${id}_${Date.now()}.${ext}`;
+      const { error } = await sb.storage.from('product-photos').upload(fileName, file);
+      if (error) throw error;
+      const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
+      s.photoBox = urlData.publicUrl;
+      s.status = 'box';
+      s.updatedAt = new Date().toISOString();
+      save(); renderSupplies();
+      showToast("✅ Коробка собрана", "success");
+    } catch (err) { console.error(err); showToast("❌ Ошибка", "error"); }
+  };
+  fileInput.click();
+}
+
+async function markSupplySent(id) {
+  const s = (data.supplies || []).find(x => String(x.id) === String(id));
+  if (!s) return;
+  
+  const fileInput = document.createElement("input");
+  fileInput.type = "file"; fileInput.accept = "image/*";
+  fileInput.onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    showToast("⏳ Загрузка фото...", "info");
+    try {
+      const sb = await initCloud(); if (!sb) throw new Error("Нет клиента");
+      const ext = file.name.split('.').pop() || 'jpg';
+      const fileName = `sent_${id}_${Date.now()}.${ext}`;
+      const { error } = await sb.storage.from('product-photos').upload(fileName, file);
+      if (error) throw error;
+      const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
+      s.photoSent = urlData.publicUrl;
+      s.status = 'sent';
+      s.updatedAt = new Date().toISOString();
+      save(); renderSupplies();
+      showToast("✅ Посылка отправлена", "success");
+    } catch (err) { console.error(err); showToast("❌ Ошибка", "error"); }
+  };
+  fileInput.click();
+}
+
+function finishSupply(id) {
+  if (!confirm("Завершить поставку?")) return;
+  const s = (data.supplies || []).find(x => String(x.id) === String(id));
+  if (!s) return;
+  s.status = 'done';
+  s.updatedAt = new Date().toISOString();
+  
+  const chat = (data.chats || []).find(c => String(c.linked_id) === String(id));
+  if (chat) { chat.archived = true; chat.updatedAt = new Date().toISOString(); }
+  
+  save(); renderSupplies(); renderChats();
+  showToast("✅ Поставка в архиве", "success");
+}
+
+// Подключаем отрисовку к общей функции
+const _originalRenderAll = renderAll;
+renderAll = function() {
+  _originalRenderAll();
+  renderSupplies();
+};
 
 initApp();
 // Страховка от вечной загрузки

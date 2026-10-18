@@ -6,7 +6,7 @@
 const SUPABASE_URL = 'https://kjiybjmisztrwymkwwsg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_08SQ7121NYScNVQYffjjyg_mj-VWYv-';
 
-const TABLES = ['materials','products','cycles','opokas','batches','stock','archive','tasks','employees','groups','chats','messages','boards','columns','board_tasks'];
+const TABLES = ['materials','products','cycles','opokas','batches','stock','archive','tasks','employees','groups','chats','messages','boards','columns','board_tasks','supplies'];
 const SKIP_FIELDS = ['updated_at', 'updatedAt'];
 const TOMBSTONE_TTL_DAYS = 30;
 
