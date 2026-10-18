@@ -965,6 +965,70 @@ function createCustomChat() {
   save(); renderChats(); showToast("✅ Чат создан: " + title, "success");
 }
 
+async function openTaskChat(linkedId, title) {
+  const user = getCurrentUser();
+  if (!user) return alert("Войдите заново");
+  let chat = (data.chats || []).find(c => String(c.linked_id) === String(linkedId));
+  
+  if (!chat) {
+    chat = { id: "c_" + Date.now() + "_" + Math.floor(Math.random()*1000), type: "task", title: "📦 " + title, linked_id: String(linkedId), linked_type: linkedId.startsWith("batch_") ? "batch" : "task", pinned: false, created_by: String(user.id), updatedAt: new Date().toISOString() };
+    data.chats = data.chats || []; data.chats.push(chat);
+    data.chat_participants = data.chat_participants || []; data.chat_participants.push({ chat_id: chat.id, employee_id: String(user.id) });
+    save(); renderChats(); showToast("✅ Чат для задачи создан", "success");
+  }
+  
+  const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
+  if (companyBtn) showMain("company", companyBtn);
+
+  const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
+  if (chatTabBtn) showCompanyTab('chat', chatTabBtn);
+  
+  _currentChatId = chat.id;
+  document.getElementById("chat_title").textContent = chat.title || "Без названия";
+  document.querySelector("#company-chat > .card").style.display = "none";
+  document.getElementById("chat_window").style.display = "block";
+  renderChatParticipants(chat.id);
+  renderChatMessages(chat.id);
+}
+
+function deleteCurrentChat() {
+  if (!_currentChatId) return;
+  const chat = (data.chats || []).find(c => String(c.id) === String(_currentChatId));
+  if (!chat) return;
+  if (chat.type === "announcements" || chat.type === "general") return alert("Системный чат удалить нельзя");
+  if (!confirm("Удалить чат «" + chat.title + "» и все сообщения?")) return;
+  data.chats = data.chats.filter(c => String(c.id) !== String(_currentChatId));
+  data.messages = (data.messages || []).filter(m => String(m.chat_id) !== String(_currentChatId));
+  data.chat_participants = (data.chat_participants || []).filter(p => String(p.chat_id) !== String(_currentChatId));
+  save(); closeChatWindow(); showToast("✅ Чат удалён", "success");
+}
+
+function openChat(chatId) {
+  const user = getCurrentUser(); if (!user) return;
+  const chat = (data.chats || []).find(c => String(c.id) === String(chatId));
+  if (!chat) return alert("Чат не найден");
+  
+  _currentChatId = chatId;
+  
+  const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
+  if (companyBtn) showMain("company", companyBtn);
+  
+  const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
+  if (chatTabBtn) {
+    document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
+    document.getElementById("company-chat").classList.add("active");
+    chatTabBtn.classList.add("active");
+  }
+
+  document.getElementById("chat_title").textContent = chat.title || "Без названия";
+  document.querySelector("#company-chat > .card").style.display = "none";
+  document.getElementById("chat_window").style.display = "block";
+  renderChatParticipants(chatId);
+  renderChatMessages(chatId);
+  setTimeout(() => { const inp = document.getElementById("chat_input"); if (inp) inp.focus(); }, 100);
+}
+
 function closeChatWindow() {
   _currentChatId = null;
   document.getElementById("chat_window").style.display = "none";
