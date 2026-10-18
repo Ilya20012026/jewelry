@@ -1022,7 +1022,22 @@ function openChat(chatId) {
   const user = getCurrentUser(); if (!user) return;
   const chat = (data.chats || []).find(c => String(c.id) === String(chatId));
   if (!chat) return alert("Чат не найден");
+  
   _currentChatId = chatId;
+  
+  // Если чат архивный, мы должны принудительно открыть раздел "Компания" -> "Сообщения", 
+  // но не прятать само окно чата.
+  const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
+  if (companyBtn) showMain("company", companyBtn);
+  
+  const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
+  if (chatTabBtn) {
+    document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
+    document.getElementById("company-chat").classList.add("active");
+    chatTabBtn.classList.add("active");
+  }
+
   document.getElementById("chat_title").textContent = chat.title || "Без названия";
   document.querySelector("#company-chat > .card").style.display = "none";
   document.getElementById("chat_window").style.display = "block";
@@ -1035,7 +1050,14 @@ function closeChatWindow() {
   _currentChatId = null;
   document.getElementById("chat_window").style.display = "none";
   document.querySelector("#company-chat > .card").style.display = "block";
-  renderChats();
+  
+  // Если мы были в архиве, возвращаемся в архив
+  const archivedChatsTab = document.getElementById("service-archive_chats");
+  if (archivedChatsTab && archivedChatsTab.classList.contains("active")) {
+    // Ничего не делаем, мы уже на вкладке архива
+  } else {
+    renderChats();
+  }
 }
 
 function renderChatMessages(chatId) {
@@ -1824,7 +1846,8 @@ async function uiFullSync() {
 function renderArchivedChats() {
   const listEl = document.getElementById("archived_chats_list"); if (!listEl) return;
   const archived = (data.chats || []).filter(c => c.archived === true);
-    if (archived.length === 0) { listEl.innerHTML = `<p class="hint">Архив пуст.</p>`; return; }
+  if (archived.length === 0) { listEl.innerHTML = `<p class="hint">Архив пуст.</p>`; return; }
+  
   listEl.innerHTML = archived.map(c => `
     <div class="chat-item" onclick="openChat('${c.id}')">
       <div class="chat-item-info">
