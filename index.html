@@ -1669,23 +1669,27 @@ function addEmployee() {
 }
 
 async function delEmployee(id) {
-  if (!confirm("Удалить сотрудника навсегда? Он пропадет из базы.")) return;
+  if (!confirm("Удалить сотрудника навсегда? (Он исчезнет из базы)")) return;
   
-  // 1. Удаляем локально
-  markDeleted(data, "employees", id);
+  // 1. Стираем из локальной памяти
+  data.employees = (data.employees || []).filter(e => String(e.id) !== String(id));
   save();
   renderEmployees();
   
-  // 2. Жестко удаляем из облака Supabase
+  // 2. Отправляем запрос на жесткое удаление в базу
   try {
     const sb = await initCloud();
     if (sb) {
       const { error } = await sb.from('employees').delete().eq('id', id);
-      if (error) console.error("Ошибка удаления из облака:", error);
-      else console.log("Сотрудник успешно удален из облака.");
+      if (error) {
+        console.error("Ошибка удаления:", error);
+        alert("Не удалось удалить из облака: " + error.message);
+      } else {
+        showToast("Сотрудник успешно удален", "success");
+      }
     }
   } catch (e) {
-    console.error("Не удалось связаться с облаком для удаления:", e);
+    console.error("Сбой:", e);
   }
 }
 
