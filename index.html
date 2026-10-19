@@ -1668,26 +1668,25 @@ function addEmployee() {
   save(); renderEmployees();
 }
 
-function delEmployee(id) {
-  if (!confirm("Удалить сотрудника?")) return;
-  markDeleted(data, "employees", id); save(); renderEmployees();
-}
-
-let _currentEditEmployeeId = null;
-
-function openEmployeeModal(id) {
-  const emp = (data.employees || []).find(e => String(e.id) === String(id));
-  if (!emp) return;
+async function delEmployee(id) {
+  if (!confirm("Удалить сотрудника навсегда? Он пропадет из базы.")) return;
   
-  _currentEditEmployeeId = id;
+  // 1. Удаляем локально
+  markDeleted(data, "employees", id);
+  save();
+  renderEmployees();
   
-  document.getElementById("edit_emp_name").value = emp.name || "";
-  document.getElementById("edit_emp_role").value = emp.role || "master";
-  document.getElementById("edit_emp_pin").value = emp.pin || "";
-  document.getElementById("edit_emp_phone").value = emp.phone || "";
-  document.getElementById("edit_emp_note").value = emp.note || "";
-  
-  document.getElementById("employee_modal").style.display = "flex";
+  // 2. Жестко удаляем из облака Supabase
+  try {
+    const sb = await initCloud();
+    if (sb) {
+      const { error } = await sb.from('employees').delete().eq('id', id);
+      if (error) console.error("Ошибка удаления из облака:", error);
+      else console.log("Сотрудник успешно удален из облака.");
+    }
+  } catch (e) {
+    console.error("Не удалось связаться с облаком для удаления:", e);
+  }
 }
 
 function closeEmployeeModal() {
