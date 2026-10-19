@@ -1808,17 +1808,22 @@ function escapeHtml(s) {
 function addMaterial() {
   const name = document.getElementById("m_name").value.trim();
   if (!name) return alert("Введите название");
+  
   const stockVal = +document.getElementById("m_stock").value;
+  
   data.materials.push({ 
     id: uid(), name, 
     brand: document.getElementById("m_brand").value.trim(), 
     unit: document.getElementById("m_unit").value || "г", 
     price: +document.getElementById("m_price").value || 0, 
     stock: stockVal || 0,
-    infinite: stockVal === 0 && !document.getElementById("m_stock").value.trim() // Если поле пустое - бесконечный
+    // Если ввели 999999 или больше - считаем материал бесконечным
+    infinite: (stockVal >= 999999) 
   });
+  
   ["m_name","m_brand","m_price","m_stock"].forEach(id => document.getElementById(id).value = "");
   save(); renderMaterials(); renderAllMaterialSelects();
+  showToast("✅ Материал добавлен", "success");
 }
 
 function delMaterial(id) {
@@ -2779,6 +2784,26 @@ function removeLastSupplyItemRow() {
   rows[rows.length - 1].remove();
 }
 
+function deleteSupply(id) {
+  if (!confirm("Удалить поставку? Товары вернутся на склад готовой продукции.")) return;
+  const s = (data.supplies || []).find(x => String(x.id) === String(id));
+  if (!s) return;
+  
+  if (s.status !== 'done' && s.items) {
+    s.items.forEach(item => {
+      const stockItem = data.stock.find(st => String(st.id) === String(item.stockId));
+      if (stockItem) stockItem.remaining += item.qty;
+    });
+  }
+  
+  markDeleted(data, "supplies", id);
+  save();
+  renderSupplies();
+  renderStock();
+  setTimeout(() => renderCalendar(), 150);
+  showToast("Поставка удалена", "success");
+}
+
 function renderSupplies() {
   const listEl = document.getElementById("supplies_active_list");
   if (!listEl) return;
@@ -2818,18 +2843,19 @@ function renderSupplies() {
     `).join("");
   }
 
-function deleteSupply(id) {
-  if (!confirm("Удалить поставку? Товары вернутся на склад готовой продукции.")) return;
-  const s = (data.supplies || []).find(x => String(x.id) === String(id));
-  if (!s) return;
-  
-  // Возвращаем товары обратно на склад, если они не были списаны (статус не 'done')
-  if (s.status !== 'done' && s.items) {
-    s.items.forEach(item => {
-      const stockItem = data.stock.find(st => String(st.id) === String(item.stockId));
-      if (stockItem) stockItem.remaining += item.qty;
-    });
+  if (archive.length === 0) {
+    document.getElementById("supplies_archive_list").innerHTML = `<p class="hint">Архив пуст</p>`;
+  } else {
+    document.getElementById("supplies_archive_list").innerHTML = archive.map(s => `
+      <div style="padding:8px; border-bottom:1px solid #eee; font-size:13px; opacity:0.6; display:flex; align-items:center; justify-content:space-between;">
+        <span>
+          <s>${escapeHtml(s.title)}</s> — ${s.date} — ${(s.items||[]).map(i=>i.qty).reduce((a,b)=>a+b,0)} шт
+        </span>
+        <button class="action danger master-hidden" style="padding:2px 6px; font-size:10px; margin-left:10px;" onclick="deleteSupply('${s.id}')">×</button>
+      </div>
+    `).join("");
   }
+}
   
   markDeleted(data, "supplies", id);
   save();
@@ -2937,9 +2963,20 @@ async function markSupplySent(id) {
 }
 
 function finishSupply(id) {
-  if (!confirm("Завершить поставку? Товары будут списаны со склада готовой продукции.")) return;
   const s = (data.supplies || []).find(x => String(x.id) === String(id));
   if (!s) return;
+
+  // ПРОВЕРКА: Хватает ли товара на складе?
+  if (s.items && s.items.length > 0) {
+    for (const item of s.items) {
+      const stockItem = data.stock.find(st => String(st.id) === String(item.stockId));
+      if (!stockItem || stockItem.remaining < item.qty) {
+        return alert("Ошибка: на складе недостаточно товара «" + item.productName + "» для завершения этой поставки!");
+      }
+    }
+  }
+
+  if (!confirm("Завершить поставку? Товары будут списаны со склада готовой продукции.")) return;
   
   if (s.items && s.items.length > 0) {
     s.items.forEach(item => {
