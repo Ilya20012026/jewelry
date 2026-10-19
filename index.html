@@ -238,6 +238,24 @@
     .calendar-header button.action { padding: 4px 10px; font-size: 13px; }
     .calendar-legend { font-size: 10px; gap: 10px; }
   }
+    /* Принудительный стиль для кнопки Войти (черный фон, белый текст) */
+  .login-form button.action,
+  #login_screen button.action { 
+    background: #000000 !important; 
+    color: #ffffff !important; 
+    border: 1px solid #ffffff !important; 
+    font-weight: 700 !important;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  
+  /* Колесико загрузки */
+  #splash_screen div[style*="border-top-color"] {
+    animation: spin 1s linear infinite !important;
+  }
+  @keyframes spin { 
+    to { transform: rotate(360deg); } 
+  }
 </style>
    
 </div>
