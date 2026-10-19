@@ -782,6 +782,43 @@
   </div>
 </div>
 
+<!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ СОТРУДНИКА -->
+<div id="employee_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:15000; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#fff; width:100%; max-width:500px; border-radius:8px; padding:24px; position:relative;">
+    <button onclick="closeEmployeeModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer;">×</button>
+    <h3 style="margin-top:0; padding-right:30px;">Редактирование сотрудника</h3>
+    
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">ФИО</label>
+      <input id="edit_emp_name" type="text" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Роль</label>
+      <select id="edit_emp_role" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+        <option value="master">Сотрудник</option>
+        <option value="admin">Руководитель</option>
+      </select>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">PIN</label>
+      <input id="edit_emp_pin" type="text" maxlength="6" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Телефон</label>
+      <input id="edit_emp_phone" type="text" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Комментарий</label>
+      <input id="edit_emp_note" type="text" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+      <button class="action ok" onclick="saveEmployeeFromModal()">💾 Сохранить</button>
+      <button class="action danger" onclick="closeEmployeeModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
 <script src="db.js"></script>
 <script src="cloud.js"></script>
 <script src="autosync.js"></script>
@@ -1636,6 +1673,56 @@ function delEmployee(id) {
   markDeleted(data, "employees", id); save(); renderEmployees();
 }
 
+let _currentEditEmployeeId = null;
+
+function openEmployeeModal(id) {
+  const emp = (data.employees || []).find(e => String(e.id) === String(id));
+  if (!emp) return;
+  
+  _currentEditEmployeeId = id;
+  
+  document.getElementById("edit_emp_name").value = emp.name || "";
+  document.getElementById("edit_emp_role").value = emp.role || "master";
+  document.getElementById("edit_emp_pin").value = emp.pin || "";
+  document.getElementById("edit_emp_phone").value = emp.phone || "";
+  document.getElementById("edit_emp_note").value = emp.note || "";
+  
+  document.getElementById("employee_modal").style.display = "flex";
+}
+
+function closeEmployeeModal() {
+  _currentEditEmployeeId = null;
+  document.getElementById("employee_modal").style.display = "none";
+}
+
+function saveEmployeeFromModal() {
+  if (!_currentEditEmployeeId) return;
+  const emp = (data.employees || []).find(e => String(e.id) === String(_currentEditEmployeeId));
+  if (!emp) return;
+
+  const name = document.getElementById("edit_emp_name").value.trim();
+  const pin = document.getElementById("edit_emp_pin").value.trim();
+  
+  if (!name) return alert("Введите ФИО");
+  if (!pin || pin.length < 4) return alert("PIN должен быть не короче 4 символов");
+
+  // Проверка на дубликат PIN у других сотрудников
+  const existing = (data.employees || []).find(e => e.pin && e.pin === pin && String(e.id) !== String(emp.id));
+  if (existing) return alert("Такой PIN уже используется сотрудником: " + existing.name);
+
+  emp.name = name;
+  emp.role = document.getElementById("edit_emp_role").value;
+  emp.pin = pin;
+  emp.phone = document.getElementById("edit_emp_phone").value.trim();
+  emp.note = document.getElementById("edit_emp_note").value.trim();
+  emp.updatedAt = new Date().toISOString();
+
+  save();
+  renderEmployees();
+  closeEmployeeModal();
+  showToast("✅ Данные сотрудника обновлены", "success");
+}
+
 function renderEmployees() {
   const tbody = document.getElementById("employees_table"); if (!tbody) return;
   const list = data.employees || [];
@@ -1643,7 +1730,7 @@ function renderEmployees() {
   tbody.innerHTML = list.map(e => {
     const roleLabel = e.role === "admin" ? "Руководитель" : "Сотрудник";
     const roleClass = e.role === "admin" ? "badge-done" : "badge-active";
-    return `<tr><td>${escapeHtml(e.name)}</td><td><span class="badge ${roleClass}">${roleLabel}</span></td><td>${e.pin ? escapeHtml(e.pin) : "—"}</td><td>${escapeHtml(e.phone) || "—"}</td><td>${escapeHtml(e.note) || "—"}</td><td><button class="action danger" onclick="delEmployee('${e.id}')">×</button></td></tr>`;
+   return `<tr><td>${escapeHtml(e.name)}</td><td><span class="badge ${roleClass}">${roleLabel}</span></td><td>${e.pin ? escapeHtml(e.pin) : "—"}</td><td>${escapeHtml(e.phone) || "—"}</td><td>${escapeHtml(e.note) || "—"}</td><td style="display:flex; gap:4px;"><button class="action" onclick="openEmployeeModal('${e.id}')" style="padding:5px 10px; font-size:12px;">✏️</button><button class="action danger" onclick="delEmployee('${e.id}')" style="padding:5px 10px; font-size:12px;">×</button></td></tr>`;
   }).join("");
 }
 
