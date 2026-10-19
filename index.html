@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Производство РУСИЧЪ</title>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:,">
 <meta name="theme-color" content="#000000">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1848,6 +1849,14 @@ function renderMaterials() {
     <td><button class="action danger master-hidden" onclick="delMaterial(${m.id})">×</button></td></tr>`;
   }).join("");
 }
+
+function fillSelect(id) {
+  const sel = document.getElementById(id); if (!sel) return;
+  const v = sel.value;
+  sel.innerHTML = data.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)}${m.brand ? " / "+escapeHtml(m.brand) : ""}</option>`).join("");
+  if (v) sel.value = v;
+}
+
 
 function renderAllMaterialSelects() {
   ["n_wax_mat","n_proc_mat","n_galv_mat","n_blk_mat","n_pack_mat","n_metal_mat","c_energy_mat","o_mass_mat_sel","o_water_mat_sel"].forEach(fillSelect);
