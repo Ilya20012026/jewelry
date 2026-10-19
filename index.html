@@ -2857,27 +2857,6 @@ function renderSupplies() {
   }
 }
   
-  markDeleted(data, "supplies", id);
-  save();
-  renderSupplies();
-  renderStock();
-  setTimeout(() => renderCalendar(), 150);
-  showToast("Поставка удалена", "success");
-}
-
-  if (archive.length === 0) {
-    document.getElementById("supplies_archive_list").innerHTML = `<p class="hint">Архив пуст</p>`;
-    } else {
-    document.getElementById("supplies_archive_list").innerHTML = archive.map(s => `
-      <div style="padding:8px; border-bottom:1px solid #eee; font-size:13px; opacity:0.6; display:flex; align-items:center; justify-content:space-between;">
-        <span>
-          <s>${escapeHtml(s.title)}</s> — ${s.date} — ${(s.items||[]).map(i=>i.qty).reduce((a,b)=>a+b,0)} шт
-        </span>
-        <button class="action danger master-hidden" style="padding:2px 6px; font-size:10px; margin-left:10px;" onclick="deleteSupply('${s.id}')">×</button>
-      </div>
-    `).join("");
-  }
-}
 
 function openSupplyChat(supplyId, title) {
   const user = getCurrentUser(); if (!user) return;
