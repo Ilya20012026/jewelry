@@ -2966,7 +2966,7 @@ function finishSupply(id) {
   const s = (data.supplies || []).find(x => String(x.id) === String(id));
   if (!s) return;
 
-  // ПРОВЕРКА: Хватает ли товара на складе?
+  // 1. Проверка наличия товара
   if (s.items && s.items.length > 0) {
     for (const item of s.items) {
       const stockItem = data.stock.find(st => String(st.id) === String(item.stockId));
@@ -2977,7 +2977,8 @@ function finishSupply(id) {
   }
 
   if (!confirm("Завершить поставку? Товары будут списаны со склада готовой продукции.")) return;
-  
+
+  // 2. Списание товара
   if (s.items && s.items.length > 0) {
     s.items.forEach(item => {
       const stockItem = data.stock.find(st => String(st.id) === String(item.stockId));
