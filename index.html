@@ -2418,9 +2418,21 @@ function renderStock() {
       <td>${s.remaining} шт</td>
       <td>${fmt(avgCost)} ₽</td>
       <td>${fmt(s.totalCost)} ₽</td>
-      <td><button class="action warn" onclick="openWriteOff('${s.id}')">Списать</button></td>
+          <td>
+      <button class="action warn" onclick="openWriteOff('${s.id}')">Списать</button>
+      <button class="action danger master-hidden" onclick="delStock('${s.id}')">×</button>
+    </td>
     </tr>`;
   }).join("");
+}
+
+function delStock(id) {
+  if (!confirm("Удалить эту позицию со склада готовой продукции?")) return;
+  markDeleted(data, "stock", id);
+  save(); 
+  renderStock();
+  if (typeof renderSupplies === 'function') renderSupplies();
+  showToast("Позиция удалена", "success");
 }
 
 function openWriteOff(stockId) {
@@ -2761,6 +2773,8 @@ function renderSupplies() {
             ${s.status === 'new' ? `<button class="action warn" onclick="markSupplyBox('${s.id}')">📦 Собрано</button>` : ''}
             ${s.status === 'box' ? `<button class="action warn" onclick="markSupplySent('${s.id}')">🚚 Отправлено</button>` : ''}
             ${s.status === 'sent' ? `<button class="action ok" onclick="finishSupply('${s.id}')">✔ Завершить</button>` : ''}
+            ${s.status === 'sent' ? `<button class="action ok" onclick="finishSupply('${s.id}')">✔ Завершить</button>` : ''}
+            <button class="action danger master-hidden" onclick="deleteSupply('${s.id}')">× Удалить</button>
           </div>
         </div>
         <div style="margin-top:10px; display:flex; gap:12px; align-items:center;">
@@ -2771,12 +2785,36 @@ function renderSupplies() {
     `).join("");
   }
 
+function deleteSupply(id) {
+  if (!confirm("Удалить поставку? Товары вернутся на склад готовой продукции.")) return;
+  const s = (data.supplies || []).find(x => String(x.id) === String(id));
+  if (!s) return;
+  
+  // Возвращаем товары обратно на склад, если они не были списаны (статус не 'done')
+  if (s.status !== 'done' && s.items) {
+    s.items.forEach(item => {
+      const stockItem = data.stock.find(st => String(st.id) === String(item.stockId));
+      if (stockItem) stockItem.remaining += item.qty;
+    });
+  }
+  
+  markDeleted(data, "supplies", id);
+  save();
+  renderSupplies();
+  renderStock();
+  setTimeout(() => renderCalendar(), 150);
+  showToast("Поставка удалена", "success");
+}
+
   if (archive.length === 0) {
     document.getElementById("supplies_archive_list").innerHTML = `<p class="hint">Архив пуст</p>`;
-  } else {
+    } else {
     document.getElementById("supplies_archive_list").innerHTML = archive.map(s => `
-      <div style="padding:8px; border-bottom:1px solid #eee; font-size:13px; opacity:0.6;">
-        <s>${escapeHtml(s.title)}</s> — ${s.date} — ${(s.items||[]).map(i=>i.qty).reduce((a,b)=>a+b,0)} шт
+      <div style="padding:8px; border-bottom:1px solid #eee; font-size:13px; opacity:0.6; display:flex; align-items:center; justify-content:space-between;">
+        <span>
+          <s>${escapeHtml(s.title)}</s> — ${s.date} — ${(s.items||[]).map(i=>i.qty).reduce((a,b)=>a+b,0)} шт
+        </span>
+        <button class="action danger master-hidden" style="padding:2px 6px; font-size:10px; margin-left:10px;" onclick="deleteSupply('${s.id}')">×</button>
       </div>
     `).join("");
   }
