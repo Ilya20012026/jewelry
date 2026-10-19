@@ -1804,13 +1804,23 @@ function escapeHtml(s) {
 }
 
 /* Склад материалов */
+
 function addMaterial() {
   const name = document.getElementById("m_name").value.trim();
   if (!name) return alert("Введите название");
-  data.materials.push({ id: uid(), name, brand: document.getElementById("m_brand").value.trim(), unit: document.getElementById("m_unit").value || "г", price: +document.getElementById("m_price").value || 0, stock: +document.getElementById("m_stock").value || 0 });
+  const stockVal = +document.getElementById("m_stock").value;
+  data.materials.push({ 
+    id: uid(), name, 
+    brand: document.getElementById("m_brand").value.trim(), 
+    unit: document.getElementById("m_unit").value || "г", 
+    price: +document.getElementById("m_price").value || 0, 
+    stock: stockVal || 0,
+    infinite: stockVal === 0 && !document.getElementById("m_stock").value.trim() // Если поле пустое - бесконечный
+  });
   ["m_name","m_brand","m_price","m_stock"].forEach(id => document.getElementById(id).value = "");
   save(); renderMaterials(); renderAllMaterialSelects();
 }
+
 function delMaterial(id) {
   if (!confirm("Удалить материал?")) return;
   markDeleted(data, "materials", id); save(); renderMaterials(); renderAllMaterialSelects();
@@ -1822,20 +1832,18 @@ function topUp(id) {
   m.stock = (+m.stock || 0) + (+v || 0);
   save(); renderMaterials(); showToast("✅ Склад пополнен", "success");
 }
+
 function renderMaterials() {
-  document.getElementById("m_table").innerHTML = data.materials.map(m => `
-    <tr><td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.brand) || "—"}</td><td>${escapeHtml(m.unit)}</td><td>${fmt(m.price)} ₽</td><td>${fmt(m.stock,3)}</td>
+  document.getElementById("m_table").innerHTML = data.materials.map(m => {
+    const isInfinite = m.infinite === true;
+    const stockDisplay = isInfinite ? "∞" : fmt(m.stock, 3);
+    return `
+    <tr><td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.brand) || "—"}</td><td>${escapeHtml(m.unit)}</td><td>${fmt(m.price)} ₽</td><td>${stockDisplay}</td>
     <td><button class="action master-hidden" onclick="topUp(${m.id})">+</button></td>
-    <td><button class="action danger master-hidden" onclick="delMaterial(${m.id})">×</button></td></tr>`).join("");
+    <td><button class="action danger master-hidden" onclick="delMaterial(${m.id})">×</button></td></tr>`;
+  }).join("");
 }
 
-/* Изделия */
-function fillSelect(id) {
-  const sel = document.getElementById(id); if (!sel) return;
-  const v = sel.value;
-  sel.innerHTML = data.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)}${m.brand ? " / "+escapeHtml(m.brand) : ""}</option>`).join("");
-  if (v) sel.value = v;
-}
 function renderAllMaterialSelects() {
   ["n_wax_mat","n_proc_mat","n_galv_mat","n_blk_mat","n_pack_mat","n_metal_mat","c_energy_mat","o_mass_mat_sel","o_water_mat_sel"].forEach(fillSelect);
 }
@@ -2036,11 +2044,21 @@ function deleteBatch(id) {
 
 function writeOffMaterial(matId, qty, strict = false) {
   const m = matById(matId); if (!m) return 0;
-  if (strict && (+m.stock || 0) < qty) {
+  
+  // Если материал не бесконечный и на складе не хватает - блокируем
+  if (!m.infinite && strict && (+m.stock || 0) < qty) {
     showToast(`Недостаточно материала "${m.name}": нужно ${fmt(qty,3)}, на складе ${fmt(m.stock,3)}. Списание отменено.`, "error");
     return null;
   }
-  const cost = qty * m.price; m.stock = (+m.stock || 0) - qty; return cost;
+  
+  const cost = qty * m.price;
+  
+  // Уменьшаем остаток только если он не бесконечный
+  if (!m.infinite) {
+    m.stock = +((+m.stock || 0) - qty).toFixed(3);
+  }
+  
+  return +cost.toFixed(2);
 }
 
 function completeStage1(bid) {
@@ -2142,13 +2160,21 @@ function completeStageN(bid, stageNum) {
     b.finished = true; 
     b.finishedAt = new Date().toLocaleString(); // <-- ДОБАВИЛИ ДАТУ
     b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
-        const existingStock = data.stock.find(s => s.productName === p.name);
+          const existingStock = data.stock.find(s => s.productName === p.name);
+    const newCostPerUnit = +(b.totalCost / b.qty).toFixed(2); // Округляем себестоимость 1 шт
+
     if (existingStock) {
-      existingStock.remaining += b.qty;
+      // Пересчитываем средневзвешенную себестоимость
+      const totalOldValue = existingStock.remaining * existingStock.costPerUnit;
+      const totalNewValue = b.qty * newCostPerUnit;
+      const newTotalQty = existingStock.remaining + b.qty;
+      
+      existingStock.costPerUnit = +((totalOldValue + totalNewValue) / newTotalQty).toFixed(2);
+      existingStock.remaining = newTotalQty;
       existingStock.batchId = existingStock.batchId + ", " + b.id;
       existingStock.updatedAt = new Date().toISOString();
     } else {
-      data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: p.name, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
+      data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: p.name, remaining: b.qty, costPerUnit: newCostPerUnit });
     }
     
     if (b.groupId) {
@@ -2288,13 +2314,21 @@ function finishGroup(groupId) {
     if (!b.totalCost) b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
     // Если партия еще не попала на склад, добавляем
         if (!data.stock.find(s => s.batchId === b.id)) {
-      const existingStock = data.stock.find(s => s.productName === b.productName);
+            const existingStock = data.stock.find(s => s.productName === b.productName);
+      const newCostPerUnit = +(b.totalCost / b.qty).toFixed(2); // Округляем себестоимость 1 шт
+
       if (existingStock) {
-        existingStock.remaining += b.qty;
+        // Пересчитываем средневзвешенную себестоимость
+        const totalOldValue = existingStock.remaining * existingStock.costPerUnit;
+        const totalNewValue = b.qty * newCostPerUnit;
+        const newTotalQty = existingStock.remaining + b.qty;
+        
+        existingStock.costPerUnit = +((totalOldValue + totalNewValue) / newTotalQty).toFixed(2);
+        existingStock.remaining = newTotalQty;
         existingStock.batchId = existingStock.batchId + ", " + b.id;
         existingStock.updatedAt = new Date().toISOString();
       } else {
-        data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: b.productName, remaining: b.qty, costPerUnit: b.totalCost / b.qty });
+        data.stock.push({ id: uid()+"_"+b.id, batchId: b.id, productId: b.productId, productName: b.productName, remaining: b.qty, costPerUnit: newCostPerUnit });
       }
     }
   });
