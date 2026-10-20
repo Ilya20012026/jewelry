@@ -579,17 +579,12 @@
 
 <!-- ОБЁРТКА: КОНТРАГЕНТЫ -->
 <div id="main-contractors" class="main-section">
-  <div class="tabs">
-    <button class="active" onclick="showContractorsTab('categories', this)">Категории контрагентов</button>
-    <button onclick="showContractorsTab('contractors', this)">Список контрагентов</button>
-  </div>
-
-  <!-- КАТЕГОРИИ КОНТРАГЕНТОВ -->
-  <div id="contractors-categories" class="tab active">
+  <!-- КАТЕГОРИИ КОНТРАГЕНТОВ (основной вид) -->
+  <div id="contractors-categories-view">
     <div class="card">
       <h3>Категории контрагентов</h3>
       <p class="hint">Создайте категории для группировки контрагентов (например: Поставщики, Клиенты, Партнеры)</p>
-      <div class="row">
+      <div class="row master-hidden">
         <input id="category_name" placeholder="Название категории" style="width:300px">
         <button class="action" onclick="addCategory()">+ Добавить категорию</button>
       </div>
@@ -597,69 +592,73 @@
     </div>
   </div>
 
-  <!-- СПИСОК КОНТРАГЕНТОВ -->
-  <div id="contractors-list" class="tab">
+  <!-- СПИСОК КОНТРАГЕНТОВ В КАТЕГОРИИ (скрыт по умолчанию) -->
+  <div id="contractors-list-view" style="display:none">
     <div class="card">
-      <h3>Добавить контрагента</h3>
-      <p class="hint">Заполните информацию о контрагенте</p>
-      <div class="row">
-        <input id="contractor_name" placeholder="Название" style="width:300px">
-        <select id="contractor_category" style="width:200px">
-          <option value="">— Выберите категорию —</option>
-        </select>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 id="current_category_title">Контрагенты в категории</h3>
+        <button class="action" onclick="backToCategories()">← Назад к категориям</button>
       </div>
-      <div class="row">
-        <input id="contractor_address" placeholder="Адрес" style="width:300px">
-        <input id="contractor_phone" placeholder="Телефон" style="width:200px">
+      
+      <!-- Форма добавления контрагента (только для админа) -->
+      <div class="master-hidden">
+        <h4>Добавить контрагента</h4>
+        <p class="hint">Заполните информацию о контрагенте</p>
+        <div class="row">
+          <input id="contractor_name" placeholder="Название" style="width:300px">
+          <!-- Категория скрыта - автоматически подставляется из текущей -->
+          <input type="hidden" id="contractor_category">
+        </div>
+        <div class="row">
+          <input id="contractor_address" placeholder="Адрес" style="width:300px">
+          <input id="contractor_phone" placeholder="Телефон" style="width:200px">
+        </div>
+        <div class="row">
+          <select id="contractor_status" style="width:200px">
+            <option value="active">Активный</option>
+            <option value="inactive">Неактивный</option>
+            <option value="blocked">Заблокирован</option>
+          </select>
+          <input id="contractor_email" placeholder="Email" style="width:300px">
+        </div>
+        <div class="row">
+          <input id="contractor_contact_person" placeholder="Контактное лицо" style="width:300px">
+          <input id="contractor_inn" placeholder="ИНН" style="width:200px">
+        </div>
+        <div class="row">
+          <textarea id="contractor_notes" placeholder="Дополнительная информация" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:3px; margin-top:4px; resize:vertical;" rows="3"></textarea>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="action ok" onclick="addContractor()">+ Добавить контрагента</button>
+        </div>
       </div>
-      <div class="row">
-        <select id="contractor_status" style="width:200px">
-          <option value="active">Активный</option>
-          <option value="inactive">Неактивный</option>
-          <option value="blocked">Заблокирован</option>
-        </select>
-        <input id="contractor_email" placeholder="Email" style="width:300px">
+      
+      <!-- Список контрагентов -->
+      <div style="margin-top:20px;">
+        <h4>Список контрагентов</h4>
+        <div class="row">
+          <select id="filter_status" onchange="renderContractorsInCategory()" style="width:200px">
+            <option value="">Все статусы</option>
+            <option value="active">Активные</option>
+            <option value="inactive">Неактивные</option>
+            <option value="blocked">Заблокированные</option>
+          </select>
+          <input id="search_contractor" placeholder="Поиск по названию..." style="width:300px" oninput="renderContractorsInCategory()">
+        </div>
+        <table style="margin-top:12px; width:100%">
+          <thead>
+            <tr>
+              <th>Название</th>
+              <th>Контактное лицо</th>
+              <th>Телефон</th>
+              <th>Email</th>
+              <th>Статус</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="contractors_table"></tbody>
+        </table>
       </div>
-      <div class="row">
-        <input id="contractor_contact_person" placeholder="Контактное лицо" style="width:300px">
-        <input id="contractor_inn" placeholder="ИНН" style="width:200px">
-      </div>
-      <div class="row">
-        <textarea id="contractor_notes" placeholder="Дополнительная информация" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:3px; margin-top:4px; resize:vertical;" rows="3"></textarea>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button class="action ok" onclick="addContractor()">+ Добавить контрагента</button>
-      </div>
-    </div>
-    
-    <div class="card">
-      <h3>Список контрагентов</h3>
-      <div class="row">
-        <select id="filter_category" onchange="renderContractors()" style="width:200px">
-          <option value="">Все категории</option>
-        </select>
-        <select id="filter_status" onchange="renderContractors()" style="width:200px">
-          <option value="">Все статусы</option>
-          <option value="active">Активные</option>
-          <option value="inactive">Неактивные</option>
-          <option value="blocked">Заблокированные</option>
-        </select>
-        <input id="search_contractor" placeholder="Поиск по названию..." style="width:300px" oninput="renderContractors()">
-      </div>
-      <table style="margin-top:12px">
-        <thead>
-          <tr>
-            <th>Название</th>
-            <th>Категория</th>
-            <th>Контактное лицо</th>
-            <th>Телефон</th>
-            <th>Email</th>
-            <th>Статус</th>
-            <th>Действия</th>
-          </tr>
-        </thead>
-        <tbody id="contractors_table"></tbody>
-      </table>
     </div>
   </div>
 </div>
@@ -1717,34 +1716,7 @@ setTimeout(() => { renderCalendar(); }, 150);
   showToast("📅 Задача отправлена в календарь на " + dateVal, "success");
 }
 
-function showContractorsTab(id, btn) {
-  // Безопасно переключаем вкладки
-  const tabs = document.querySelectorAll("#main-contractors .tab");
-  if (tabs) {
-    tabs.forEach(t => t.classList.remove("active"));
-  }
-  
-  const buttons = document.querySelectorAll("#main-contractors > .tabs button");
-  if (buttons) {
-    buttons.forEach(b => b.classList.remove("active"));
-  }
-  
-  const targetTab = document.getElementById("contractors-" + id);
-  if (targetTab) {
-    targetTab.classList.add("active");
-  }
-  
-  if (btn) {
-    btn.classList.add("active");
-  }
-  
-  // Загружаем данные для активной вкладки
-  if (id === 'categories') {
-    renderCategories();
-  } else if (id === 'list') {
-    renderContractors();
-  }
-}
+// Функция удалена - больше не нужна с новой навигацией
 
 function showCompanyTab(id, btn) {
   document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
@@ -2975,7 +2947,7 @@ async function addContractor() {
     }
     
     if (!category_id) {
-        showToast('Выберите категорию', 'warn');
+        showToast('Категория не выбрана', 'warn');
         return;
     }
 
@@ -2998,10 +2970,7 @@ async function addContractor() {
         const { data, error } = await sb
             .from('contractors')
             .insert(newContractor)
-            .select(`
-                *,
-                contractor_categories (name)
-            `)
+            .select()
             .single();
             
         if (error) throw error;
@@ -3012,7 +2981,6 @@ async function addContractor() {
         
         // Очищаем форму
         document.getElementById("contractor_name").value = "";
-        document.getElementById("contractor_category").value = "";
         document.getElementById("contractor_address").value = "";
         document.getElementById("contractor_phone").value = "";
         document.getElementById("contractor_status").value = "active";
@@ -3022,7 +2990,7 @@ async function addContractor() {
         document.getElementById("contractor_notes").value = "";
         
         save();
-        renderContractors();
+        renderContractorsInCategory();
         showToast('✅ Контрагент добавлен', 'success');
         
     } catch (error) {
@@ -3041,7 +3009,10 @@ async function renderCategories() {
         
         const { data: categories, error } = await sb
             .from('contractor_categories')
-            .select('*')
+            .select(`
+                *,
+                contractors (id)
+            `)
             .order('name');
             
         if (error) throw error;
@@ -3054,16 +3025,29 @@ async function renderCategories() {
             return;
         }
         
-        listEl.innerHTML = categories.map(category => `
-            <div class="card" style="margin-bottom: 12px; cursor: pointer;" onclick="openCategory('${category.id}', '${escapeHtml(category.name)}')">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h4 style="margin: 0;">${escapeHtml(category.name)}</h4>
-                    <span style="font-size: 12px; color: #666;">
-                        ${(data.contractors || []).filter(c => c.category_id === category.id).length} контрагентов
-                    </span>
+        const isAdminUser = isAdmin();
+        
+        listEl.innerHTML = categories.map(category => {
+            const contractorsCount = category.contractors ? category.contractors.length : 0;
+            const deleteButton = isAdminUser ? `
+                <button class="action danger master-hidden" onclick="deleteCategory('${category.id}')" style="padding: 4px 8px; font-size: 12px;">× Удалить</button>
+            ` : '';
+            
+            return `
+                <div class="card" style="margin-bottom: 12px; cursor: pointer;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="margin: 0; flex: 1;" onclick="openCategory('${category.id}', '${escapeHtml(category.name)}')">${escapeHtml(category.name)}</h4>
+                        ${deleteButton}
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12px; color: #666;">
+                            ${contractorsCount} контрагентов
+                        </span>
+                        <button class="action" onclick="openCategory('${category.id}', '${escapeHtml(category.name)}')" style="padding: 4px 12px; font-size: 12px;">Открыть</button>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         
     } catch (error) {
         console.error('Ошибка загрузки категорий:', error);
@@ -3202,49 +3186,60 @@ async function loadCategoriesToSelects() {
     }
 }
 
+let _currentCategoryId = null;
+let _currentCategoryName = null;
+
 async function openCategory(categoryId, categoryName) {
-    // Скрываем вкладку "Категории" и показываем вкладку "Список контрагентов"
-    const categoriesTab = document.getElementById('contractors-categories');
-    const listTab = document.getElementById('contractors-list');
-    const categoriesTabBtn = document.querySelector('#main-contractors .tabs button[onclick*="categories"]');
-    const listTabBtn = document.querySelector('#main-contractors .tabs button[onclick*="contractors"]');
+    _currentCategoryId = categoryId;
+    _currentCategoryName = categoryName;
     
-    if (categoriesTab) categoriesTab.classList.remove('active');
-    if (listTab) listTab.classList.add('active');
-    if (categoriesTabBtn) categoriesTabBtn.classList.remove('active');
-    if (listTabBtn) listTabBtn.classList.add('active');
+    // Скрываем список категорий, показываем список контрагентов
+    document.getElementById('contractors-categories-view').style.display = 'none';
+    document.getElementById('contractors-list-view').style.display = 'block';
     
-    // Создаем заголовок с названием категории и кнопкой возврата
+    // Устанавливаем заголовок
+    document.getElementById('current_category_title').textContent = `Контрагенты в категории: ${escapeHtml(categoryName)}`;
+    
+    // Устанавливаем category_id в скрытое поле формы
+    document.getElementById('contractor_category').value = categoryId;
+    
+    // Загружаем контрагентов этой категории
+    await renderContractorsInCategory();
+}
+
+function backToCategories() {
+    // Возвращаемся к списку категорий
+    document.getElementById('contractors-categories-view').style.display = 'block';
+    document.getElementById('contractors-list-view').style.display = 'none';
+    _currentCategoryId = null;
+    _currentCategoryName = null;
+}
+
+async function renderContractorsInCategory() {
     const tableEl = document.getElementById("contractors_table");
-    if (!tableEl) return;
+    if (!tableEl || !_currentCategoryId) return;
     
-    // Создаем контейнер для заголовка и кнопки
-    let headerContainer = tableEl.previousElementSibling;
-    if (!headerContainer || !headerContainer.classList.contains('category-header')) {
-        headerContainer = document.createElement('div');
-        headerContainer.className = 'category-header';
-        headerContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;';
-        tableEl.parentNode.insertBefore(headerContainer, tableEl);
-    }
+    const filterStatus = document.getElementById("filter_status").value;
+    const searchText = document.getElementById("search_contractor").value.toLowerCase().trim();
     
-    headerContainer.innerHTML = `
-        <h3>Контрагенты в категории: ${escapeHtml(categoryName)}</h3>
-        <button class="action" onclick="backToCategories()" style="padding: 8px 16px;">← Назад к категориям</button>
-    `;
-    
-    // Загружаем контрагентов из Supabase по category_id
     try {
         const sb = await initCloud();
         if (!sb) throw new Error('Нет подключения к Supabase');
         
-        const { data: contractors, error } = await sb
+        let query = sb
             .from('contractors')
-            .select(`
-                *,
-                contractor_categories (name)
-            `)
-            .eq('category_id', categoryId)
-            .order('name');
+            .select('*')
+            .eq('category_id', _currentCategoryId);
+            
+        if (filterStatus) {
+            query = query.eq('status', filterStatus);
+        }
+        
+        if (searchText) {
+            query = query.ilike('name', `%${searchText}%`);
+        }
+        
+        const { data: contractors, error } = await query.order('name');
             
         if (error) throw error;
         
@@ -3252,7 +3247,7 @@ async function openCategory(categoryId, categoryName) {
         if (!contractors || contractors.length === 0) {
             tableEl.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 40px; color: #888;">
+                    <td colspan="6" style="text-align: center; padding: 40px; color: #888;">
                         В этой категории пока нет контрагентов
                     </td>
                 </tr>
@@ -3261,11 +3256,16 @@ async function openCategory(categoryId, categoryName) {
         }
         
         tableEl.innerHTML = contractors.map(contractor => {
-            const category = contractor.contractor_categories;
             const statusClass = contractor.status === 'active' ? 'badge-done' : 
                               contractor.status === 'inactive' ? 'badge-wait' : 'badge-active';
             const statusText = contractor.status === 'active' ? 'Активный' : 
                              contractor.status === 'inactive' ? 'Неактивный' : 'Заблокирован';
+            
+            const isAdmin = isAdmin();
+            const actionButtons = isAdmin ? `
+                <button class="action master-hidden" onclick="editContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">✏️</button>
+                <button class="action danger master-hidden" onclick="deleteContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">×</button>
+            ` : '';
             
             return `
                 <tr>
@@ -3274,10 +3274,7 @@ async function openCategory(categoryId, categoryName) {
                     <td>${escapeHtml(contractor.phone) || '—'}</td>
                     <td>${escapeHtml(contractor.email) || '—'}</td>
                     <td><span class="badge ${statusClass}">${statusText}</span></td>
-                    <td style="display: flex; gap: 4px;">
-                        <button class="action" onclick="editContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">✏️</button>
-                        <button class="action danger" onclick="deleteContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">×</button>
-                    </td>
+                    <td style="display: flex; gap: 4px;">${actionButtons}</td>
                 </tr>
             `;
         }).join('');
@@ -3286,7 +3283,7 @@ async function openCategory(categoryId, categoryName) {
         console.error('Ошибка загрузки контрагентов:', error);
         tableEl.innerHTML = `
             <tr>
-                <td colspan="7" style="text-align: center; padding: 40px; color: #c53030;">
+                <td colspan="6" style="text-align: center; padding: 40px; color: #c53030;">
                     Ошибка загрузки контрагентов
                 </td>
             </tr>
@@ -3294,26 +3291,77 @@ async function openCategory(categoryId, categoryName) {
     }
 }
 
-function backToCategories() {
-    // Возвращаемся к вкладке категорий
-    const categoriesTab = document.getElementById('contractors-categories');
-    const listTab = document.getElementById('contractors-list');
-    const categoriesTabBtn = document.querySelector('#main-contractors .tabs button[onclick*="categories"]');
-    const listTabBtn = document.querySelector('#main-contractors .tabs button[onclick*="contractors"]');
-    
-    if (categoriesTab) categoriesTab.classList.add('active');
-    if (listTab) listTab.classList.remove('active');
-    if (categoriesTabBtn) categoriesTabBtn.classList.add('active');
-    if (listTabBtn) listTabBtn.classList.remove('active');
-    
-    // Убираем заголовок категории
-    const headerContainer = document.querySelector('.category-header');
-    if (headerContainer) {
-        headerContainer.remove();
+async function deleteCategory(categoryId) {
+    const user = getCurrentUser();
+    if (!user || user.role !== 'admin') {
+        showToast('Только администратор может удалять категории', 'error');
+        return;
     }
     
-    // Восстанавливаем обычный вид таблицы контрагентов
-    renderContractors();
+    if (!confirm('Удалить эту категорию? Все контрагенты в ней останутся без категории.')) return;
+    
+    try {
+        const sb = await initCloud();
+        if (!sb) throw new Error('Нет подключения к Supabase');
+        
+        // Сначала обнуляем category_id у контрагентов этой категории
+        await sb
+            .from('contractors')
+            .update({ category_id: null })
+            .eq('category_id', categoryId);
+        
+        // Затем удаляем саму категорию
+        const { error } = await sb
+            .from('contractor_categories')
+            .delete()
+            .eq('id', categoryId);
+            
+        if (error) throw error;
+        
+        // Обновляем локальные данные
+        data.contractor_categories = (data.contractor_categories || []).filter(c => c.id !== categoryId);
+        save();
+        
+        renderCategories();
+        showToast('✅ Категория удалена', 'success');
+        
+    } catch (error) {
+        console.error('Ошибка удаления категории:', error);
+        showToast('❌ Ошибка удаления категории: ' + error.message, 'error');
+    }
+}
+
+async function deleteContractor(contractorId) {
+    const user = getCurrentUser();
+    if (!user || user.role !== 'admin') {
+        showToast('Только администратор может удалять контрагентов', 'error');
+        return;
+    }
+    
+    if (!confirm('Удалить этого контрагента?')) return;
+    
+    try {
+        const sb = await initCloud();
+        if (!sb) throw new Error('Нет подключения к Supabase');
+        
+        const { error } = await sb
+            .from('contractors')
+            .delete()
+            .eq('id', contractorId);
+            
+        if (error) throw error;
+        
+        // Удаляем из локальных данных
+        data.contractors = (data.contractors || []).filter(c => c.id !== contractorId);
+        save();
+        
+        renderContractorsInCategory();
+        showToast('✅ Контрагент удален', 'success');
+        
+    } catch (error) {
+        console.error('Ошибка удаления контрагента:', error);
+        showToast('❌ Ошибка удаления контрагента: ' + error.message, 'error');
+    }
 }
 
 async function deleteContractor(contractorId) {
