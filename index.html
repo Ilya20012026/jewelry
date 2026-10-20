@@ -906,6 +906,58 @@
   </div>
 </div>
 
+<!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ КОНТРАГЕНТА -->
+<div id="contractor_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:15000; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#fff; width:100%; max-width:600px; border-radius:8px; padding:24px; position:relative; max-height:90vh; overflow-y:auto;">
+    <button onclick="closeContractorModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer;">×</button>
+    <h3 style="margin-top:0; padding-right:30px;">Редактирование контрагента</h3>
+    
+    <input type="hidden" id="edit_contractor_id">
+    
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Название</label>
+      <input id="edit_contractor_name" type="text" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Адрес</label>
+      <input id="edit_contractor_address" type="text" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Телефон</label>
+      <input id="edit_contractor_phone" type="text" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Email</label>
+      <input id="edit_contractor_email" type="email" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Контактное лицо</label>
+      <input id="edit_contractor_contact_person" type="text" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">ИНН</label>
+      <input id="edit_contractor_inn" type="text" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Статус</label>
+      <select id="edit_contractor_status" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+        <option value="active">Активный</option>
+        <option value="inactive">Неактивный</option>
+        <option value="blocked">Заблокирован</option>
+      </select>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Дополнительная информация</label>
+      <textarea id="edit_contractor_notes" rows="3" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px; resize:vertical;"></textarea>
+    </div>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+      <button class="action ok" onclick="saveContractorFromModal()">💾 Сохранить</button>
+      <button class="action danger" onclick="closeContractorModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
 <script src="db.js"></script>
 <script src="cloud.js"></script>
 <script src="autosync.js"></script>
@@ -1106,7 +1158,9 @@ function renderDayTasks(dateStr) {
       let typeLabel = "ЗАДАЧА", typeCls = "dot-task";
       if (t.type === "restock")  { typeLabel = "ПОПОЛНЕНИЕ"; typeCls = "dot-restock"; }
       if (t.type === "new_item") { typeLabel = "НОВАЯ ПОЗИЦИЯ"; typeCls = "dot-new"; }
-if (t.type === "production_task") { typeLabel = "ПРОИЗВОДСТВЕННАЯ ЗАДАЧА"; typeCls = "dot-production"; }
+      if (t.type === "production_task") { typeLabel = "ПРОИЗВОДСТВЕННАЯ ЗАДАЧА"; typeCls = "dot-production"; }
+      // Для регулярных задач (с повторением) используем желтую точку
+      if (t.type === "task" && t.repeat && t.repeat !== "none") { typeCls = "dot-regular"; }
       const done = t.done ? "text-decoration:line-through;opacity:0.5;" : "";
       let repeatText = "";
       if (t.repeat && t.repeat !== "none") {
@@ -3352,8 +3406,100 @@ async function deleteContractor(contractorId) {
 }
 
 async function editContractor(contractorId) {
-    // Реализация редактирования контрагента
-    showToast('Функция редактирования будет реализована позже', 'info');
+    const contractor = data.contractors.find(c => String(c.id) === String(contractorId));
+    if (!contractor) {
+        showToast('Контрагент не найден', 'error');
+        return;
+    }
+
+    // Заполняем поля модального окна
+    document.getElementById('edit_contractor_id').value = contractor.id;
+    document.getElementById('edit_contractor_name').value = contractor.name || '';
+    document.getElementById('edit_contractor_address').value = contractor.address || '';
+    document.getElementById('edit_contractor_phone').value = contractor.phone || '';
+    document.getElementById('edit_contractor_email').value = contractor.email || '';
+    document.getElementById('edit_contractor_contact_person').value = contractor.contact_person || '';
+    document.getElementById('edit_contractor_inn').value = contractor.inn || '';
+    document.getElementById('edit_contractor_status').value = contractor.status || 'active';
+    document.getElementById('edit_contractor_notes').value = contractor.notes || '';
+
+    // Открываем модальное окно
+    document.getElementById('contractor_modal').style.display = 'flex';
+}
+
+function closeContractorModal() {
+    document.getElementById('contractor_modal').style.display = 'none';
+    // Очищаем поля
+    document.getElementById('edit_contractor_id').value = '';
+    document.getElementById('edit_contractor_name').value = '';
+    document.getElementById('edit_contractor_address').value = '';
+    document.getElementById('edit_contractor_phone').value = '';
+    document.getElementById('edit_contractor_email').value = '';
+    document.getElementById('edit_contractor_contact_person').value = '';
+    document.getElementById('edit_contractor_inn').value = '';
+    document.getElementById('edit_contractor_status').value = 'active';
+    document.getElementById('edit_contractor_notes').value = '';
+}
+
+async function saveContractorFromModal() {
+    const contractorId = document.getElementById('edit_contractor_id').value;
+    if (!contractorId) {
+        showToast('Ошибка: ID контрагента не найден', 'error');
+        return;
+    }
+
+    const contractor = data.contractors.find(c => String(c.id) === String(contractorId));
+    if (!contractor) {
+        showToast('Контрагент не найден в локальных данных', 'error');
+        return;
+    }
+
+    const updatedContractor = {
+        name: document.getElementById('edit_contractor_name').value.trim(),
+        address: document.getElementById('edit_contractor_address').value.trim(),
+        phone: document.getElementById('edit_contractor_phone').value.trim(),
+        email: document.getElementById('edit_contractor_email').value.trim(),
+        contact_person: document.getElementById('edit_contractor_contact_person').value.trim(),
+        inn: document.getElementById('edit_contractor_inn').value.trim(),
+        status: document.getElementById('edit_contractor_status').value,
+        notes: document.getElementById('edit_contractor_notes').value.trim(),
+        updatedAt: new Date().toISOString()
+    };
+
+    if (!updatedContractor.name) {
+        showToast('Введите название контрагента', 'warn');
+        return;
+    }
+
+    try {
+        const sb = await initCloud();
+        if (!sb) throw new Error('Нет подключения к Supabase');
+
+        // Обновляем в Supabase
+        const { error } = await sb
+            .from('contractors')
+            .update(updatedContractor)
+            .eq('id', contractorId);
+
+        if (error) throw error;
+
+        // Обновляем локальные данные
+        Object.assign(contractor, updatedContractor);
+        save();
+
+        // Закрываем модальное окно и обновляем таблицу
+        closeContractorModal();
+        if (typeof renderContractorsInCategory === 'function') {
+            renderContractorsInCategory();
+        } else if (typeof renderContractors === 'function') {
+            renderContractors();
+        }
+        showToast('✅ Данные контрагента обновлены', 'success');
+
+    } catch (error) {
+        console.error('Ошибка сохранения контрагента:', error);
+        showToast('❌ Ошибка сохранения: ' + error.message, 'error');
+    }
 }
 
 // Обновляем функцию рендеринга всех данных
