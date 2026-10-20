@@ -799,6 +799,18 @@
       <div id="archived_chats_list"></div>
     </div>
   </div>
+
+  <!-- Модальное окно для просмотра архива поставок -->
+  <div id="archived_supply_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:15000; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#fff; width:100%; max-width:600px; border-radius:8px; padding:24px; position:relative; max-height:90vh; overflow-y:auto;">
+      <button onclick="closeArchivedSupplyModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer;">×</button>
+      <h3 id="archived_supply_title" style="margin-top:0; padding-right:30px;">Поставка</h3>
+      <div id="archived_supply_content"></div>
+      <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+        <button class="action" onclick="closeArchivedSupplyModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
   <div id="service-backup" class="tab">
     <div class="card">
       <h3>Резервная копия</h3>
@@ -3931,13 +3943,13 @@ function renderSupplies() {
         const counterparty = data.contractors.find(c => String(c.id) === String(s.counterparty_id));
         counterpartyName = counterparty ? counterparty.name : "Контрагент не найден";
       }
-      
+        
       return `
-      <div style="padding:8px; border-bottom:1px solid #eee; font-size:13px; opacity:0.6; display:flex; align-items:center; justify-content:space-between;">
+      <div style="padding:8px; border-bottom:1px solid #eee; font-size:13px; display:flex; align-items:center; justify-content:space-between; cursor:pointer;" onclick="openArchivedSupply('${s.id}')">
         <span>
           <s>${escapeHtml(s.title)}</s> — ${s.date} — ${escapeHtml(counterpartyName)} — ${(s.items||[]).map(i=>i.qty).reduce((a,b)=>a+b,0)} шт
         </span>
-        <button class="action danger master-hidden" style="padding:2px 6px; font-size:10px; margin-left:10px;" onclick="deleteSupply('${s.id}')">×</button>
+        <button class="action danger master-hidden" style="padding:2px 6px; font-size:10px; margin-left:10px;" onclick="event.stopPropagation(); deleteSupply('${s.id}')">×</button>
       </div>`;
     }).join("");
   }
@@ -4025,6 +4037,83 @@ async function markSupplySent(id) {
     save(); renderSupplies();
     showToast("✅ Посылка отправлена без фото", "success");
   }
+}
+
+function openArchivedSupply(supplyId) {
+  const s = (data.supplies || []).find(x => String(x.id) === String(supplyId));
+  if (!s) {
+    showToast("Поставка не найдена", "error");
+    return;
+  }
+
+  // Находим контрагента по ID
+  let counterpartyName = "Контрагент не выбран";
+  let counterpartyDetails = "";
+  if (s.counterparty_id) {
+    const counterparty = data.contractors.find(c => String(c.id) === String(s.counterparty_id));
+    if (counterparty) {
+      counterpartyName = counterparty.name;
+      counterpartyDetails = `
+        <div><strong>Контактное лицо:</strong> ${escapeHtml(counterparty.contact_person || "—")}</div>
+        <div><strong>Телефон:</strong> ${escapeHtml(counterparty.phone || "—")}</div>
+        <div><strong>Email:</strong> ${escapeHtml(counterparty.email || "—")}</div>
+        <div><strong>Адрес:</strong> ${escapeHtml(counterparty.address || "—")}</div>
+      `;
+    } else {
+      counterpartyName = "Контрагент не найден";
+    }
+  }
+
+  const itemsHtml = (s.items || []).map(item => `
+    <div style="padding:4px 0; border-bottom:1px solid #f0f0f0;">
+      ${escapeHtml(item.productName)} × ${item.qty} шт
+    </div>
+  `).join("");
+
+  const pdfHtml = s.pdfUrl ? `
+    <div style="margin-top:12px;">
+      <strong>PDF:</strong> <a href="${escapeHtml(s.pdfUrl)}" target="_blank">${escapeHtml(s.pdfName || "Скачать")}</a>
+    </div>
+  ` : "";
+
+  const photosHtml = `
+    ${s.photoBox ? `
+      <div style="margin-top:12px;">
+        <strong>Фото коробки:</strong><br>
+        <img src="${escapeHtml(s.photoBox)}" style="max-height:200px; border-radius:4px; margin-top:4px;">
+      </div>
+    ` : ""}
+    ${s.photoSent ? `
+      <div style="margin-top:12px;">
+        <strong>Фото отправки:</strong><br>
+        <img src="${escapeHtml(s.photoSent)}" style="max-height:200px; border-radius:4px; margin-top:4px;">
+      </div>
+    ` : ""}
+  `;
+
+  document.getElementById("archived_supply_title").textContent = s.title;
+  document.getElementById("archived_supply_content").innerHTML = `
+    <div style="line-height:1.6;">
+      <div><strong>Название:</strong> ${escapeHtml(s.title)}</div>
+      <div><strong>Дата:</strong> ${escapeHtml(s.date)}</div>
+      <div><strong>Статус:</strong> Завершено</div>
+      <div><strong>Контрагент:</strong> ${escapeHtml(counterpartyName)}</div>
+      ${counterpartyDetails}
+      <div style="margin-top:12px;">
+        <strong>Состав поставки:</strong>
+        ${itemsHtml || "<div>Нет товаров</div>"}
+      </div>
+      ${pdfHtml}
+      ${photosHtml}
+      ${s.note ? `<div style="margin-top:12px;"><strong>Примечание:</strong> ${escapeHtml(s.note)}</div>` : ""}
+    </div>
+  `;
+
+  document.getElementById("archived_supply_modal").style.display = "flex";
+}
+
+function closeArchivedSupplyModal() {
+  document.getElementById("archived_supply_modal").style.display = "none";
 }
 
 function finishSupply(id) {
