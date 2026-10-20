@@ -404,11 +404,11 @@
     <div class="row">
       <input id="sup_title" placeholder="Название (например, Собрать поставку WB)" style="width:280px">
       <input id="sup_date" type="date">
+      <select id="sup_category" style="width:180px" onchange="loadContractorsToSupplySelect(this.value)">
+        <option value="">— Категория —</option>
+      </select>
       <select id="sup_counterparty" style="width:180px">
         <option value="">— Контрагент —</option>
-        <option>ВБ</option><option>Озон</option><option>Авито</option>
-        <option>Опт</option><option>Точка продаж</option><option>Церковь</option>
-        <option>Другое</option>
       </select>
     </div>
     
@@ -3341,9 +3341,9 @@ initApp = async function() {
         await loadCategoriesToSelects();
     }
     
-    // Загружаем контрагентов для селекта поставок
-    if (typeof loadContractorsToSupplySelect === 'function') {
-        await loadContractorsToSupplySelect();
+    // Загружаем категории для селекта поставок
+    if (typeof loadCategoriesToSupplySelect === 'function') {
+        await loadCategoriesToSupplySelect();
     }
 };
 
@@ -3438,7 +3438,41 @@ async function addSupply() {
   showToast("✅ Поставка создана", "success");
 }
 
-async function loadContractorsToSupplySelect() {
+async function loadCategoriesToSupplySelect() {
+  const select = document.getElementById("sup_category");
+  if (!select) return;
+    
+  try {
+    const sb = await initCloud();
+    if (!sb) throw new Error("Нет подключения к Supabase");
+      
+    const { data: categories, error } = await sb
+      .from('contractor_categories')
+      .select('id, name')
+      .order('name');
+        
+    if (error) throw error;
+      
+    // Сохраняем категории в локальные данные
+    if (categories) {
+      data.contractor_categories = categories;
+    }
+      
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">— Категория —</option>' + 
+      (categories || []).map(c => 
+        `<option value="${c.id}">${escapeHtml(c.name)}</option>`
+      ).join('');
+        
+    if (currentValue) select.value = currentValue;
+      
+  } catch (error) {
+    console.error("Ошибка загрузки категорий:", error);
+    select.innerHTML = '<option value="">Ошибка загрузки</option>';
+  }
+}
+
+async function loadContractorsToSupplySelect(categoryId) {
   const select = document.getElementById("sup_counterparty");
   if (!select) return;
     
@@ -3446,10 +3480,16 @@ async function loadContractorsToSupplySelect() {
     const sb = await initCloud();
     if (!sb) throw new Error("Нет подключения к Supabase");
       
-    const { data: contractors, error } = await sb
+    let query = sb
       .from('contractors')
       .select('id, name')
       .order('name');
+      
+    if (categoryId) {
+      query = query.eq('category_id', categoryId);
+    }
+      
+    const { data: contractors, error } = await query;
         
     if (error) throw error;
       
@@ -3545,11 +3585,11 @@ function renderSupplies() {
     listEl.innerHTML = `<p class="hint">Нет активных поставок</p>`;
   } else {
     listEl.innerHTML = active.map(s => {
-      // Используем сохраненное название контрагента или ищем его по ID
-      let counterpartyName = s.counterparty_name;
-      if (!counterpartyName && s.counterparty_id) {
+      // Находим контрагента по ID
+      let counterpartyName = "Контрагент не выбран";
+      if (s.counterparty_id) {
         const counterparty = data.contractors.find(c => String(c.id) === String(s.counterparty_id));
-        counterpartyName = counterparty ? counterparty.name : 'Неизвестный контрагент';
+        counterpartyName = counterparty ? counterparty.name : "Контрагент не найден";
       }
       
       return `
@@ -3557,7 +3597,7 @@ function renderSupplies() {
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
           <div>
             <h4 style="margin:0 0 4px 0;">${escapeHtml(s.title)}</h4>
-            <div style="font-size:12px; color:#666; margin-bottom:8px;">${s.date} • ${escapeHtml(counterpartyName || 'Без контрагента')}</div>
+            <div style="font-size:12px; color:#666; margin-bottom:8px;">${s.date} • ${escapeHtml(counterpartyName)}</div>
             <div style="font-size:13px; margin-bottom:8px;">
               <b>Состав:</b> ${(s.items || []).map(i => `${escapeHtml(i.productName)} × ${i.qty}`).join(', ')}
             </div>
@@ -3583,10 +3623,11 @@ function renderSupplies() {
     document.getElementById("supplies_archive_list").innerHTML = `<p class="hint">Архив пуст</p>`;
   } else {
     document.getElementById("supplies_archive_list").innerHTML = archive.map(s => {
-      let counterpartyName = s.counterparty_name;
-      if (!counterpartyName && s.counterparty_id) {
+      // Находим контрагента по ID
+      let counterpartyName = "Контрагент не выбран";
+      if (s.counterparty_id) {
         const counterparty = data.contractors.find(c => String(c.id) === String(s.counterparty_id));
-        counterpartyName = counterparty ? counterparty.name : 'Неизвестный контрагент';
+        counterpartyName = counterparty ? counterparty.name : "Контрагент не найден";
       }
       
       return `
