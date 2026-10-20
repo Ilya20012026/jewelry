@@ -8,6 +8,7 @@ from supabase import create_client
 # ============================================================
 # Токен берется из настроек GitHub (или из переменной окружения)
 WB_TOKEN = os.environ.get("WB_TOKEN")
+headers = {"Authorization": WB_TOKEN}
 
 # Если токена нет (например, при локальном запуске), подставь его вручную:
 if not WB_TOKEN:
