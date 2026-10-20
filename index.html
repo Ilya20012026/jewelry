@@ -290,6 +290,7 @@
 <div class="main-tabs">
   <button class="active" onclick="showMain('production', this)">ПРОИЗВОДСТВО</button>
   <button onclick="showMain('company', this)">КОМПАНИЯ</button>
+  <button onclick="showMain('contractors', this)">КОНТРАГЕНТЫ</button>
   <button onclick="showMain('service', this)">СЕРВИС</button>
 </div>
 
@@ -575,6 +576,94 @@
   </div>
 </div>
 <!-- /ОБЁРТКА: КОМПАНИЯ -->
+
+<!-- ОБЁРТКА: КОНТРАГЕНТЫ -->
+<div id="main-contractors" class="main-section">
+  <div class="tabs">
+    <button class="active" onclick="showContractorsTab('categories', this)">Категории контрагентов</button>
+    <button onclick="showContractorsTab('contractors', this)">Список контрагентов</button>
+  </div>
+
+  <!-- КАТЕГОРИИ КОНТРАГЕНТОВ -->
+  <div id="contractors-categories" class="tab active">
+    <div class="card">
+      <h3>Категории контрагентов</h3>
+      <p class="hint">Создайте категории для группировки контрагентов (например: Поставщики, Клиенты, Партнеры)</p>
+      <div class="row">
+        <input id="category_name" placeholder="Название категории" style="width:300px">
+        <button class="action" onclick="addCategory()">+ Добавить категорию</button>
+      </div>
+      <div id="categories_list" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- СПИСОК КОНТРАГЕНТОВ -->
+  <div id="contractors-list" class="tab">
+    <div class="card">
+      <h3>Добавить контрагента</h3>
+      <p class="hint">Заполните информацию о контрагенте</p>
+      <div class="row">
+        <input id="contractor_name" placeholder="Название" style="width:300px">
+        <select id="contractor_category" style="width:200px">
+          <option value="">— Выберите категорию —</option>
+        </select>
+      </div>
+      <div class="row">
+        <input id="contractor_address" placeholder="Адрес" style="width:300px">
+        <input id="contractor_phone" placeholder="Телефон" style="width:200px">
+      </div>
+      <div class="row">
+        <select id="contractor_status" style="width:200px">
+          <option value="active">Активный</option>
+          <option value="inactive">Неактивный</option>
+          <option value="blocked">Заблокирован</option>
+        </select>
+        <input id="contractor_email" placeholder="Email" style="width:300px">
+      </div>
+      <div class="row">
+        <input id="contractor_contact_person" placeholder="Контактное лицо" style="width:300px">
+        <input id="contractor_inn" placeholder="ИНН" style="width:200px">
+      </div>
+      <div class="row">
+        <textarea id="contractor_notes" placeholder="Дополнительная информация" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:3px; margin-top:4px; resize:vertical;" rows="3"></textarea>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="action ok" onclick="addContractor()">+ Добавить контрагента</button>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3>Список контрагентов</h3>
+      <div class="row">
+        <select id="filter_category" onchange="renderContractors()" style="width:200px">
+          <option value="">Все категории</option>
+        </select>
+        <select id="filter_status" onchange="renderContractors()" style="width:200px">
+          <option value="">Все статусы</option>
+          <option value="active">Активные</option>
+          <option value="inactive">Неактивные</option>
+          <option value="blocked">Заблокированные</option>
+        </select>
+        <input id="search_contractor" placeholder="Поиск по названию..." style="width:300px" oninput="renderContractors()">
+      </div>
+      <table style="margin-top:12px">
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Категория</th>
+            <th>Контактное лицо</th>
+            <th>Телефон</th>
+            <th>Email</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="contractors_table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<!-- /ОБЁРТКА: КОНТРАГЕНТЫ -->
 
 <!-- ОБЁРТКА: СЕРВИС -->
 <div id="main-service" class="main-section">
@@ -1628,6 +1717,13 @@ setTimeout(() => { renderCalendar(); }, 150);
   showToast("📅 Задача отправлена в календарь на " + dateVal, "success");
 }
 
+function showContractorsTab(id, btn) {
+  document.querySelectorAll("#main-contractors .tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll("#main-contractors > .tabs button").forEach(b => b.classList.remove("active"));
+  document.getElementById("contractors-" + id).classList.add("active");
+  if (btn) btn.classList.add("active");
+}
+
 function showCompanyTab(id, btn) {
   document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
   document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
@@ -1848,7 +1944,7 @@ function showMain(mainId, btn) {
   document.querySelectorAll(".main-tabs button").forEach(b => b.classList.remove("active"));
   if (btn) btn.classList.add("active");
 
-  if (mainId !== "company") {
+  if (mainId !== "company" && mainId !== "contractors") {
     document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
     document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
     const calTab = document.getElementById("company-calendar");
@@ -1857,6 +1953,15 @@ function showMain(mainId, btn) {
     if (calBtn) calBtn.classList.add("active");
     const chatListCard = document.querySelector("#company-chat > .card");
     if (chatListCard) chatListCard.style.display = "block";
+  }
+  
+  if (mainId === "contractors") {
+    document.querySelectorAll("#main-contractors .tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll("#main-contractors > .tabs button").forEach(b => b.classList.remove("active"));
+    const categoriesTab = document.getElementById("contractors-categories");
+    if (categoriesTab) categoriesTab.classList.add("active");
+    const categoriesBtn = document.querySelector("#main-contractors .tabs button[onclick*='categories']");
+    if (categoriesBtn) categoriesBtn.classList.add("active");
   }
 }
 
@@ -2703,11 +2808,17 @@ async function initApp() {
       if (sb) {
         const { data: remoteChats } = await sb.from('chats').select('*');
         const { data: remoteParts } = await sb.from('chat_participants').select('*');
+        const { data: remoteCategories } = await sb.from('contractor_categories').select('*');
+        const { data: remoteContractors } = await sb.from('contractors').select('*');
+        
         if (remoteChats) data.chats = remoteChats;
         if (remoteParts) data.chat_participants = remoteParts;
+        if (remoteCategories) data.contractor_categories = remoteCategories;
+        if (remoteContractors) data.contractors = remoteContractors;
+        
         renderChats();
       }
-    } catch(e) { console.error("Ошибка загрузки чатов:", e); }
+    } catch(e) { console.error("Ошибка загрузки данных:", e); }
   })();
 
   renderEmployees();
@@ -2735,6 +2846,11 @@ async function initApp() {
     if (table === 'tasks') { renderCalendar(); if (typeof _calSelectedDay !== 'undefined' && _calSelectedDay) renderDayTasks(_calSelectedDay); }
     if (['batches', 'groups', 'employees'].includes(table)) { renderBatches(); renderBatchResponsibleSelect(); }
     if (['materials', 'products', 'cycles', 'opokas'].includes(table)) { renderMaterials(); renderProducts(); renderCycles(); renderOpokas(); renderAllMaterialSelects(); renderBatchProductSelect(); }
+    if (['contractor_categories', 'contractors'].includes(table)) { 
+        if (typeof renderCategories === 'function') renderCategories(); 
+        if (typeof renderContractors === 'function') renderContractors();
+        if (typeof loadCategoriesToSelects === 'function') loadCategoriesToSelects();
+    }
     if (table === 'stock' || table === 'archive') { renderStock(); renderArchive(); }
   });
 
@@ -2768,9 +2884,381 @@ async function initApp() {
 }
 
 /* ============================================================
+   СИСТЕМА КОНТРАГЕНТОВ
+   ============================================================ */
+async function addCategory() {
+    const user = getCurrentUser();
+    if (!user || user.role !== 'admin') {
+        showToast('Только администратор может добавлять категории', 'error');
+        return;
+    }
+    
+    const name = document.getElementById("category_name").value.trim();
+    if (!name) {
+        showToast('Введите название категории', 'warn');
+        return;
+    }
+
+    try {
+        const sb = await initCloud();
+        if (!sb) throw new Error('Нет подключения к Supabase');
+        
+        const newCategory = {
+            name: name,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        
+        const { data, error } = await sb
+            .from('contractor_categories')
+            .insert(newCategory)
+            .select()
+            .single();
+            
+        if (error) throw error;
+        
+        // Добавляем в локальные данные
+        if (!data.contractor_categories) data.contractor_categories = [];
+        data.contractor_categories.push(data);
+        
+        document.getElementById("category_name").value = "";
+        save();
+        renderCategories();
+        showToast('✅ Категория добавлена', 'success');
+        
+    } catch (error) {
+        console.error('Ошибка добавления категории:', error);
+        showToast('❌ Ошибка добавления категории: ' + error.message, 'error');
+    }
+}
+
+async function addContractor() {
+    const user = getCurrentUser();
+    if (!user || user.role !== 'admin') {
+        showToast('Только администратор может добавлять контрагентов', 'error');
+        return;
+    }
+    
+    const name = document.getElementById("contractor_name").value.trim();
+    const category_id = document.getElementById("contractor_category").value;
+    const address = document.getElementById("contractor_address").value.trim();
+    const phone = document.getElementById("contractor_phone").value.trim();
+    const status = document.getElementById("contractor_status").value;
+    const email = document.getElementById("contractor_email").value.trim();
+    const contact_person = document.getElementById("contractor_contact_person").value.trim();
+    const inn = document.getElementById("contractor_inn").value.trim();
+    const notes = document.getElementById("contractor_notes").value.trim();
+    
+    if (!name) {
+        showToast('Введите название контрагента', 'warn');
+        return;
+    }
+    
+    if (!category_id) {
+        showToast('Выберите категорию', 'warn');
+        return;
+    }
+
+    try {
+        const sb = await initCloud();
+        if (!sb) throw new Error('Нет подключения к Supabase');
+        
+        const newContractor = {
+            name: name,
+            category_id: category_id,
+            address: address,
+            phone: phone,
+            status: status,
+            email: email,
+            contact_person: contact_person,
+            inn: inn,
+            notes: notes,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        
+        const { data, error } = await sb
+            .from('contractors')
+            .insert(newContractor)
+            .select(`
+                *,
+                contractor_categories (name)
+            `)
+            .single();
+            
+        if (error) throw error;
+        
+        // Добавляем в локальные данные
+        if (!data.contractors) data.contractors = [];
+        data.contractors.push(data);
+        
+        // Очищаем форму
+        document.getElementById("contractor_name").value = "";
+        document.getElementById("contractor_category").value = "";
+        document.getElementById("contractor_address").value = "";
+        document.getElementById("contractor_phone").value = "";
+        document.getElementById("contractor_status").value = "active";
+        document.getElementById("contractor_email").value = "";
+        document.getElementById("contractor_contact_person").value = "";
+        document.getElementById("contractor_inn").value = "";
+        document.getElementById("contractor_notes").value = "";
+        
+        save();
+        renderContractors();
+        showToast('✅ Контрагент добавлен', 'success');
+        
+    } catch (error) {
+        console.error('Ошибка добавления контрагента:', error);
+        showToast('❌ Ошибка добавления контрагента: ' + error.message, 'error');
+    }
+}
+
+async function renderCategories() {
+    const listEl = document.getElementById("categories_list");
+    if (!listEl) return;
+    
+    try {
+        const sb = await initCloud();
+        if (!sb) throw new Error('Нет подключения к Supabase');
+        
+        const { data: categories, error } = await sb
+            .from('contractor_categories')
+            .select('*')
+            .order('name');
+            
+        if (error) throw error;
+        
+        // Сохраняем в локальные данные
+        data.contractor_categories = categories || [];
+        
+        if (!categories || categories.length === 0) {
+            listEl.innerHTML = '<p class="hint">Категорий пока нет. Добавьте первую!</p>';
+            return;
+        }
+        
+        listEl.innerHTML = categories.map(category => `
+            <div class="card" style="margin-bottom: 12px; cursor: pointer;" onclick="selectCategory('${category.id}')">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="margin: 0;">${escapeHtml(category.name)}</h4>
+                    <span style="font-size: 12px; color: #666;">
+                        ${(data.contractors || []).filter(c => c.category_id === category.id).length} контрагентов
+                    </span>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Ошибка загрузки категорий:', error);
+        listEl.innerHTML = '<p class="hint" style="color: #c53030;">Ошибка загрузки категорий</p>';
+    }
+}
+
+async function renderContractors() {
+    const tableEl = document.getElementById("contractors_table");
+    if (!tableEl) return;
+    
+    try {
+        const sb = await initCloud();
+        if (!sb) throw new Error('Нет подключения к Supabase');
+        
+        const { data: contractors, error } = await sb
+            .from('contractors')
+            .select(`
+                *,
+                contractor_categories (name)
+            `)
+            .order('name');
+            
+        if (error) throw error;
+        
+        // Сохраняем в локальные данные
+        data.contractors = contractors || [];
+        
+        // Применяем фильтры
+        const filterCategory = document.getElementById("filter_category").value;
+        const filterStatus = document.getElementById("filter_status").value;
+        const searchText = document.getElementById("search_contractor").value.toLowerCase().trim();
+        
+        let filteredContractors = contractors || [];
+        
+        if (filterCategory) {
+    filteredContractors = filteredContractors.filter(c => String(c.category_id) === String(filterCategory));
+}
+        
+        if (filterStatus) {
+            filteredContractors = filteredContractors.filter(c => c.status === filterStatus);
+        }
+        
+        if (searchText) {
+            filteredContractors = filteredContractors.filter(c => 
+                c.name.toLowerCase().includes(searchText) ||
+                (c.contact_person && c.contact_person.toLowerCase().includes(searchText)) ||
+                (c.phone && c.phone.includes(searchText)) ||
+                (c.email && c.email.toLowerCase().includes(searchText))
+            );
+        }
+        
+        if (filteredContractors.length === 0) {
+            tableEl.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 40px; color: #888;">
+                        Контрагентов не найдено
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tableEl.innerHTML = filteredContractors.map(contractor => {
+            const category = contractor.contractor_categories;
+            const statusClass = contractor.status === 'active' ? 'badge-done' : 
+                              contractor.status === 'inactive' ? 'badge-wait' : 'badge-active';
+            const statusText = contractor.status === 'active' ? 'Активный' : 
+                             contractor.status === 'inactive' ? 'Неактивный' : 'Заблокирован';
+            
+            return `
+                <tr>
+                    <td>${escapeHtml(contractor.name)}</td>
+                    <td>${category ? escapeHtml(category.name) : '—'}</td>
+                    <td>${escapeHtml(contractor.contact_person) || '—'}</td>
+                    <td>${escapeHtml(contractor.phone) || '—'}</td>
+                    <td>${escapeHtml(contractor.email) || '—'}</td>
+                    <td><span class="badge ${statusClass}">${statusText}</span></td>
+                    <td style="display: flex; gap: 4px;">
+                        <button class="action" onclick="editContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">✏️</button>
+                        <button class="action danger" onclick="deleteContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">×</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+    } catch (error) {
+        console.error('Ошибка загрузки контрагентов:', error);
+        tableEl.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: #c53030;">
+                    Ошибка загрузки контрагентов
+                </td>
+            </tr>
+        `;
+    }
+}
+
+async function loadCategoriesToSelects() {
+    try {
+        const sb = await initCloud();
+        if (!sb) throw new Error('Нет подключения к Supabase');
+        
+        const { data: categories, error } = await sb
+            .from('contractor_categories')
+            .select('*')
+            .order('name');
+            
+        if (error) throw error;
+        
+        data.contractor_categories = categories || [];
+        
+        // Заполняем все селекты с категориями
+        const categorySelects = [
+            'contractor_category',
+            'filter_category',
+            'sup_counterparty' // для поставок
+        ];
+        
+        categorySelects.forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (select) {
+                const currentValue = select.value;
+                select.innerHTML = `
+                    <option value="">Все категории</option>
+                    ${(categories || []).map(cat => `
+                        <option value="${cat.id}">${escapeHtml(cat.name)}</option>
+                    `).join('')}
+                `;
+                if (currentValue) select.value = currentValue;
+            }
+        });
+        
+    } catch (error) {
+        console.error('Ошибка загрузки категорий для селектов:', error);
+    }
+}
+
+function selectCategory(categoryId) {
+    // Устанавливаем фильтр и перерисовываем контрагентов
+    const filterSelect = document.getElementById("filter_category");
+    if (filterSelect) {
+        filterSelect.value = categoryId;
+        renderContractors();
+    }
+}
+
+async function deleteContractor(contractorId) {
+    if (!confirm('Удалить этого контрагента?')) return;
+    
+    const user = getCurrentUser();
+    if (!user || user.role !== 'admin') {
+        showToast('Только администратор может удалять контрагентов', 'error');
+        return;
+    }
+    
+    try {
+        const sb = await initCloud();
+        if (!sb) throw new Error('Нет подключения к Supabase');
+        
+        const { error } = await sb
+            .from('contractors')
+            .delete()
+            .eq('id', contractorId);
+            
+        if (error) throw error;
+        
+        // Удаляем из локальных данных
+        data.contractors = (data.contractors || []).filter(c => c.id !== contractorId);
+        
+        save();
+        renderContractors();
+        showToast('✅ Контрагент удален', 'success');
+        
+    } catch (error) {
+        console.error('Ошибка удаления контрагента:', error);
+        showToast('❌ Ошибка удаления контрагента: ' + error.message, 'error');
+    }
+}
+
+async function editContractor(contractorId) {
+    // Реализация редактирования контрагента
+    showToast('Функция редактирования будет реализована позже', 'info');
+}
+
+// Обновляем функцию рендеринга всех данных
+const originalRenderAll = renderAll;
+renderAll = function() {
+    originalRenderAll();
+    if (typeof renderCategories === 'function') {
+        renderCategories();
+        loadCategoriesToSelects();
+    }
+    if (typeof renderContractors === 'function') {
+        renderContractors();
+    }
+};
+
+/* ============================================================
    СИСТЕМА ПОСТАВОК
    ============================================================ */
 let _pendingSupplyPdf = null;
+
+// Обновляем функцию инициализации приложения для загрузки категорий
+const originalInitApp = initApp;
+initApp = async function() {
+    await originalInitApp();
+    
+    // Загружаем категории контрагентов при старте
+    if (typeof loadCategoriesToSelects === 'function') {
+        await loadCategoriesToSelects();
+    }
+};
 
 async function uploadSupplyPDF(input) {
   const file = input.files[0]; if (!file) return;
