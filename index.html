@@ -2073,7 +2073,15 @@ function showTab(id, btn) {
   if (id === "stock") renderStock();
     if (id === "supplies") { 
       renderSupplyStockSelect(); 
-      loadContractorsToSupplySelect(); // Загружаем контрагентов при переключении на вкладку
+      // Загружаем категории и контрагентов при переключении на вкладку
+      loadCategoriesToSupplySelect().then(() => {
+        const categorySelect = document.getElementById("sup_category");
+        if (categorySelect && categorySelect.value) {
+          loadContractorsToSupplySelect(categorySelect.value);
+        } else {
+          loadContractorsToSupplySelect(null);
+        }
+      });
       renderSupplies(); 
     }
   if (id === "archive") renderArchive();
@@ -3331,8 +3339,16 @@ async function deleteCategory(categoryId) {
         save();
         
         renderCategories();
-        // Обновляем селект контрагентов в форме поставки
-        await updateSupplyContractorSelect();
+        
+        // Обновляем селект контрагентов в форме поставки, если находимся на вкладке поставок
+        const suppliesTab = document.getElementById('supplies');
+        if (suppliesTab && suppliesTab.classList.contains('active')) {
+            const categorySelect = document.getElementById("sup_category");
+            if (categorySelect && categorySelect.value === categoryId) {
+                categorySelect.value = '';
+            }
+            await loadContractorsToSupplySelect(null);
+        }
         showToast('✅ Категория удалена', 'success');
         
     } catch (error) {
@@ -3366,8 +3382,15 @@ async function deleteContractor(contractorId) {
         save();
         
         renderContractorsInCategory();
-        // Обновляем селект контрагентов в форме поставки
-        await updateSupplyContractorSelect();
+        
+        // Обновляем селект контрагентов в форме поставки, если находимся на вкладке поставок
+        const suppliesTab = document.getElementById('supplies');
+        if (suppliesTab && suppliesTab.classList.contains('active')) {
+            const categorySelect = document.getElementById("sup_category");
+            if (categorySelect) {
+                await loadContractorsToSupplySelect(categorySelect.value);
+            }
+        }
         showToast('✅ Контрагент удален', 'success');
         
     } catch (error) {
@@ -3669,27 +3692,23 @@ async function loadContractorsToSupplySelect(categoryId) {
   const select = document.getElementById("sup_counterparty");
   if (!select) return;
     
+  // Если категория не выбрана, очищаем селект
+  if (!categoryId) {
+    select.innerHTML = '<option value="">— Контрагент —</option>';
+    return;
+  }
+    
   try {
     const sb = await initCloud();
     if (!sb) throw new Error("Нет подключения к Supabase");
       
-    let query = sb
+    const { data: contractors, error } = await sb
       .from('contractors')
       .select('id, name')
+      .eq('category_id', categoryId)
       .order('name');
-      
-    if (categoryId) {
-      query = query.eq('category_id', categoryId);
-    }
-      
-    const { data: contractors, error } = await query;
         
     if (error) throw error;
-      
-    // Сохраняем контрагентов в локальные данные
-    if (contractors) {
-      data.contractors = contractors;
-    }
       
     const currentValue = select.value;
     select.innerHTML = '<option value="">— Контрагент —</option>' + 
