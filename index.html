@@ -3018,7 +3018,8 @@ async function renderCategories() {
             return;
         }
         
-        const isAdminUser = isAdmin();
+        const user = getCurrentUser();
+        const isAdminUser = user && user.role === 'admin';
         
         listEl.innerHTML = categories.map(category => {
             const contractorsCount = category.contractors ? category.contractors.length : 0;
@@ -3092,7 +3093,8 @@ async function renderContractors(categoryId = null) {
             const statusText = contractor.status === 'active' ? 'Активный' : 
                              contractor.status === 'inactive' ? 'Неактивный' : 'Заблокирован';
             
-            const isAdmin = isAdmin();
+            const user = getCurrentUser();
+            const isAdmin = user && user.role === 'admin';
             const actionButtons = isAdmin ? `
                 <button class="action master-hidden" onclick="editContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">✏️</button>
                 <button class="action danger master-hidden" onclick="deleteContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">×</button>
