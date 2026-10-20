@@ -1132,6 +1132,21 @@ function getTasksForDay(dateStr) {
     }
     
     return false;
+  }).map(t => {
+    // Создаем копию задачи для этой даты с правильным флагом выполнения
+    const taskCopy = {...t};
+    
+    // Для регулярных задач определяем выполнение по массиву дат
+    if (t.repeat && t.repeat !== 'none') {
+      if (t.completed_dates && t.completed_dates.includes(dateStr)) {
+        taskCopy.done = true;
+      } else {
+        taskCopy.done = false;
+      }
+    }
+    // Для обычных задач оставляем исходный флаг done
+    
+    return taskCopy;
   });
 }
 
@@ -1167,12 +1182,27 @@ function renderDayTasks(dateStr) {
         if (t.repeat === "monthly") repeatText = " (Регулярно: каждый месяц)";
         else if (t.repeat === "weekly") repeatText = " (Регулярно: каждую неделю)";
       }
+      
+      // Определяем текст кнопки в зависимости от типа задачи и статуса
+      let buttonText = '';
+      if (t.repeat && t.repeat !== 'none') {
+        // Для регулярных задач показываем "Выполнено" или "Вернуть" в зависимости от статуса для этой даты
+        buttonText = !t.done ? 
+          `<button class="action ok" onclick="toggleTaskDone('${t.id}', '${dateStr}')">✔ Выполнено</button>` : 
+          `<button class="action" onclick="toggleTaskDone('${t.id}', '${dateStr}')">↩ Вернуть</button>`;
+      } else {
+        // Для обычных задач используем старую логику
+        buttonText = !t.done ? 
+          `<button class="action ok" onclick="toggleTaskDone('${t.id}')">✔ Выполнено</button>` : 
+          `<button class="action" onclick="toggleTaskDone('${t.id}')">↩ Вернуть</button>`;
+      }
+      
       return `<div class="stage" style="${done}">
         <div class="stage-title"><span class="dot ${typeCls}"></span> ${typeLabel}: ${escapeHtml(t.title || t.product_name || "Без названия")}${repeatText} ${t.qty ? " × " + t.qty + " шт" : ""}</div>
         <div class="stage-info">${t.date_start}${t.date_end && t.date_end !== t.date_start ? " — " + t.date_end : ""} ${t.responsible ? " • Ответственный: " + escapeHtml(t.responsible) : ""}</div>
         ${t.note ? `<div class="stage-info">💬 ${escapeHtml(t.note)}</div>` : ""}
         ${t.batch_created ? `<div class="stage-info">📦 Партия создана в производстве</div>` : ""}
-        <div class="row" style="margin-top:8px"> <button class="action" onclick="openTaskChat('${t.id}', '${escapeHtml(t.title || t.product_name)}')">💬 Обсудить</button> ${!t.done ? `<button class="action ok" onclick="toggleTaskDone('${t.id}')">✔ Выполнено</button>` : `<button class="action" onclick="toggleTaskDone('${t.id}')">↩ Вернуть</button>`} <button class="action danger master-hidden" onclick="delTask('${t.id}')">× Удалить</button> </div>
+        <div class="row" style="margin-top:8px"> <button class="action" onclick="openTaskChat('${t.id}', '${escapeHtml(t.title || t.product_name)}')">💬 Обсудить</button> ${buttonText} <button class="action danger master-hidden" onclick="delTask('${t.id}')">× Удалить</button> </div>
       </div>`;
     }).join("");
   }
@@ -1230,17 +1260,44 @@ function delTask(id) {
   if (_calSelectedDay) renderDayTasks(_calSelectedDay);
 }
 
-function toggleTaskDone(id) {
+function toggleTaskDone(id, dateStr = null) {
   const t = (data.tasks || []).find(x => String(x.id) === String(id));
   if (!t) return;
-  t.done = !t.done;
-  t.updatedAt = new Date().toISOString();
-  const chat = (data.chats || []).find(c => String(c.linked_id) === String(t.id));
-  if (chat) {
-    if (t.done) { chat.archived = true; showToast("📦 Чат задачи перенесён в архив", "success"); } 
-    else { chat.archived = false; }
-    chat.updatedAt = new Date().toISOString();
+  
+  // Для регулярных задач используем массив выполненных дат
+  if (t.repeat && t.repeat !== 'none') {
+    if (!dateStr) {
+      // Если дата не передана, используем текущую выбранную дату
+      dateStr = _calSelectedDay;
+    }
+    if (!dateStr) return alert("Не удалось определить дату для выполнения");
+    
+    // Инициализируем массив выполненных дат, если его нет
+    if (!t.completed_dates) t.completed_dates = [];
+    
+    // Проверяем, выполнена ли задача для этой даты
+    const index = t.completed_dates.indexOf(dateStr);
+    if (index >= 0) {
+      // Удаляем дату из массива (отмечаем как невыполненную)
+      t.completed_dates.splice(index, 1);
+    } else {
+      // Добавляем дату в массив (отмечаем как выполненную)
+      t.completed_dates.push(dateStr);
+    }
+    
+    t.updatedAt = new Date().toISOString();
+  } else {
+    // Для обычных задач используем старую логику
+    t.done = !t.done;
+    t.updatedAt = new Date().toISOString();
+    const chat = (data.chats || []).find(c => String(c.linked_id) === String(t.id));
+    if (chat) {
+      if (t.done) { chat.archived = true; showToast("📦 Чат задачи перенесён в архив", "success"); } 
+      else { chat.archived = false; }
+      chat.updatedAt = new Date().toISOString();
+    }
   }
+  
   save(); renderCalendar();
   if (_calSelectedDay) renderDayTasks(_calSelectedDay);
 }
