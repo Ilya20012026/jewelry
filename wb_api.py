@@ -5,8 +5,8 @@ from supabase import create_client
 # ============================================================
 # НАСТРОЙКИ
 # ============================================================
-WB_TOKEN = "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjYwOTAzdjEiLCJ0eXAiOiJKV1QifQ.eyJhY2MiOjMsImVudCI6MSwiZXhwIjoxODA4MjU5NTI0LCJmb3IiOiJzZWxmIiwiaWQiOiIwMWExNThkMi0wZmVkLTdjMjctOTc5OS0yNzE1NzI2NGQzYmQiLCJpaWQiOjExNjkwNTY0LCJvaWQiOjI1MDE1MzQxOSwicyI6MTA3Mzc0NTk2Niwic2lkIjoiOTYzZDIzZDktYjdjZC00YzAzLTg4MTktZjc5YjI5YmU3MTVhIiwidCI6ZmFsc2UsInVpZCI6MTE2OTA1NjR9.oMSbbjgiKf5i4CKCFlabA5LnTqVhMZJ3IcnYKlNiEktetISjH1YJfGo3i1UPh8e8qlBW64YHj9m_vxZa4gBHuA"
-headers = {"Authorization": WB_TOKEN}
+import os
+WB_TOKEN = os.environ.get("WB_TOKEN")
 
 SUPABASE_URL = "https://kjiybjmisztrwymkwwsg.supabase.co"
 SUPABASE_KEY = "sb_publishable_08SQ7121NYScNVQYffjjyg_mj-VWYv-"
@@ -54,14 +54,25 @@ def get_fbo_stocks(nm_ids):
         print(f"❌ Ошибка FBO: {e}")
         return {}
 
-def save_to_supabase(nm_ids, fbs_stocks, fbo_stocks):
+def save_to_supabase(nm_ids, fbs_stocks, fbo_stocks, cards):
     print("\n⏳ Сохраняем в Supabase...")
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         rows = []
         for nm_id in nm_ids:
+            # Ищем карточку товара, чтобы взять артикул и название
+            article = "N/A"
+            title = "Без названия"
+            for card in cards:
+                if str(card.get('nmID')) == str(nm_id):
+                    article = card.get('vendorCode') or "N/A"
+                    title = card.get('title') or "Без названия"
+                    break
+            
             rows.append({
                 "nm_id": str(nm_id),
+                "article": article,
+                "title": title,
                 "fbs_quantity": int(fbs_stocks.get(str(nm_id), 0)),
                 "fbo_quantity": int(fbo_stocks.get(str(nm_id), 0)),
                 "updated_at": datetime.now().isoformat()
@@ -108,7 +119,7 @@ if __name__ == "__main__":
             print("="*70)
             
             # Сохраняем в базу
-            save_to_supabase(nm_ids, fbs_stocks, fbo_stocks)
+            save_to_supabase(nm_ids, fbs_stocks, fbo_stocks, cards)
             
     except Exception as e:
         print(f"❌ Ошибка: {e}")

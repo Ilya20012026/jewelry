@@ -3110,7 +3110,7 @@ async function renderWbStocks() {
     wbStocks.forEach(wbItem => {
       // Ищем товар в локальном складе по артикулу (без учета регистра)
       let stockItem = null;
-      let productName = wbItem.name || 'Без названия';
+      let productName = wbItem.title || `Товар WB: ${wbItem.nm_id}`;
       let article = wbItem.article || '—';
       
       // Поиск в data.stock по артикулу
