@@ -3331,6 +3331,8 @@ async function deleteCategory(categoryId) {
         save();
         
         renderCategories();
+        // Обновляем селект контрагентов в форме поставки
+        await updateSupplyContractorSelect();
         showToast('✅ Категория удалена', 'success');
         
     } catch (error) {
@@ -3364,6 +3366,8 @@ async function deleteContractor(contractorId) {
         save();
         
         renderContractorsInCategory();
+        // Обновляем селект контрагентов в форме поставки
+        await updateSupplyContractorSelect();
         showToast('✅ Контрагент удален', 'success');
         
     } catch (error) {
@@ -3699,6 +3703,21 @@ async function loadContractorsToSupplySelect(categoryId) {
     console.error("Ошибка загрузки контрагентов:", error);
     select.innerHTML = '<option value="">Ошибка загрузки</option>';
   }
+}
+
+async function updateSupplyContractorSelect() {
+    const categorySelect = document.getElementById("sup_category");
+    const contractorSelect = document.getElementById("sup_counterparty");
+    
+    if (!contractorSelect) return;
+    
+    // Если выбрана категория, загружаем контрагентов этой категории
+    if (categorySelect && categorySelect.value) {
+        await loadContractorsToSupplySelect(categorySelect.value);
+    } else {
+        // Иначе очищаем селект контрагентов
+        contractorSelect.innerHTML = '<option value="">— Контрагент —</option>';
+    }
 }
 
 function renderSupplyStockSelect() {
