@@ -141,6 +141,7 @@
   .dot-task    { background: #1976d2; }
   .dot-done { background: #ccc; }
   .dot-production { background: #ff0000; }
+  .dot-regular { background: #eab308; }
 
   .calendar-legend { display: flex; gap: 18px; margin-top: 16px; font-size: 12px; color: #666; flex-wrap: wrap; }
   .calendar-legend > span { display: flex; align-items: center; gap: 6px; }
@@ -476,6 +477,11 @@
       </div>
       <div class="row">
         <select id="task_responsible" style="width:220px"></select>
+        <select id="task_repeat" style="width:180px">
+          <option value="none">Разово</option>
+          <option value="monthly">Каждый месяц</option>
+          <option value="weekly">Каждую неделю</option>
+        </select>
         <input id="task_note" placeholder="Комментарий" style="width:320px">
         <button class="action" onclick="addTask()">ДОБАВИТЬ</button>
       </div>
@@ -491,6 +497,7 @@
         <span><span class="dot dot-restock"></span> Пополнение</span>
         <span><span class="dot dot-new"></span> Новая позиция</span>
         <span><span class="dot dot-task"></span> Задача</span>
+        <span><span class="dot dot-regular"></span> Регулярная</span>
       </div>
     </div>
     <div class="card" id="day_tasks_card" style="display:none">
@@ -1024,6 +1031,8 @@ function renderCalendar() {
     if (t.type === "restock") cls = "dot-restock";
     if (t.type === "new_item") cls = "dot-new";
     if (t.type === "production_task") cls = "dot-production"; // <-- НОВОЕ
+    // Для регулярных задач используем желтый цвет
+    if (t.type === "task" && t.repeat && t.repeat !== "none") cls = "dot-regular";
   }
   return `<span class="dot ${cls}"></span>`;
 }).join("");
@@ -1072,8 +1081,13 @@ function renderDayTasks(dateStr) {
       if (t.type === "new_item") { typeLabel = "НОВАЯ ПОЗИЦИЯ"; typeCls = "dot-new"; }
 if (t.type === "production_task") { typeLabel = "ПРОИЗВОДСТВЕННАЯ ЗАДАЧА"; typeCls = "dot-production"; }
       const done = t.done ? "text-decoration:line-through;opacity:0.5;" : "";
+      let repeatText = "";
+      if (t.repeat && t.repeat !== "none") {
+        if (t.repeat === "monthly") repeatText = " (Регулярно: каждый месяц)";
+        else if (t.repeat === "weekly") repeatText = " (Регулярно: каждую неделю)";
+      }
       return `<div class="stage" style="${done}">
-        <div class="stage-title"><span class="dot ${typeCls}"></span> ${typeLabel}: ${escapeHtml(t.title || t.product_name || "Без названия")} ${t.qty ? " × " + t.qty + " шт" : ""}</div>
+        <div class="stage-title"><span class="dot ${typeCls}"></span> ${typeLabel}: ${escapeHtml(t.title || t.product_name || "Без названия")}${repeatText} ${t.qty ? " × " + t.qty + " шт" : ""}</div>
         <div class="stage-info">${t.date_start}${t.date_end && t.date_end !== t.date_start ? " — " + t.date_end : ""} ${t.responsible ? " • Ответственный: " + escapeHtml(t.responsible) : ""}</div>
         ${t.note ? `<div class="stage-info">💬 ${escapeHtml(t.note)}</div>` : ""}
         ${t.batch_created ? `<div class="stage-info">📦 Партия создана в производстве</div>` : ""}
@@ -1090,6 +1104,7 @@ function addTask() {
   const dateStart = document.getElementById("task_date_start").value;
   let dateEnd = document.getElementById("task_date_end").value;
   const responsible = document.getElementById("task_responsible").value;
+  const repeat = document.getElementById("task_repeat").value;
   const note = document.getElementById("task_note").value.trim();
 
   if (!dateStart) return alert("Укажите дату начала");
@@ -1110,7 +1125,7 @@ function addTask() {
   const task = {
     id: uid(), type, title: title || (productName ? `${productName} × ${qty}` : ""),
     product_id: productId, product_name: productName, qty,
-    date_start: dateStart, date_end: dateEnd, responsible, note,
+    date_start: dateStart, date_end: dateEnd, responsible, repeat, note,
     batch_created: false, batch_id: null, done: false,
     updatedAt: new Date().toISOString(),
   };
@@ -1120,6 +1135,7 @@ function addTask() {
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
+  document.getElementById("task_repeat").value = "none";
 
   save(); renderCalendar();
   if (_calSelectedDay === dateStart) renderDayTasks(dateStart);
