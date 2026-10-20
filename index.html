@@ -1049,10 +1049,37 @@ function renderCalendar() {
 
 function getTasksForDay(dateStr) {
   if (!data.tasks) return [];
+  const targetDate = new Date(dateStr);
+  const targetDayOfWeek = targetDate.getDay(); // 0 (воскресенье) - 6 (суббота)
+  const targetDayOfMonth = targetDate.getDate(); // 1-31
+  
   return data.tasks.filter(t => {
     const start = t.date_start;
     const end = t.date_end || t.date_start;
-    return dateStr >= start && dateStr <= end;
+    
+    // Если задача без повторения - проверяем вхождение в диапазон
+    if (!t.repeat || t.repeat === 'none') {
+      return dateStr >= start && dateStr <= end;
+    }
+    
+    // Если дата начала задачи еще не наступила - пропускаем
+    if (dateStr < start) return false;
+    
+    // Для еженедельных повторений
+    if (t.repeat === 'weekly') {
+      const startDate = new Date(start);
+      const startDayOfWeek = startDate.getDay();
+      return targetDayOfWeek === startDayOfWeek;
+    }
+    
+    // Для ежемесячных повторений
+    if (t.repeat === 'monthly') {
+      const startDate = new Date(start);
+      const startDayOfMonth = startDate.getDate();
+      return targetDayOfMonth === startDayOfMonth;
+    }
+    
+    return false;
   });
 }
 
@@ -1091,7 +1118,7 @@ if (t.type === "production_task") { typeLabel = "ПРОИЗВОДСТВЕННА�
         <div class="stage-info">${t.date_start}${t.date_end && t.date_end !== t.date_start ? " — " + t.date_end : ""} ${t.responsible ? " • Ответственный: " + escapeHtml(t.responsible) : ""}</div>
         ${t.note ? `<div class="stage-info">💬 ${escapeHtml(t.note)}</div>` : ""}
         ${t.batch_created ? `<div class="stage-info">📦 Партия создана в производстве</div>` : ""}
-        <div class="row" style="margin-top:8px"> <button class="action" onclick="openTaskChat('${t.id}', '${escapeHtml(t.title || t.product_name)}')">💬 Обсудить</button> ${!t.done ? `<button class="action ok master-hidden" onclick="toggleTaskDone('${t.id}')">✔ Выполнено</button>` : `<button class="action master-hidden" onclick="toggleTaskDone('${t.id}')">↩ Вернуть</button>`} <button class="action danger master-hidden" onclick="delTask('${t.id}')">× Удалить</button> </div>
+        <div class="row" style="margin-top:8px"> <button class="action" onclick="openTaskChat('${t.id}', '${escapeHtml(t.title || t.product_name)}')">💬 Обсудить</button> ${!t.done ? `<button class="action ok" onclick="toggleTaskDone('${t.id}')">✔ Выполнено</button>` : `<button class="action" onclick="toggleTaskDone('${t.id}')">↩ Вернуть</button>`} <button class="action danger master-hidden" onclick="delTask('${t.id}')">× Удалить</button> </div>
       </div>`;
     }).join("");
   }
