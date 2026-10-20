@@ -608,6 +608,7 @@
           <input id="contractor_name" placeholder="Название" style="width:300px">
           <!-- Категория скрыта - автоматически подставляется из текущей -->
           <input type="hidden" id="contractor_category">
+          <input type="hidden" id="current_category_id" value="">
         </div>
         <div class="row">
           <input id="contractor_address" placeholder="Адрес" style="width:300px">
@@ -2923,7 +2924,7 @@ async function addContractor() {
     }
     
     const name = document.getElementById("contractor_name").value.trim();
-    const category_id = document.getElementById("contractor_category").value;
+    const category_id = document.getElementById("current_category_id").value;
     const address = document.getElementById("contractor_address").value.trim();
     const phone = document.getElementById("contractor_phone").value.trim();
     const status = document.getElementById("contractor_status").value;
@@ -2979,6 +2980,7 @@ async function addContractor() {
         document.getElementById("contractor_contact_person").value = "";
         document.getElementById("contractor_inn").value = "";
         document.getElementById("contractor_notes").value = "";
+        // Не очищаем current_category_id, чтобы можно было добавлять несколько контрагентов в одну категорию
         
         save();
         renderContractorsInCategory();
@@ -3166,6 +3168,9 @@ let _currentCategoryName = null;
 async function openCategory(categoryId, categoryName) {
     _currentCategoryId = categoryId;
     _currentCategoryName = categoryName;
+    
+    // Записываем ID категории в скрытое поле
+    document.getElementById('current_category_id').value = categoryId;
     
     // Скрываем список категорий, показываем список контрагентов
     document.getElementById('contractors-categories-view').style.display = 'none';
