@@ -289,8 +289,8 @@
   </span>
 </header>
 <div class="main-tabs">
-  <button class="active" onclick="showMain('production', this)">ПРОИЗВОДСТВО</button>
-  <button onclick="showMain('company', this)">КОМПАНИЯ</button>
+  <button onclick="showMain('production', this)">ПРОИЗВОДСТВО</button>
+  <button class="active" onclick="showMain('company', this)">КОМПАНИЯ</button>
   <button onclick="showMain('contractors', this)">КОНТРАГЕНТЫ</button>
   <button onclick="showMain('service', this)">СЕРВИС</button>
 </div>
@@ -298,7 +298,7 @@
 
 
 <!-- ОБЁРТКА: ПРОИЗВОДСТВО -->
-<div id="main-production" class="main-section active">
+<div id="main-production" class="main-section">
 <div class="tabs">
     <button class="active" onclick="showTab('products', this)">Изделия</button>
   <button onclick="showTab('batches', this)">Партии</button>
@@ -449,7 +449,7 @@
 
 
 <!-- ОБЁРТКА: КОМПАНИЯ -->
-<div id="main-company" class="main-section">
+<div id="main-company" class="main-section active">
     <div class="tabs">
     <button class="active" onclick="showCompanyTab('calendar', this)">Календарь</button>
     <button onclick="showCompanyTab('boards', this)">Доски</button>
@@ -2005,7 +2005,14 @@ function showApp() {
   document.getElementById("login_screen").style.display = "none"; document.getElementById("login_screen").classList.add("hidden");
   document.getElementById("app_main").style.display = "block";
   const user = getCurrentUser(); applyRoleRestrictions(user);
-  if (user && user.role === "master") { const prodBtn = document.querySelector(".main-tabs button[onclick*='production']"); if (prodBtn) showMain("production", prodBtn); }
+  
+  // Принудительно показываем календарь в разделе "Компания"
+  const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
+  if (companyBtn) showMain("company", companyBtn);
+  
+  const calendarBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
+  if (calendarBtn) showCompanyTab('calendar', calendarBtn);
+  
   const nameEl = document.getElementById("current_user_name"); if (nameEl && user) nameEl.textContent = user.name;
   if (typeof renderAll === "function") renderAll(); if (typeof renderEmployees === "function") renderEmployees();
 }
@@ -2040,7 +2047,18 @@ function checkSession() {
     setTimeout(() => { splash.remove(); }, 300); // Удаляем из DOM через 0.3 сек
   }
   
-  if (user) showApp(); else hideApp();
+  if (user) {
+    showApp();
+    // Дополнительно вызываем отображение календаря
+    setTimeout(() => {
+      const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
+      if (companyBtn) showMain("company", companyBtn);
+      const calendarBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
+      if (calendarBtn) showCompanyTab('calendar', calendarBtn);
+    }, 100);
+  } else {
+    hideApp();
+  }
 }
 
 function applyRoleRestrictions(user) {
