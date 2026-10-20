@@ -636,15 +636,6 @@
       <!-- Список контрагентов -->
       <div style="margin-top:20px;">
         <h4>Список контрагентов</h4>
-        <div class="row">
-          <select id="filter_status" onchange="renderContractorsInCategory()" style="width:200px">
-            <option value="">Все статусы</option>
-            <option value="active">Активные</option>
-            <option value="inactive">Неактивные</option>
-            <option value="blocked">Заблокированные</option>
-          </select>
-          <input id="search_contractor" placeholder="Поиск по названию..." style="width:300px" oninput="renderContractorsInCategory()">
-        </div>
         <table style="margin-top:12px; width:100%">
           <thead>
             <tr>
@@ -3055,7 +3046,7 @@ async function renderCategories() {
     }
 }
 
-async function renderContractors() {
+async function renderContractors(categoryId = null) {
     const tableEl = document.getElementById("contractors_table");
     if (!tableEl) return;
     
@@ -3063,47 +3054,28 @@ async function renderContractors() {
         const sb = await initCloud();
         if (!sb) throw new Error('Нет подключения к Supabase');
         
-        const { data: contractors, error } = await sb
+        let query = sb
             .from('contractors')
             .select(`
                 *,
                 contractor_categories (name)
-            `)
-            .order('name');
+            `);
+            
+        if (categoryId) {
+            query = query.eq('category_id', categoryId);
+        }
+        
+        const { data: contractors, error } = await query.order('name');
             
         if (error) throw error;
         
         // Сохраняем в локальные данные
         data.contractors = contractors || [];
         
-        // Применяем фильтры
-        const filterCategory = document.getElementById("filter_category").value;
-        const filterStatus = document.getElementById("filter_status").value;
-        const searchText = document.getElementById("search_contractor").value.toLowerCase().trim();
-        
-        let filteredContractors = contractors || [];
-        
-        if (filterCategory) {
-    filteredContractors = filteredContractors.filter(c => String(c.category_id) === String(filterCategory));
-}
-        
-        if (filterStatus) {
-            filteredContractors = filteredContractors.filter(c => c.status === filterStatus);
-        }
-        
-        if (searchText) {
-            filteredContractors = filteredContractors.filter(c => 
-                c.name.toLowerCase().includes(searchText) ||
-                (c.contact_person && c.contact_person.toLowerCase().includes(searchText)) ||
-                (c.phone && c.phone.includes(searchText)) ||
-                (c.email && c.email.toLowerCase().includes(searchText))
-            );
-        }
-        
-        if (filteredContractors.length === 0) {
+        if (!contractors || contractors.length === 0) {
             tableEl.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 40px; color: #888;">
+                    <td colspan="6" style="text-align: center; padding: 40px; color: #888;">
                         Контрагентов не найдено
                     </td>
                 </tr>
@@ -3111,25 +3083,27 @@ async function renderContractors() {
             return;
         }
         
-        tableEl.innerHTML = filteredContractors.map(contractor => {
+        tableEl.innerHTML = contractors.map(contractor => {
             const category = contractor.contractor_categories;
             const statusClass = contractor.status === 'active' ? 'badge-done' : 
                               contractor.status === 'inactive' ? 'badge-wait' : 'badge-active';
             const statusText = contractor.status === 'active' ? 'Активный' : 
                              contractor.status === 'inactive' ? 'Неактивный' : 'Заблокирован';
             
+            const isAdmin = isAdmin();
+            const actionButtons = isAdmin ? `
+                <button class="action master-hidden" onclick="editContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">✏️</button>
+                <button class="action danger master-hidden" onclick="deleteContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">×</button>
+            ` : '';
+            
             return `
                 <tr>
                     <td>${escapeHtml(contractor.name)}</td>
-                    <td>${category ? escapeHtml(category.name) : '—'}</td>
                     <td>${escapeHtml(contractor.contact_person) || '—'}</td>
                     <td>${escapeHtml(contractor.phone) || '—'}</td>
                     <td>${escapeHtml(contractor.email) || '—'}</td>
                     <td><span class="badge ${statusClass}">${statusText}</span></td>
-                    <td style="display: flex; gap: 4px;">
-                        <button class="action" onclick="editContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">✏️</button>
-                        <button class="action danger" onclick="deleteContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">×</button>
-                    </td>
+                    <td style="display: flex; gap: 4px;">${actionButtons}</td>
                 </tr>
             `;
         }).join('');
@@ -3138,7 +3112,7 @@ async function renderContractors() {
         console.error('Ошибка загрузки контрагентов:', error);
         tableEl.innerHTML = `
             <tr>
-                <td colspan="7" style="text-align: center; padding: 40px; color: #c53030;">
+                <td colspan="6" style="text-align: center; padding: 40px; color: #c53030;">
                     Ошибка загрузки контрагентов
                 </td>
             </tr>
@@ -3200,11 +3174,8 @@ async function openCategory(categoryId, categoryName) {
     // Устанавливаем заголовок
     document.getElementById('current_category_title').textContent = `Контрагенты в категории: ${escapeHtml(categoryName)}`;
     
-    // Устанавливаем category_id в скрытое поле формы
-    document.getElementById('contractor_category').value = categoryId;
-    
     // Загружаем контрагентов этой категории
-    await renderContractorsInCategory();
+    await renderContractors(categoryId);
 }
 
 function backToCategories() {
@@ -3216,79 +3187,8 @@ function backToCategories() {
 }
 
 async function renderContractorsInCategory() {
-    const tableEl = document.getElementById("contractors_table");
-    if (!tableEl || !_currentCategoryId) return;
-    
-    const filterStatus = document.getElementById("filter_status").value;
-    const searchText = document.getElementById("search_contractor").value.toLowerCase().trim();
-    
-    try {
-        const sb = await initCloud();
-        if (!sb) throw new Error('Нет подключения к Supabase');
-        
-        let query = sb
-            .from('contractors')
-            .select('*')
-            .eq('category_id', _currentCategoryId);
-            
-        if (filterStatus) {
-            query = query.eq('status', filterStatus);
-        }
-        
-        if (searchText) {
-            query = query.ilike('name', `%${searchText}%`);
-        }
-        
-        const { data: contractors, error } = await query.order('name');
-            
-        if (error) throw error;
-        
-        // Отображаем контрагентов в таблице
-        if (!contractors || contractors.length === 0) {
-            tableEl.innerHTML = `
-                <tr>
-                    <td colspan="6" style="text-align: center; padding: 40px; color: #888;">
-                        В этой категории пока нет контрагентов
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-        
-        tableEl.innerHTML = contractors.map(contractor => {
-            const statusClass = contractor.status === 'active' ? 'badge-done' : 
-                              contractor.status === 'inactive' ? 'badge-wait' : 'badge-active';
-            const statusText = contractor.status === 'active' ? 'Активный' : 
-                             contractor.status === 'inactive' ? 'Неактивный' : 'Заблокирован';
-            
-            const isAdmin = isAdmin();
-            const actionButtons = isAdmin ? `
-                <button class="action master-hidden" onclick="editContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">✏️</button>
-                <button class="action danger master-hidden" onclick="deleteContractor('${contractor.id}')" style="padding: 4px 8px; font-size: 12px;">×</button>
-            ` : '';
-            
-            return `
-                <tr>
-                    <td>${escapeHtml(contractor.name)}</td>
-                    <td>${escapeHtml(contractor.contact_person) || '—'}</td>
-                    <td>${escapeHtml(contractor.phone) || '—'}</td>
-                    <td>${escapeHtml(contractor.email) || '—'}</td>
-                    <td><span class="badge ${statusClass}">${statusText}</span></td>
-                    <td style="display: flex; gap: 4px;">${actionButtons}</td>
-                </tr>
-            `;
-        }).join('');
-        
-    } catch (error) {
-        console.error('Ошибка загрузки контрагентов:', error);
-        tableEl.innerHTML = `
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 40px; color: #c53030;">
-                    Ошибка загрузки контрагентов
-                </td>
-            </tr>
-        `;
-    }
+    if (!_currentCategoryId) return;
+    await renderContractors(_currentCategoryId);
 }
 
 async function deleteCategory(categoryId) {
