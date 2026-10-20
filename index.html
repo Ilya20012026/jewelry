@@ -598,6 +598,7 @@
         <p class="hint">Сравнение остатков на Wildberries и на вашем складе</p>
         <div class="row" style="margin-bottom:12px;">
           <button class="action" onclick="renderWbStocks()">🔄 Обновить все</button>
+          <button class="action" onclick="alert('Запустите python wb_api.py, чтобы обновить данные')">🔄 Синхронизировать с WB</button>
         </div>
         <table>
           <thead>
@@ -606,13 +607,14 @@
               <th>Артикул</th>
               <th>FBS (шт)</th>
               <th>FBO (шт)</th>
-              <th>Мой склад (шт)</th>
+              <th>Всего на WB</th>
+              <th>Мой склад (РУСИЧЪ)</th>
+              <th>Себестоимость</th>
               <th>Статус</th>
-              <th>Действие</th>
             </tr>
           </thead>
           <tbody id="wb-stocks-table">
-            <tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">Данные загружаются...</td></tr>
+            <tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">Данные загружаются...</td></tr>
           </tbody>
         </table>
       </div>
@@ -3081,86 +3083,79 @@ async function renderWbStocks() {
   const table = document.getElementById('wb-stocks-table');
   if (!table) return;
   
-  table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">Загрузка данных...</td></tr>';
+  table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">Загрузка данных...</td></tr>';
   
   try {
     const sb = await initCloud();
     if (!sb) {
-      table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#c53030;">Ошибка подключения к облаку</td></tr>';
+      table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#c53030;">Ошибка подключения к облаку</td></tr>';
       return;
     }
     
-    // Загружаем данные из таблицы wb_stocks
+    // Загружаем ВСЕ данные из таблицы wb_stocks
     const { data: wbStocks, error } = await sb
       .from('wb_stocks')
       .select('*');
       
     if (error) throw error;
     
-    // Создаем карту для быстрого поиска по артикулу
-    const wbStockMap = new Map();
-    (wbStocks || []).forEach(item => {
-      wbStockMap.set(item.nm_id, item);
-    });
-    
-    // Создаем карту товаров по названию из нашего склада
-    const stockMap = new Map();
-    (data.stock || []).forEach(item => {
-      stockMap.set(item.productName, item);
-    });
-    
-    // Создаем карту артикулов по названию товара
-    const productArticleMap = new Map();
-    (data.products || []).forEach(product => {
-      productArticleMap.set(product.name, product.article);
-    });
-    
-    // Собираем все уникальные названия товаров
-    const allProductNames = new Set([
-      ...Array.from(stockMap.keys()),
-      ...Array.from(wbStockMap.values()).map(item => item.name).filter(Boolean)
-    ]);
-    
-    if (allProductNames.size === 0) {
-      table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#888;">Нет данных о товарах</td></tr>';
+    if (!wbStocks || wbStocks.length === 0) {
+      table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">Нет данных о товарах на Wildberries</td></tr>';
       return;
     }
     
     let html = '';
     
-    // Обрабатываем каждый товар
-    allProductNames.forEach(productName => {
-      const stockItem = stockMap.get(productName);
-      const article = productArticleMap.get(productName) || '—';
-      const myStockQty = stockItem ? stockItem.remaining : 0;
+    // Обрабатываем каждый товар из WB
+    wbStocks.forEach(wbItem => {
+      // Ищем товар в локальном складе по артикулу (без учета регистра)
+      let stockItem = null;
+      let productName = wbItem.name || 'Без названия';
+      let article = wbItem.article || '—';
       
-      // Ищем товар в данных WB (предполагаем, что имя товара в WB совпадает с нашим)
-      let wbItem = null;
-      for (let item of (wbStocks || [])) {
-        if (item.name === productName) {
-          wbItem = item;
-          break;
+      // Поиск в data.stock по артикулу
+      if (article !== '—') {
+        stockItem = (data.stock || []).find(item => 
+          item.productName && article && 
+          item.productName.toLowerCase().includes(article.toLowerCase())
+        );
+        
+        // Если не нашли по частичному совпадению, попробуем найти по точному совпадению артикула в products
+        if (!stockItem) {
+          const product = (data.products || []).find(p => 
+            p.article && article && 
+            p.article.toLowerCase() === article.toLowerCase()
+          );
+          if (product) {
+            stockItem = (data.stock || []).find(item => 
+              item.productName === product.name
+            );
+          }
         }
       }
       
-      const fbsQty = wbItem ? (wbItem.fbs_quantity || 0) : 0;
-      const fboQty = wbItem ? (wbItem.fbo_quantity || 0) : 0;
+      const fbsQty = wbItem.fbs_quantity || 0;
+      const fboQty = wbItem.fbo_quantity || 0;
       const wbTotal = fbsQty + fboQty;
+      const myStockQty = stockItem ? stockItem.remaining : 0;
+      const cost = stockItem ? stockItem.costPerUnit : 0;
       
-      // Определяем статус
+      // Определяем статус согласно новой логике
       let status = '';
-      if (!wbItem) {
-        status = '❓ Нет на WB';
-      } else if (!stockItem) {
-        status = '❓ Нет на складе';
-      } else if (wbTotal < myStockQty) {
-        const diff = myStockQty - wbTotal;
-        status = `⚠️ Не хватает ${diff} шт.`;
+      let statusColor = '';
+      
+      if (!stockItem) {
+        status = '❓ Нет в РУСИЧЪ';
+        statusColor = 'color: #2b6cb0;'; // синий
       } else if (wbTotal > myStockQty) {
-        const diff = wbTotal - myStockQty;
-        status = `⚠️ Лишние ${diff} шт.`;
+        status = '⚠️ Меньше на складе';
+        statusColor = 'color: #c53030;'; // красный
+      } else if (wbTotal < myStockQty) {
+        status = '⚠️ Больше на складе';
+        statusColor = 'color: #b7791f;'; // оранжевый
       } else {
         status = '✅ ОК';
+        statusColor = 'color: #2f855a;'; // зеленый
       }
       
       html += `
@@ -3169,9 +3164,10 @@ async function renderWbStocks() {
           <td>${escapeHtml(article)}</td>
           <td>${fbsQty}</td>
           <td>${fboQty}</td>
+          <td>${wbTotal}</td>
           <td>${myStockQty}</td>
-          <td>${status}</td>
-          <td><button class="action" onclick="updateWbStock('${escapeHtml(productName)}')" style="padding:4px 8px;font-size:12px;">Обновить</button></td>
+          <td>${fmt(cost)} ₽</td>
+          <td style="${statusColor} font-weight: 600;">${status}</td>
         </tr>
       `;
     });
@@ -3180,7 +3176,7 @@ async function renderWbStocks() {
     
   } catch (error) {
     console.error('Ошибка загрузки данных WB:', error);
-    table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#c53030;">Ошибка загрузки данных: ' + escapeHtml(error.message) + '</td></tr>';
+    table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#c53030;">Ошибка загрузки данных: ' + escapeHtml(error.message) + '</td></tr>';
   }
 }
 
