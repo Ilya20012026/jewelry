@@ -1718,10 +1718,32 @@ setTimeout(() => { renderCalendar(); }, 150);
 }
 
 function showContractorsTab(id, btn) {
-  document.querySelectorAll("#main-contractors .tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll("#main-contractors > .tabs button").forEach(b => b.classList.remove("active"));
-  document.getElementById("contractors-" + id).classList.add("active");
-  if (btn) btn.classList.add("active");
+  // Безопасно переключаем вкладки
+  const tabs = document.querySelectorAll("#main-contractors .tab");
+  if (tabs) {
+    tabs.forEach(t => t.classList.remove("active"));
+  }
+  
+  const buttons = document.querySelectorAll("#main-contractors > .tabs button");
+  if (buttons) {
+    buttons.forEach(b => b.classList.remove("active"));
+  }
+  
+  const targetTab = document.getElementById("contractors-" + id);
+  if (targetTab) {
+    targetTab.classList.add("active");
+  }
+  
+  if (btn) {
+    btn.classList.add("active");
+  }
+  
+  // Загружаем данные для активной вкладки
+  if (id === 'categories') {
+    renderCategories();
+  } else if (id === 'list') {
+    renderContractors();
+  }
 }
 
 function showCompanyTab(id, btn) {
@@ -2904,9 +2926,7 @@ async function addCategory() {
         if (!sb) throw new Error('Нет подключения к Supabase');
         
         const newCategory = {
-            name: name,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            name: name
         };
         
         const { data, error } = await sb
@@ -2972,9 +2992,7 @@ async function addContractor() {
             email: email,
             contact_person: contact_person,
             inn: inn,
-            notes: notes,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            notes: notes
         };
         
         const { data, error } = await sb
