@@ -1,12 +1,20 @@
 import requests
+import os
 from datetime import datetime
 from supabase import create_client
 
 # ============================================================
 # НАСТРОЙКИ
 # ============================================================
-import os
+# Токен берется из настроек GitHub (или из переменной окружения)
 WB_TOKEN = os.environ.get("WB_TOKEN")
+
+# Если токена нет (например, при локальном запуске), подставь его вручную:
+if not WB_TOKEN:
+    WB_TOKEN = "eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjYwOTAzdjEiLCJ0eXAiOiJKV1QifQ.eyJhY2MiOjMsImVudCI6MSwiZXhwIjoxODA4MjU5NTI0LCJmb3IiOiJzZWxmIiwiaWQiOiIwMWExNThkMi0wZmVkLTdjMjctOTc5OS0yNzE1NzI2NGQzYmQiLCJpaWQiOjExNjkwNTY0LCJvaWQiOjI1MDE1MzQxOSwicyI6MTA3Mzc0NTk2Niwic2lkIjoiOTYzZDIzZDktYjdjZC00YzAzLTg4MTktZjc5YjI5YmU3MTVhIiwidCI6ZmFsc2UsInVpZCI6MTE2OTA1NjR9.oMSbbjgiKf5i4CKCFlabA5LnTqVhMZJ3IcnYKlNiEktetISjH1YJfGo3i1UPh8e8qlBW64YHj9m_vxZa4gBHuA"
+
+# ВОТ ЭТА СТРОКА БЫЛА ПРОПУЩЕНА! Без нее не работает авторизация.
+headers = {"Authorization": WB_TOKEN}
 
 SUPABASE_URL = "https://kjiybjmisztrwymkwwsg.supabase.co"
 SUPABASE_KEY = "sb_publishable_08SQ7121NYScNVQYffjjyg_mj-VWYv-"
@@ -37,7 +45,6 @@ def get_fbo_stocks(nm_ids):
     """Получает остатки на складах WB (FBO)"""
     url = "https://seller-analytics-api.wildberries.ru/api/analytics/v1/stocks-report/wb-warehouses"
     try:
-        # Для FBO нужно передать список nmIds
         payload = {"nmIds": [int(x) for x in nm_ids]}
         response = requests.post(url, headers=headers, json=payload)
         if response.status_code == 200:
@@ -60,7 +67,6 @@ def save_to_supabase(nm_ids, fbs_stocks, fbo_stocks, cards):
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         rows = []
         for nm_id in nm_ids:
-            # Ищем карточку товара, чтобы взять артикул и название
             article = "N/A"
             title = "Без названия"
             for card in cards:
@@ -89,7 +95,6 @@ def save_to_supabase(nm_ids, fbs_stocks, fbo_stocks, cards):
 if __name__ == "__main__":
     print("СТАРТ ПРОГРАММЫ")
     
-    # Получаем список товаров
     url = "https://content-api.wildberries.ru/content/v2/get/cards/list"
     payload = {"settings": {"cursor": {"limit": 10}, "filter": {"withPhoto": -1}}}
     
@@ -99,14 +104,12 @@ if __name__ == "__main__":
             cards = response.json().get("cards", [])
             nm_ids = [str(card.get('nmID')) for card in cards if card.get('nmID')]
             
-            # Получаем остатки
             print("📦 Запрашиваем FBS...")
             fbs_stocks = get_fbs_stocks(nm_ids)
             
             print("📦 Запрашиваем FBO...")
             fbo_stocks = get_fbo_stocks(nm_ids)
             
-            # Выводим таблицу
             print("\n" + "="*70)
             print(f"{'Товар':<35} {'FBS':<10} {'FBO':<10}")
             print("="*70)
@@ -118,7 +121,6 @@ if __name__ == "__main__":
                 print(f"{title:<35} {fbs:<10} {fbo:<10}")
             print("="*70)
             
-            # Сохраняем в базу
             save_to_supabase(nm_ids, fbs_stocks, fbo_stocks, cards)
             
     except Exception as e:
