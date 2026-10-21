@@ -2732,8 +2732,9 @@ function writeOffMaterial(matId, qty, strict = false) {
   // Уменьшаем остаток только если он не бесконечный
   if (!m.infinite) {
     m.stock = +((+m.stock || 0) - qty).toFixed(3);
+    m.updatedAt = new Date().toISOString();
   }
-  
+  save(); // <-- ДОБАВИТЬ ЭТУ СТРОКУ
   return +cost.toFixed(2);
 }
 
@@ -2754,8 +2755,7 @@ function completeStage1(bid) {
   b.stages[1].done = true; 
   b.stageCosts[1] = cost; 
   b.stage = 2; 
-  
-  save(); 
+  save(); // <-- ДОБАВИТЬ ЭТУ СТРОКУ
   renderBatches();
 }
 
@@ -2899,6 +2899,7 @@ function completeStageN(bid, stageNum) {
 }
 
 function renderBatchCard(b) {
+  if (typeof renderAllMaterialSelects === 'function') renderAllMaterialSelects(); // <-- ДОБАВИТЬ ЭТУ СТРОКУ
   const p = data.products.find(x => x.id === b.productId); if (!p) return "";
   const s = b.stages; const st = b.stage;
   const photoHtml = p.photo ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "";
@@ -4022,6 +4023,7 @@ async function saveContractorFromModal() {
         inn: document.getElementById('edit_contractor_inn').value.trim(),
         status: document.getElementById('edit_contractor_status').value,
         notes: document.getElementById('edit_contractor_notes').value.trim()
+        // updatedAt УБРАТЬ, его нет в базе
     };
 
     if (!updatedContractor.name) return showToast('Введите название контрагента', 'warn');
