@@ -2215,32 +2215,55 @@ function applyRoleRestrictions(user) {
 }
 
 function showMain(mainId, btn) {
+  // 1. Скрываем все главные разделы
   document.querySelectorAll(".main-section").forEach(s => s.classList.remove("active"));
-  document.getElementById("chat_window").style.display = "none";
+  
+  // 2. Скрываем окно чата
+  const chatWindow = document.getElementById("chat_window");
+  if (chatWindow) chatWindow.style.display = "none";
   _currentChatId = null;
+  
+  // 3. Показываем нужный главный раздел
   const section = document.getElementById("main-" + mainId);
   if (section) section.classList.add("active");
+  
+  // 4. Подсвечиваем кнопку главного меню
   document.querySelectorAll(".main-tabs button").forEach(b => b.classList.remove("active"));
   if (btn) btn.classList.add("active");
 
-  if (mainId !== "company" && mainId !== "contractors") {
-    document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
-    const calTab = document.getElementById("company-calendar");
-    if (calTab) calTab.classList.add("active");
-    const calBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
-    if (calBtn) calBtn.classList.add("active");
+  // 5. ПРИНУДИТЕЛЬНО сбрасываем внутренние вкладки во ВСЕХ разделах, чтобы не было "хвостов"
+  document.querySelectorAll(".main-section").forEach(sec => {
+    sec.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    sec.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  });
+
+  // 6. Включаем правильную вкладку по умолчанию для выбранного раздела
+  if (mainId === "production") {
+    const prodTab = document.getElementById("products");
+    const prodBtn = document.querySelector("#main-production .tabs button[onclick*='products']");
+    if (prodTab) prodTab.classList.add("active");
+    if (prodBtn) prodBtn.classList.add("active");
+  } 
+  else if (mainId === "company") {
+    const compTab = document.getElementById("company-calendar");
+    const compBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
+    if (compTab) compTab.classList.add("active");
+    if (compBtn) compBtn.classList.add("active");
     const chatListCard = document.querySelector("#company-chat > .card");
     if (chatListCard) chatListCard.style.display = "block";
   }
-  
-  if (mainId === "contractors") {
-    document.querySelectorAll("#main-contractors .tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll("#main-contractors > .tabs button").forEach(b => b.classList.remove("active"));
-    const categoriesTab = document.getElementById("contractors-categories");
-    if (categoriesTab) categoriesTab.classList.add("active");
-    const categoriesBtn = document.querySelector("#main-contractors .tabs button[onclick*='categories']");
-    if (categoriesBtn) categoriesBtn.classList.add("active");
+  else if (mainId === "service") {
+    const servTab = document.getElementById("sku");
+    const servBtn = document.querySelector("#main-service .tabs button[onclick*='sku']");
+    if (servTab) servTab.classList.add("active");
+    if (servBtn) servBtn.classList.add("active");
+  }
+  else if (mainId === "contractors") {
+    const catView = document.getElementById("contractors-categories-view");
+    const listView = document.getElementById("contractors-list-view");
+    if (catView) catView.style.display = "block";
+    if (listView) listView.style.display = "none";
+    if (typeof renderCategories === 'function') renderCategories();
   }
 }
 
@@ -2253,7 +2276,7 @@ function showServiceTab(id, btn) {
 }
 
 function showTab(id, btn) {
-  // 1. Находим активный раздел (Производство, Сервис)
+  // 1. Находим активный раздел (Производство или Сервис)
   const activeMainSection = document.querySelector(".main-section.active");
   
   // 2. Скрываем ВСЕ вкладки и кнопки ТОЛЬКО внутри этого раздела
@@ -2267,7 +2290,7 @@ function showTab(id, btn) {
   if (targetTab) targetTab.classList.add("active");
   if (btn) btn.classList.add("active");
 
-  // 4. Специфичная логика для вкладок
+  // 4. Специфичная логика для разных вкладок (Загрузка данных)
   if (id === "stock") renderStock();
   if (id === "supplies") { 
     renderSupplyStockSelect(); 
