@@ -355,6 +355,7 @@
   </div>
   <div class="card">
     <h3>Список изделий</h3>
+    <input type="text" id="p_search" placeholder="Поиск по названию или артикулу..." oninput="renderProducts()" style="width: 100%; margin-bottom: 10px; padding: 10px;">
     <table>
       <thead><tr><th>Фото</th><th>Артикул</th><th>Название</th><th>Категория</th><th></th></tr></thead>
       <tbody id="p_table"></tbody>
@@ -419,6 +420,7 @@
       <select id="sup_counterparty" style="width:180px">
         <option value="">— Контрагент —</option>
       </select>
+      <select id="sup_responsible" style="width:180px"></select>
     </div>
     
     <div style="margin-top:12px; padding:12px; background:#f9f9f9; border:1px solid #eee; border-radius:4px;">
@@ -2332,7 +2334,12 @@ function showTab(id, btn) {
 
   // Загрузка данных для специфичных вкладок
   if (id === "stock") renderStock();
-  if (id === "supplies") { 
+  if (id === "supplies") {
+    const respSelect = document.getElementById("sup_responsible");
+    if (respSelect) {
+      respSelect.innerHTML = `<option value="">— Ответственный —</option>` + 
+        (data.employees || []).map(e => `<option value="${escapeHtml(e.name)}">${escapeHtml(e.name)}</option>`).join("");
+    }
     renderSupplyStockSelect(); 
     if(typeof loadCategoriesToSupplySelect === 'function') {
         loadCategoriesToSupplySelect().then(() => {
@@ -2391,11 +2398,10 @@ function topUp(id) {
   const m = matById(id); 
   if (!m) return;
   
-  const v = prompt(`Сколько добавить "${m.name}" на склад? (Текущий: ${m.infinite ? '∞' : m.stock})`);
+  const v = window.prompt(`Сколько добавить "${m.name}" на склад? (Текущий: ${m.infinite ? '∞' : m.stock})`);
   
   if (v === null || v.trim() === "") return;
   
-  // Меняем запятую на точку для правильного парсинга
   const amount = parseFloat(v.replace(',', '.'));
   
   if (isNaN(amount) || amount === 0) {
@@ -2405,7 +2411,6 @@ function topUp(id) {
   m.stock = (+m.stock || 0) + amount;
   if (m.stock >= 999999) m.infinite = true;
   
-  // ВАЖНО: обновляем дату, чтобы облако не затерло изменения
   m.updatedAt = new Date().toISOString(); 
   
   save(); 
@@ -2493,11 +2498,48 @@ function delProduct(id) {
   if (!confirm("Удалить изделие?")) return;
   markDeleted(data, "products", id); save(); renderProducts(); renderBatchProductSelect();
 }
+
+function editProduct(id) {
+  const p = data.products.find(x => String(x.id) === String(id));
+  if (!p) return;
+
+  const newName = prompt("Название изделия:", p.name);
+  if (newName === null) return;
+  const newArticle = prompt("Артикул:", p.article || "");
+  if (newArticle === null) return;
+  const newCat = prompt("Категория:", p.category || "");
+  if (newCat === null) return;
+
+  p.name = newName.trim() || p.name;
+  p.article = newArticle.trim();
+  p.category = newCat.trim();
+  p.updatedAt = new Date().toISOString();
+  
+  save();
+  renderProducts();
+  renderBatchProductSelect();
+  showToast("✅ Изделие обновлено", "success");
+}
 function renderProducts() {
-  document.getElementById("p_table").innerHTML = data.products.map(p => `
-    <tr><td>${p.photo ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "—"}</td>
-    <td>${escapeHtml(p.article) || "—"}</td><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category) || "—"}</td>
-    <td><button class="action danger master-hidden" onclick="delProduct(${p.id})">×</button></td></tr>`).join("");
+  const searchInput = document.getElementById("p_search");
+  const query = searchInput ? searchInput.value.toLowerCase() : "";
+
+  const filtered = data.products.filter(p => 
+    p.name.toLowerCase().includes(query) || 
+    (p.article && p.article.toLowerCase().includes(query))
+  );
+
+  document.getElementById("p_table").innerHTML = filtered.map(p => `
+    <tr>
+      <td>${p.photo ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "—"}</td>
+      <td>${escapeHtml(p.article) || "—"}</td>
+      <td>${escapeHtml(p.name)}</td>
+      <td>${escapeHtml(p.category) || "—"}</td>
+      <td>
+        <button class="action" onclick="editProduct(${p.id})" style="padding:5px 10px; font-size:12px;">✏️</button>
+        <button class="action danger master-hidden" onclick="delProduct(${p.id})" style="padding:5px 10px; font-size:12px;">×</button>
+      </td>
+    </tr>`).join("");
 }
 
 /* Справочники */
@@ -2508,10 +2550,32 @@ function addCycle() {
   save(); renderCycles();
 }
 function delCycle(id) { markDeleted(data, "cycles", id); save(); renderCycles(); }
+
+function editCycle(id) {
+  const c = data.cycles.find(x => String(x.id) === String(id));
+  if (!c) return;
+  const newName = prompt("Название цикла:", c.name);
+  if (newName === null) return;
+  const newHours = prompt("Время (ч):", c.hours);
+  if (newHours === null) return;
+  const newKw = prompt("Мощность (кВт):", c.kw);
+  if (newKw === null) return;
+  
+  c.name = newName.trim() || c.name;
+  c.hours = +newHours || 0;
+  c.kw = +newKw || 0;
+  c.updatedAt = new Date().toISOString();
+  save(); renderCycles();
+  showToast("✅ Цикл обновлён", "success");
+}
 function renderCycles() {
   document.getElementById("c_table").innerHTML = data.cycles.map(c => {
     const m = matById(c.matEnergy); const kwh = c.hours * c.kw;
-    return `<tr><td>${escapeHtml(c.name)}</td><td>${c.hours}</td><td>${c.kw}</td><td><b>${fmt(kwh,2)}</b></td><td>${m ? escapeHtml(m.name) : "—"}</td><td><button class="action danger master-hidden" onclick="delCycle(${c.id})">×</button></td></tr>`;
+    return `<tr><td>${escapeHtml(c.name)}</td><td>${c.hours}</td><td>${c.kw}</td><td><b>${fmt(kwh,2)}</b></td><td>${m ? escapeHtml(m.name) : "—"}</td>
+    <td>
+      <button class="action" onclick="editCycle(${c.id})" style="padding:5px 10px; font-size:12px;">✏️</button>
+      <button class="action danger master-hidden" onclick="delCycle(${c.id})">×</button>
+    </td></tr>`;
   }).join("");
 }
 function addOpoka() {
@@ -2521,10 +2585,32 @@ function addOpoka() {
   save(); renderOpokas();
 }
 function delOpoka(id) { markDeleted(data, "opokas", id); save(); renderOpokas(); }
+
+function editOpoka(id) {
+  const o = data.opokas.find(x => String(x.id) === String(id));
+  if (!o) return;
+  const newName = prompt("Название опоки:", o.name);
+  if (newName === null) return;
+  const newMass = prompt("Формомасса (г):", o.mass);
+  if (newMass === null) return;
+  const newWater = prompt("Вода (мл):", o.water);
+  if (newWater === null) return;
+  
+  o.name = newName.trim() || o.name;
+  o.mass = +newMass || 0;
+  o.water = +newWater || 0;
+  o.updatedAt = new Date().toISOString();
+  save(); renderOpokas();
+  showToast("✅ Опока обновлена", "success");
+}
 function renderOpokas() {
   document.getElementById("o_table").innerHTML = data.opokas.map(o => {
     const mm = matById(o.matMass); const mw = matById(o.matWater);
-    return `<tr><td>${escapeHtml(o.name)}</td><td>${o.mass} г</td><td>${mm ? escapeHtml(mm.name) : "—"}</td><td>${o.water} мл</td><td>${mw ? escapeHtml(mw.name) : "—"}</td><td><button class="action danger master-hidden" onclick="delOpoka(${o.id})">×</button></td></tr>`;
+    return `<tr><td>${escapeHtml(o.name)}</td><td>${o.mass} г</td><td>${mm ? escapeHtml(mm.name) : "—"}</td><td>${o.water} мл</td><td>${mw ? escapeHtml(mw.name) : "—"}</td>
+    <td>
+      <button class="action" onclick="editOpoka(${o.id})" style="padding:5px 10px; font-size:12px;">✏️</button>
+      <button class="action danger master-hidden" onclick="delOpoka(${o.id})">×</button>
+    </td></tr>`;
   }).join("");
 }
 /* Партии: строки с изделиями */
@@ -2676,12 +2762,23 @@ function completeStage1(bid) {
 function completeStage2(bid) {
   const b = data.batches.find(x => String(x.id) === String(bid)); 
   if (!b) return alert("Партия не найдена.");
-  const opokaId = document.getElementById("s2_"+bid).value;
+  
+  const opokaId = document.getElementById("s2_opoka_"+bid).value;
   const opoka = data.opokas.find(o => String(o.id) === String(opokaId)); 
   if (!opoka) return alert("Выберите опоку");
-  const c1 = writeOffMaterial(opoka.matMass, opoka.mass, true); if (c1 === null) return;
-  const c2 = writeOffMaterial(opoka.matWater, opoka.water, true); if (c2 === null) return;
-  b.stages[2].opokaId = opokaId; b.stages[2].done = true; b.stageCosts[2] = c1 + c2; b.stage = 3; save(); renderBatches();
+
+  const matMassId = document.getElementById("s2_mat_mass_"+bid).value;
+  const matWaterId = document.getElementById("s2_mat_water_"+bid).value;
+
+  const c1 = writeOffMaterial(matMassId, opoka.mass, true); if (c1 === null) return;
+  const c2 = writeOffMaterial(matWaterId, opoka.water, true); if (c2 === null) return;
+  
+  b.stages[2].opokaId = opokaId; 
+  b.stages[2].done = true; 
+  b.stageCosts[2] = c1 + c2; 
+  b.stage = 3; 
+  save(); 
+  renderBatches();
 }
 
 function completeStage3(bid) {
@@ -2699,25 +2796,25 @@ function completeStage3(bid) {
 function completeStage4(bid) {
   const b = data.batches.find(x => String(x.id) === String(bid)); 
   if (!b) return;
-  const p = data.products.find(x => String(x.id) === String(b.productId));
-  if (!p) return;
 
   const used = +document.getElementById("s4_used_"+bid).value || 0;
   const ret = +document.getElementById("s4_ret_"+bid).value || 0;
+  const matMetalId = document.getElementById("s4_mat_metal_"+bid).value;
   
   if (used <= 0) return alert("Укажите использованный металл");
   if (ret < 0) return alert("Возврат не может быть отрицательным");
   if (ret > used) return alert("Возврат не может быть больше, чем использовано");
+  if (!matMetalId) return alert("Выберите металл");
   
   const consumed = used - ret;
-  const cost = writeOffMaterial(p.matMetal, consumed, true); 
+  const cost = writeOffMaterial(matMetalId, consumed, true); 
   if (cost === null) return;
   
   b.stages[4].metalUsed = used; 
   b.stages[4].metalReturned = ret; 
   b.stages[4].done = true;
   
-  const m = matById(p.matMetal); 
+  const m = matById(matMetalId); 
   if (m) m.stock = (+m.stock || 0) + ret;
   
   b.stageCosts[4] = cost; 
@@ -2837,8 +2934,15 @@ function renderBatchCard(b) {
   }
 
   if (s[1].done && !s[2].done) {
-    html += `<div class="stage ${st===2?'active':''}"><div class="stage-title">2. Формовка ${st===2?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Выберите размер опоки:</div>`;
-    if (st === 2) html += `<div class="row"><select id="s2_${b.id}">${data.opokas.map(o => `<option value="${o.id}">${escapeHtml(o.name)} (${o.mass} г формомассы + ${o.water} мл воды)</option>`).join("")}</select><button class="action ok" onclick="completeStage2(${b.id})">Этап завершён</button></div>`;
+    html += `<div class="stage ${st===2?'active':''}"><div class="stage-title">2. Формовка ${st===2?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Выберите опоку и материалы:</div>`;
+    if (st === 2) {
+      html += `<div class="row">
+        <select id="s2_opoka_${b.id}">${data.opokas.map(o => `<option value="${o.id}">${escapeHtml(o.name)} (${o.mass} г + ${o.water} мл)</option>`).join("")}</select>
+        <select id="s2_mat_mass_${b.id}">${data.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (Формомасса)</option>`).join("")}</select>
+        <select id="s2_mat_water_${b.id}">${data.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (Вода)</option>`).join("")}</select>
+        <button class="action ok" onclick="completeStage2(${b.id})">Этап завершён</button>
+      </div>`;
+    }
     html += `</div>`;
   } else if (s[2].done) {
     const o = data.opokas.find(x => x.id === s[2].opokaId);
@@ -2855,8 +2959,17 @@ function renderBatchCard(b) {
   }
 
   if (s[3].done && !s[4].done) {
-    html += `<div class="stage ${st===4?'active':''}"><div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Укажите использованный металл и возврат:</div>`;
-    if (st === 4) html += `<div class="row"><input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г"><input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0"><input type="file" id="s4_photo_${b.id}" accept="image/*" style="display:none" onchange="uploadStagePhoto('${b.id}', 4, this)"><button class="action" onclick="document.getElementById('s4_photo_${b.id}').click()">📷 Фото</button><button class="action ok" onclick="completeStage4(${b.id})">Этап завершён</button></div>`;
+    html += `<div class="stage ${st===4?'active':''}"><div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Выберите металл и укажите вес:</div>`;
+    if (st === 4) {
+      html += `<div class="row">
+        <select id="s4_mat_metal_${b.id}">${data.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("")}</select>
+        <input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г">
+        <input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0">
+        <input type="file" id="s4_photo_${b.id}" accept="image/*" style="display:none" onchange="uploadStagePhoto('${b.id}', 4, this)">
+        <button class="action" onclick="document.getElementById('s4_photo_${b.id}').click()">📷 Фото</button>
+        <button class="action ok" onclick="completeStage4(${b.id})">Этап завершён</button>
+      </div>`;
+    }
     html += `</div>`;
   } else if (s[4].done) {
     html += `<div class="stage done"><div class="stage-title">4. Литьё <span class="badge badge-done">завершён</span></div><div class="stage-info">Использовано: ${fmt(s[4].metalUsed,3)} г, возврат: ${fmt(s[4].metalReturned,3)} г — ${fmt(b.stageCosts[4])} ₽</div></div>`;
@@ -3640,7 +3753,7 @@ async function renderContractors(categoryId = null) {
                     <td>${escapeHtml(contractor.contact_person) || '—'}</td>
                     <td>${escapeHtml(contractor.phone) || '—'}</td>
                     <td>${escapeHtml(contractor.email) || '—'}</td>
-                    <td><span class="badge ${statusClass}">${statusText}</span></td>
+                    <td><span style="padding: 2px 8px; border-radius: 4px; font-weight: bold; color: white; background: ${contractor.status === 'active' ? '#2f855a' : contractor.status === 'inactive' ? '#b7791f' : '#c53030'};">${statusText}</span></td>
                     <td style="display: flex; gap: 4px;">${actionButtons}</td>
                 </tr>
             `;
@@ -3895,16 +4008,10 @@ function closeContractorModal() {
 
 async function saveContractorFromModal() {
     const contractorId = document.getElementById('edit_contractor_id').value;
-    if (!contractorId) {
-        showToast('Ошибка: ID контрагента не найден', 'error');
-        return;
-    }
+    if (!contractorId) return showToast('Ошибка: ID контрагента не найден', 'error');
 
     const contractor = data.contractors.find(c => String(c.id) === String(contractorId));
-    if (!contractor) {
-        showToast('Контрагент не найден в локальных данных', 'error');
-        return;
-    }
+    if (!contractor) return showToast('Контрагент не найден', 'error');
 
     const updatedContractor = {
         name: document.getElementById('edit_contractor_name').value.trim(),
@@ -3914,40 +4021,25 @@ async function saveContractorFromModal() {
         contact_person: document.getElementById('edit_contractor_contact_person').value.trim(),
         inn: document.getElementById('edit_contractor_inn').value.trim(),
         status: document.getElementById('edit_contractor_status').value,
-        notes: document.getElementById('edit_contractor_notes').value.trim(),
-        updatedAt: new Date().toISOString()
+        notes: document.getElementById('edit_contractor_notes').value.trim()
     };
 
-    if (!updatedContractor.name) {
-        showToast('Введите название контрагента', 'warn');
-        return;
-    }
+    if (!updatedContractor.name) return showToast('Введите название контрагента', 'warn');
 
     try {
         const sb = await initCloud();
         if (!sb) throw new Error('Нет подключения к Supabase');
 
-        // Обновляем в Supabase
-        const { error } = await sb
-            .from('contractors')
-            .update(updatedContractor)
-            .eq('id', contractorId);
-
+        const { error } = await sb.from('contractors').update(updatedContractor).eq('id', contractorId);
         if (error) throw error;
 
-        // Обновляем локальные данные
         Object.assign(contractor, updatedContractor);
         save();
-
-        // Закрываем модальное окно и обновляем таблицу
         closeContractorModal();
-        if (typeof renderContractorsInCategory === 'function') {
-            renderContractorsInCategory();
-        } else if (typeof renderContractors === 'function') {
-            renderContractors();
-        }
+        if (typeof renderContractorsInCategory === 'function') renderContractorsInCategory();
+        else if (typeof renderContractors === 'function') renderContractors();
+        
         showToast('✅ Данные контрагента обновлены', 'success');
-
     } catch (error) {
         console.error('Ошибка сохранения контрагента:', error);
         showToast('❌ Ошибка сохранения: ' + error.message, 'error');
@@ -4011,6 +4103,7 @@ async function addSupply() {
   const title = document.getElementById("sup_title").value.trim();
   const date = document.getElementById("sup_date").value || new Date().toISOString().slice(0,10);
   const counterpartyId = document.getElementById("sup_counterparty").value;
+  const responsible = document.getElementById("sup_responsible") ? document.getElementById("sup_responsible").value : "";
   
   if (!title) return alert("Введите название");
   if (!counterpartyId) return alert("Выберите контрагента");
@@ -4041,6 +4134,7 @@ async function addSupply() {
     date, 
     counterparty_id: counterpartyId,
     counterparty_name: counterparty.name,
+    responsible: responsible,
     status: 'new', 
     items: items,
     pdfUrl: _pendingSupplyPdf ? _pendingSupplyPdf.url : null,
@@ -4058,7 +4152,7 @@ async function addSupply() {
     title: "Поставка: " + title,
     date_start: date, 
     date_end: date, 
-    responsible: "",
+    responsible: responsible,
     note: "Контрагент: " + counterparty.name + " | Товаров: " + items.length,
     done: false, 
     supplyId: newSupply.id, 
@@ -4251,7 +4345,7 @@ function renderSupplies() {
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
           <div>
             <h4 style="margin:0 0 4px 0;">${escapeHtml(s.title)}</h4>
-            <div style="font-size:12px; color:#666; margin-bottom:8px;">${s.date} • ${escapeHtml(counterpartyName)}</div>
+            <div style="font-size:12px; color:#666; margin-bottom:8px;">${s.date} • ${escapeHtml(counterpartyName)} ${s.responsible ? '• Отв: ' + escapeHtml(s.responsible) : ''}</div>
             <div style="font-size:13px; margin-bottom:8px;">
               <b>Состав:</b> ${(s.items || []).map(i => `${escapeHtml(i.productName)} × ${i.qty}`).join(', ')}
             </div>
