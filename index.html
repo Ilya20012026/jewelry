@@ -2314,6 +2314,13 @@ function addMaterial() {
 }
 
 function delMaterial(id) {
+  if (!confirm("Удалить материал?")) return;
+  markDeleted(data, "materials", id); 
+  save(); 
+  renderMaterials(); 
+  renderAllMaterialSelects();
+}
+
 function topUp(id) {
   const m = matById(id); 
   if (!m) return;
