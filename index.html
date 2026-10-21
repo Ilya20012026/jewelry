@@ -2253,33 +2253,34 @@ function showServiceTab(id, btn) {
 }
 
 function showTab(id, btn) {
-  const prevActive = document.querySelector(".tabs button.active");
-  let prevTabId = null;
-  if (prevActive) {
-    const match = (prevActive.getAttribute("onclick") || "").match(/showTab\('([^']+)'/);
-    if (match) prevTabId = match[1];
+  // 1. Находим активный раздел (Производство, Сервис)
+  const activeMainSection = document.querySelector(".main-section.active");
+  
+  // 2. Скрываем ВСЕ вкладки и кнопки ТОЛЬКО внутри этого раздела
+  if (activeMainSection) {
+    activeMainSection.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    activeMainSection.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
   }
-  if (prevTabId === "batches" && id !== "batches") collapseAllGroups();
 
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  btn.classList.add("active");
+  // 3. Показываем нужную вкладку
+  const targetTab = document.getElementById(id);
+  if (targetTab) targetTab.classList.add("active");
+  if (btn) btn.classList.add("active");
 
+  // 4. Специфичная логика для вкладок
   if (id === "stock") renderStock();
-    if (id === "supplies") { 
-      renderSupplyStockSelect(); 
-      // Загружаем категории и контрагентов при переключении на вкладку
-      loadCategoriesToSupplySelect().then(() => {
-        const categorySelect = document.getElementById("sup_category");
-        if (categorySelect && categorySelect.value) {
-          loadContractorsToSupplySelect(categorySelect.value);
-        } else {
-          loadContractorsToSupplySelect(null);
-        }
-      });
-      renderSupplies(); 
-    }
+  if (id === "supplies") { 
+    renderSupplyStockSelect(); 
+    loadCategoriesToSupplySelect().then(() => {
+      const categorySelect = document.getElementById("sup_category");
+      if (categorySelect && categorySelect.value) {
+        loadContractorsToSupplySelect(categorySelect.value);
+      } else {
+        loadContractorsToSupplySelect(null);
+      }
+    });
+    renderSupplies(); 
+  }
   if (id === "archive") renderArchive();
   if (id === "batches") renderBatches();
 }
