@@ -506,3 +506,79 @@
 
 # 2026-10-21 14:00:49.157075
 +все еще ошибка Uncaught SyntaxError: Unexpected token === (at jewelry/:2349:1)
+
+# 2026-10-21 15:23:50.404960
++d
+
+# 2026-10-21 15:23:58.051452
++/clear
+
+# 2026-10-21 15:24:05.911707
++/add index.html
+
+# 2026-10-21 15:24:11.653936
++/editor
+
+# 2026-10-21 15:24:24.996970
++Внеси следующие исправления в файл index.html. Делай точечные замены, не переписывай код целиком без необходимости.
++
++1. Кнопка "+" на складе материалов.
++В функции renderMaterials найди кнопку пополнения:
++<button class="action master-hidden" onclick="topUp(${m.id})">+</button>
++Убери класс master-hidden, чтобы кнопка была видна всем:
++<button class="action" onclick="topUp(${m.id})">+</button>
++
++2. Списание товара вручную (появление в архиве).
++В функции writeOff найди строку:
++  s.remaining -= qty;
++Замени этот блок так, чтобы перед уменьшением остатка, товар добавлялся в архив:
++  const sum = qty * price;
++  const cost = s.costPerUnit * qty;
++  data.archive.push({ id: uid(), date: new Date().toLocaleString(), dateIso: new Date().toISOString().slice(0,10), productName: s.productName, batchId: s.batchId, qty, price, sum, channel: document.getElementById("w_channel").value, note: document.getElementById("w_note").value.trim(), cost: cost, profit: sum - cost, updatedAt: new Date().toISOString() });
++  s.remaining -= qty;
++И добавь вызов renderArchive(); сразу после вызова renderStock();
++
++3. Отображение артикула вместо названия в поставках.
++В функции addSupply найди строку:
++  items.push({ stockId, qty, productName: stockItem.productName });
++Замени её на:
++  const product = data.products.find(p => p.name === stockItem.productName);
++  const article = product ? product.article : stockItem.productName;
++  items.push({ stockId, qty, productName: article });
++
++4. Автозакрытие задач и списание в архив при завершении поставки.
++В функции finishSupply найди строку:
++  s.status = 'done';
++  s.updatedAt = new Date().toISOString();
++Сразу после неё добавь код:
++  const calTask = (data.tasks || []).find(t => String(t.supplyId) === String(id));
++  if (calTask) { calTask.done = true; calTask.updatedAt = new Date().toISOString(); }
++  
++  if (s.items && s.items.length > 0) {
++    s.items.forEach(item => {
++      const stockItem = data.stock.find(st => String(st.id) === String(item.stockId));
++      if (stockItem) {
++        const cost = stockItem.costPerUnit * item.qty;
++        data.archive.push({
++          id: uid(),
++          date: new Date().toLocaleString(),
++          dateIso: new Date().toISOString().slice(0, 10),
++          productName: item.productName,
++          batchId: stockItem.batchId,
++          qty: item.qty,
++          price: 0,
++          sum: 0,
++          channel: 'Поставка',
++          note: 'Списано по поставке: ' + s.title,
++          cost: cost,
++          profit: -cost,
++          updatedAt: new Date().toISOString()
++        });
++      }
++    });
++  }
++Убедись, что в конце функции finishSupply вызываются save(); renderSupplies(); renderStock(); renderArchive(); и renderCalendar();
++
++5. Исправление верстки (вкладки внутри вкладок).
++В HTML найди блок <div id="company-analytics" class="tab">. Проверь, что он находится на том же уровне вложенности, что и <div id="company-chat" class="tab">. 
++Если увидишь, что перед ним не закрыт </div> от company-chat, или после него не хватает </div> для main-company, добавь недостающие закрывающие теги, чтобы вкладки не вкладывались друг в друга.

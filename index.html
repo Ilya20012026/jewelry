@@ -2353,7 +2353,7 @@ function renderMaterials() {
     const stockDisplay = isInfinite ? "∞" : fmt(m.stock, 3);
     return `
     <tr><td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.brand) || "—"}</td><td>${escapeHtml(m.unit)}</td><td>${fmt(m.price)} ₽</td><td>${stockDisplay}</td>
-    <td><button class="action master-hidden" onclick="topUp(${m.id})">+</button></td>
+    <td><button class="action" onclick="topUp(${m.id})">+</button></td>
     <td><button class="action danger master-hidden" onclick="delMaterial(${m.id})">×</button></td></tr>`;
   }).join("");
 }
@@ -3009,11 +3009,12 @@ function writeOff() {
   const qty = +document.getElementById("w_qty").value || 0; const price = +document.getElementById("w_price").value || 0;
   if (qty <= 0) return alert("Укажите количество"); if (qty > s.remaining) return alert("Недостаточно на складе");
   const sum = qty * price;
-  data.archive.push({ id: uid(), date: new Date().toLocaleString(), dateIso: new Date().toISOString().slice(0,10), productName: s.productName, batchId: s.batchId, qty, price, sum, channel: document.getElementById("w_channel").value, note: document.getElementById("w_note").value.trim(), cost: s.costPerUnit * qty, profit: sum - s.costPerUnit * qty, updatedAt: new Date().toISOString() });
+  const cost = s.costPerUnit * qty;
+  data.archive.push({ id: uid(), date: new Date().toLocaleString(), dateIso: new Date().toISOString().slice(0,10), productName: s.productName, batchId: s.batchId, qty, price, sum, channel: document.getElementById("w_channel").value, note: document.getElementById("w_note").value.trim(), cost: cost, profit: sum - cost, updatedAt: new Date().toISOString() });
   s.remaining -= qty;
   if (s.remaining <= 0) markDeleted(data, "stock", s.id); else s.updatedAt = new Date().toISOString();
-  save(); renderStock();
-  document.getElementById("w_result").innerHTML = `<div class="result">Списано ${qty} шт на сумму ${fmt(sum)} ₽. Прибыль: ${fmt(sum - s.costPerUnit*qty)} ₽</div>`;
+  save(); renderStock(); renderArchive();
+  document.getElementById("w_result").innerHTML = `<div class="result">Списано ${qty} шт на сумму ${fmt(sum)} ₽. Прибыль: ${fmt(sum - cost)} ₽</div>`;
   writeOffStockId = null; document.getElementById("w_qty").value = ""; document.getElementById("w_note").value = "";
 }
 
@@ -3960,7 +3961,9 @@ async function addSupply() {
     if (!stockId || qty <= 0) return;
     const stockItem = data.stock.find(s => String(s.id) === String(stockId));
     if (!stockItem) return;
-    items.push({ stockId, qty, productName: stockItem.productName });
+    const product = data.products.find(p => p.name === stockItem.productName);
+    const article = product ? product.article : stockItem.productName;
+    items.push({ stockId, qty, productName: article });
   });
 
   if (items.length === 0) return alert("Добавьте хотя бы одно изделие из списка");
@@ -4418,13 +4421,37 @@ function finishSupply(id) {
   s.status = 'done';
   s.updatedAt = new Date().toISOString();
   
-  const calTask = (data.tasks || []).find(t => t.supplyId === id);
+  const calTask = (data.tasks || []).find(t => String(t.supplyId) === String(id));
   if (calTask) { calTask.done = true; calTask.updatedAt = new Date().toISOString(); }
+  
+  if (s.items && s.items.length > 0) {
+    s.items.forEach(item => {
+      const stockItem = data.stock.find(st => String(st.id) === String(item.stockId));
+      if (stockItem) {
+        const cost = stockItem.costPerUnit * item.qty;
+        data.archive.push({
+          id: uid(),
+          date: new Date().toLocaleString(),
+          dateIso: new Date().toISOString().slice(0, 10),
+          productName: item.productName,
+          batchId: stockItem.batchId,
+          qty: item.qty,
+          price: 0,
+          sum: 0,
+          channel: 'Поставка',
+          note: 'Списано по поставке: ' + s.title,
+          cost: cost,
+          profit: -cost,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    });
+  }
 
   const chat = (data.chats || []).find(c => String(c.linked_id) === String(id));
   if (chat) { chat.archived = true; chat.updatedAt = new Date().toISOString(); }
   
-  save(); renderSupplies(); renderChats(); renderStock();
+  save(); renderSupplies(); renderChats(); renderStock(); renderArchive();
   setTimeout(() => renderCalendar(), 150);
   showToast("✅ Поставка завершена, товары списаны", "success");
 }
