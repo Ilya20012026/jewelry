@@ -2302,13 +2302,13 @@ function showServiceTab(id, btn) {
 }
 
 function showTab(id, btn) {
-  // 1. Находим активный раздел через ближайшего родителя кнопки
-  const activeMainSection = btn.closest('.main-section');
-  if (!activeMainSection) return;
+  // 1. Находим родительский раздел через кнопку
+  const mainSection = btn.closest('.main-section');
+  if (!mainSection) return;
 
-  // 2. Скрываем ВСЕ вкладки и кнопки ТОЛЬКО внутри этого раздела
-  activeMainSection.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  activeMainSection.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  // 2. Скрываем все вкладки и кнопки только внутри этого раздела
+  mainSection.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  mainSection.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
 
   // 3. Показываем нужную вкладку
   const targetTab = document.getElementById(id);
