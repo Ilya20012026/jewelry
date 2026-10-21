@@ -2315,30 +2315,10 @@ function addMaterial() {
 
 function delMaterial(id) {
   if (!confirm("Удалить материал?")) return;
-function topUp(id) {
-  const m = matById(id); 
-  if (!m) return;
-  
-  const v = prompt(`Сколько добавить "${m.name}" на склад? (Текущий: ${m.infinite ? '∞' : m.stock})`);
-  
-  if (v === null || v.trim() === "") return;
-  
-  // Меняем запятую на точку для правильного парсинга
-  const amount = parseFloat(v.replace(',', '.'));
-  
-  if (isNaN(amount) || amount === 0) {
-    return showToast("❌ Введите корректное число", "error");
-  }
-
-  m.stock = (+m.stock || 0) + amount;
-  if (m.stock >= 999999) m.infinite = true;
-  
-  // ВАЖНО: обновляем дату, чтобы облако не затерло изменения
-  m.updatedAt = new Date().toISOString(); 
-  
+  markDeleted(data, "materials", id); 
   save(); 
   renderMaterials(); 
-  showToast(`✅ Добавлено ${amount} ${m.unit} (${m.name})`, "success");
+  renderAllMaterialSelects();
 }
 
 function topUp(id) {
@@ -2366,7 +2346,7 @@ function topUp(id) {
   renderMaterials(); 
   showToast(`✅ Добавлено ${amount} ${m.unit} (${m.name})`, "success");
 }
->>>>>>> REPLACE
+
 function renderMaterials() {
   document.getElementById("m_table").innerHTML = data.materials.map(m => {
     const isInfinite = m.infinite === true;
