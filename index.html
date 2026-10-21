@@ -142,7 +142,7 @@
   .dot-done { background: #ccc; }
   .dot-production { background: #ff0000; }
   .dot-regular { background: #eab308; }
-.dot-supply { background: #8b5cf6; }
+  .dot-supply { background: #8b5cf6; }
 
   .calendar-legend { display: flex; gap: 18px; margin-top: 16px; font-size: 12px; color: #666; flex-wrap: wrap; }
   .calendar-legend > span { display: flex; align-items: center; gap: 6px; }
@@ -1167,7 +1167,7 @@ function renderCalendar() {
           if (t.type === "restock") cls = "dot-restock";
           if (t.type === "new_item") cls = "dot-new";
           if (t.type === "production_task") cls = "dot-production";
-          if (t.type === "supply_task") cls = "dot-supply"; // <-- Добавили поставку
+          if (t.type === "supply_task") cls = "dot-supply";
           if (t.type === "task" && t.repeat && t.repeat !== "none") cls = "dot-regular";
         }
         return `<span class="dot ${cls}"></span>`;
@@ -1258,7 +1258,7 @@ function renderDayTasks(dateStr) {
       if (t.type === "restock")  { typeLabel = "ПОПОЛНЕНИЕ"; typeCls = "dot-restock"; }
       if (t.type === "new_item") { typeLabel = "НОВАЯ ПОЗИЦИЯ"; typeCls = "dot-new"; }
       if (t.type === "production_task") { typeLabel = "ПРОИЗВОДСТВО"; typeCls = "dot-production"; }
-      if (t.type === "supply_task") { typeLabel = "ПОСТАВКА"; typeCls = "dot-supply"; } // <-- Подпись для поставки
+      if (t.type === "supply_task") { typeLabel = "ПОСТАВКА"; typeCls = "dot-supply"; }
       if (t.type === "task" && t.repeat && t.repeat !== "none") { typeCls = "dot-regular"; }
       const done = t.done ? "text-decoration:line-through;opacity:0.5;" : "";
       let repeatText = "";
@@ -2320,10 +2320,30 @@ function delMaterial(id) {
 <<<<<<< SEARCH
 function topUp(id) {
   const m = matById(id); if (!m) return;
-  const v = prompt(`Сколько добавить "${m.name}" на склад?`);
-  if (v === null || v === "") return;
-  m.stock = (+m.stock || 0) + (+v || 0);
-  save(); renderMaterials(); showToast("✅ Склад пополнен", "success");
+function topUp(id) {
+  const m = matById(id); 
+  if (!m) return;
+  
+  const v = prompt(`Сколько добавить "${m.name}" на склад? (Текущий: ${m.infinite ? '∞' : m.stock})`);
+  
+  if (v === null || v.trim() === "") return;
+  
+  // Меняем запятую на точку для правильного парсинга
+  const amount = parseFloat(v.replace(',', '.'));
+  
+  if (isNaN(amount) || amount === 0) {
+    return showToast("❌ Введите корректное число", "error");
+  }
+
+  m.stock = (+m.stock || 0) + amount;
+  if (m.stock >= 999999) m.infinite = true;
+  
+  // ВАЖНО: обновляем дату, чтобы облако не затерло изменения
+  m.updatedAt = new Date().toISOString(); 
+  
+  save(); 
+  renderMaterials(); 
+  showToast(`✅ Добавлено ${amount} ${m.unit} (${m.name})`, "success");
 }
 =======
 function topUp(id) {

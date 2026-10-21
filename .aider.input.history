@@ -438,3 +438,50 @@
 +   - Всего на WB === Мой склад -> "✅ ОК" (зеленый)
 +
 +5. Добавь над таблицей кнопку "🔄 Синхронизировать с WB", которая вызывает alert("Запустите python wb_api.py, чтобы обновить данные").
+
+# 2026-10-21 13:26:10.103429
++d
+
+# 2026-10-21 13:27:11.805189
++/claear
+
+# 2026-10-21 13:27:20.397468
++/clear
+
+# 2026-10-21 13:27:53.745949
++/add index.html
+
+# 2026-10-21 13:28:04.678045
++/editor
+
+# 2026-10-21 13:28:46.107791
++У меня в файле index.html на строке 2320 затесался мусор от предыдущих правок (символы <<<<<<<). 
++Пожалуйста, удали этот мусор.
++
++А также примени оставшиеся правки для календаря:
++
++1. Найди функцию createBatch(). Замени в ней создание календарной задачи (const calTask = ...) на следующий код:
++    const batchType = document.getElementById("b_type") ? document.getElementById("b_type").value : "restock";
++    const calTask = {
++      id: calTaskId,
++      type: batchType, 
++      title: (batchType === "restock" ? "Пополнение: " : "Новая позиция: ") + (title || "Партия"),
++      date_start: dateStart,
++      date_end: dateEnd || dateStart,
++      responsible: responsible,
++      note: "Создано из раздела Партии",
++      done: false,
++      updatedAt: new Date().toISOString()
++    };
++
++2. В теге <style> найди:
++  .dot-production { background: #ff0000; }
++  .dot-regular { background: #eab308; }
++Добавь после них:
++  .dot-supply { background: #8b5cf6; }
++
++3. В функции renderCalendar() найди блок const dots = tasks.map... и добавь в него условие:
++  if (t.type === "supply_task") cls = "dot-supply";
++
++4. В функции renderDayTasks() найди блок с if (t.type === "restock")... и добавь туда строку:
++  if (t.type === "supply_task") { typeLabel = "ПОСТАВКА"; typeCls = "dot-supply"; }
