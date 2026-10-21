@@ -1952,8 +1952,14 @@ setTimeout(() => { renderCalendar(); }, 150);
 // Функция удалена - больше не нужна с новой навигацией
 
 function showCompanyTab(id, btn) {
-  document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
+  // Находим родительский раздел через кнопку
+  const mainCompany = btn.closest('#main-company');
+  if (!mainCompany) return;
+  
+  // Скрываем все вкладки и кнопки только внутри раздела Компания
+  mainCompany.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  mainCompany.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  
   document.getElementById("company-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
   
@@ -1973,7 +1979,14 @@ function showCompanyTab(id, btn) {
     }
   } else if (id === "analytics") {
     // При открытии аналитики показываем первую вкладку Wildberries
-    showWbTab('stocks', document.querySelector('#company-analytics .tabs button.active'));
+    const wbTabBtn = document.querySelector('#company-analytics .tabs button.active');
+    if (wbTabBtn) {
+      showWbTab(wbTabBtn.onclick.name.match(/'([^']+)'/)[1], wbTabBtn);
+    } else {
+      // Если нет активной кнопки, показываем stocks по умолчанию
+      const stocksBtn = document.querySelector('#company-analytics .tabs button[onclick*="stocks"]');
+      if (stocksBtn) showWbTab('stocks', stocksBtn);
+    }
   } else {
     document.getElementById("chat_window").style.display = "none";
     _currentChatId = null;
@@ -1981,15 +1994,19 @@ function showCompanyTab(id, btn) {
 }
 
 function showWbTab(id, btn) {
-  // Скрываем все вкладки Wildberries
-  document.querySelectorAll('#company-analytics .tab').forEach(tab => {
+  // Находим родительский контейнер аналитики через кнопку
+  const analyticsSection = btn.closest('#company-analytics');
+  if (!analyticsSection) return;
+  
+  // Скрываем все вкладки Wildberries только внутри этого раздела
+  analyticsSection.querySelectorAll('.tab').forEach(tab => {
     if (tab.id.startsWith('wb-')) {
       tab.classList.remove('active');
     }
   });
   
-  // Убираем активный класс со всех кнопок вкладок Wildberries
-  document.querySelectorAll('#company-analytics .tabs button').forEach(b => {
+  // Убираем активный класс со всех кнопок вкладок Wildberries внутри раздела
+  analyticsSection.querySelectorAll('.tabs button').forEach(b => {
     b.classList.remove('active');
   });
   
@@ -2271,22 +2288,27 @@ function showMain(mainId, btn) {
 }
 
 function showServiceTab(id, btn) {
-  document.querySelectorAll("#main-service .tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll("#main-service > .tabs button").forEach(b => b.classList.remove("active"));
+  // Находим родительский раздел через кнопку
+  const mainService = btn.closest('#main-service');
+  if (!mainService) return;
+  
+  // Скрываем все вкладки и кнопки только внутри раздела Сервис
+  mainService.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  mainService.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  
   document.getElementById("service-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
   if (id === "archive_chats") renderArchivedChats();
 }
 
 function showTab(id, btn) {
-  // 1. Находим активный раздел (Производство или Сервис)
-  const activeMainSection = document.querySelector(".main-section.active");
-  
+  // 1. Находим активный раздел через ближайшего родителя кнопки
+  const activeMainSection = btn.closest('.main-section');
+  if (!activeMainSection) return;
+
   // 2. Скрываем ВСЕ вкладки и кнопки ТОЛЬКО внутри этого раздела
-  if (activeMainSection) {
-    activeMainSection.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    activeMainSection.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
-  }
+  activeMainSection.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  activeMainSection.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
 
   // 3. Показываем нужную вкладку
   const targetTab = document.getElementById(id);
