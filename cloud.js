@@ -61,6 +61,36 @@ function cleanRow(row) {
   return out;
 }
 
+// НОВАЯ ФУНКЦИЯ: Умная отправка (если колонки нет в базе - вырезаем и пробуем снова)
+async function safeUpsert(sb, table, rows) {
+  let attempts = 0;
+  let currentRows = [...rows];
+  
+  while (attempts < 5) {
+    const { error } = await sb.from(table).upsert(currentRows, { onConflict: 'id' });
+    
+    if (!error) return { ok: true };
+    
+    // Если ошибка "Could not find the 'xxx' column"
+    const match = error.message.match(/Could not find the '([^']+)' column/);
+    if (match) {
+      const badColumn = match[1];
+      console.warn(`⚠️ В таблице ${table} нет колонки '${badColumn}'. Удаляем её из запроса...`);
+      currentRows = currentRows.map(r => {
+        const copy = { ...r };
+        delete copy[badColumn];
+        return copy;
+      });
+      attempts++;
+      continue; // Пробуем отправить снова без этой колонки
+    }
+    
+    // Если какая-то другая ошибка - возвращаем её
+    return { ok: false, error: error.message };
+  }
+  return { ok: false, error: 'Слишком много ошибок с колонками' };
+}
+
 /* ---------- Очистка строки из облака ---------- */
 function stripRow(row) {
   const out = {};
@@ -133,10 +163,10 @@ async function pushAll(localData) {
     const rows = (localData[table] || []).map(cleanRow);
     if (rows.length === 0) { summary[table] = 0; continue; }
 
-    const { error } = await sb.from(table).upsert(rows, { onConflict: 'id' });
-        if (error) {
-      console.error(`❌ push ${table}:`, error.message);
-      summary[table] = `ОШИБКА: ${error.message}`;
+        const result = await safeUpsert(sb, table, rows);
+    if (!result.ok) {
+      console.error(`❌ push ${table}:`, result.error);
+      summary[table] = `ОШИБКА: ${result.error}`;
       continue;
     }
     summary[table] = rows.length;
