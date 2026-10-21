@@ -503,3 +503,6 @@
 
 # 2026-10-21 13:57:15.455314
 +Uncaught SyntaxError: Unexpected token '===' (at jewelry/:2342:1) выскакивает ошибка
+
+# 2026-10-21 14:00:49.157075
++все еще ошибка Uncaught SyntaxError: Unexpected token === (at jewelry/:2349:1)
