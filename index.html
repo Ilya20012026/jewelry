@@ -1956,9 +1956,12 @@ function showCompanyTab(id, btn) {
   const mainCompany = btn.closest('#main-company');
   if (!mainCompany) return;
   
-  // Скрываем все вкладки и кнопки только внутри раздела Компания
-  mainCompany.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  mainCompany.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  // Скрываем все вкладки и кнопки только внутри раздела Компания (только прямые дети)
+  const tabs = mainCompany.querySelectorAll(":scope > .tab");
+  const tabButtons = mainCompany.querySelectorAll(":scope > .tabs > button");
+  
+  tabs.forEach(t => t.classList.remove("active"));
+  tabButtons.forEach(b => b.classList.remove("active"));
   
   document.getElementById("company-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
@@ -1998,15 +2001,16 @@ function showWbTab(id, btn) {
   const analyticsSection = btn.closest('#company-analytics');
   if (!analyticsSection) return;
   
-  // Скрываем все вкладки Wildberries только внутри этого раздела
-  analyticsSection.querySelectorAll('.tab').forEach(tab => {
-    if (tab.id.startsWith('wb-')) {
-      tab.classList.remove('active');
-    }
+  // Скрываем все вкладки Wildberries только внутри этого раздела (только прямые дети)
+  const tabs = analyticsSection.querySelectorAll(':scope > .tab');
+  const tabButtons = analyticsSection.querySelectorAll(':scope > .tabs > button');
+  
+  tabs.forEach(tab => {
+    tab.classList.remove('active');
   });
   
-  // Убираем активный класс со всех кнопок вкладок Wildberries внутри раздела
-  analyticsSection.querySelectorAll('.tabs button').forEach(b => {
+  // Убираем активный класс со всех кнопок вкладок внутри раздела
+  tabButtons.forEach(b => {
     b.classList.remove('active');
   });
   
@@ -2251,10 +2255,12 @@ function showMain(mainId, btn) {
   document.querySelectorAll(".main-tabs button").forEach(b => b.classList.remove("active"));
   if (btn) btn.classList.add("active");
 
-  // 5. ХАК: Принудительно сбрасываем ВСЕ внутренние вкладки во ВСЕХ разделах
-  document.querySelectorAll(".main-section").forEach(sec => {
-    sec.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    sec.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  // 5. ХАК: Принудительно сбрасываем ВСЕ внутренние вкладки (только прямые дети!)
+  document.querySelectorAll(".main-section").forEach(section => {
+    const tabs = section.querySelectorAll(":scope > .tab");
+    const tabButtons = section.querySelectorAll(":scope > .tabs > button");
+    tabs.forEach(t => t.classList.remove("active"));
+    tabButtons.forEach(b => b.classList.remove("active"));
   });
 
   // 6. Включаем правильную вкладку по умолчанию для каждого раздела
@@ -2292,9 +2298,12 @@ function showServiceTab(id, btn) {
   const mainService = btn.closest('#main-service');
   if (!mainService) return;
   
-  // Скрываем все вкладки и кнопки только внутри раздела Сервис
-  mainService.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  mainService.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  // Скрываем все вкладки и кнопки только внутри раздела Сервис (только прямые дети)
+  const tabs = mainService.querySelectorAll(":scope > .tab");
+  const tabButtons = mainService.querySelectorAll(":scope > .tabs > button");
+  
+  tabs.forEach(t => t.classList.remove("active"));
+  tabButtons.forEach(b => b.classList.remove("active"));
   
   document.getElementById("service-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
@@ -2302,31 +2311,48 @@ function showServiceTab(id, btn) {
 }
 
 function showTab(id, btn) {
-  // 1. Находим родительский раздел через кнопку
-  const mainSection = btn.closest('.main-section');
-  if (!mainSection) return;
+  // 1. Находим родительский раздел через кнопку или активный раздел
+  let activeMainSection = btn ? btn.closest('.main-section') : document.querySelector('.main-section.active');
+  if (!activeMainSection) return;
 
   // 2. Скрываем все вкладки и кнопки только внутри этого раздела
-  mainSection.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  mainSection.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+  const tabs = activeMainSection.querySelectorAll(":scope > .tab");
+  const tabButtons = activeMainSection.querySelectorAll(":scope > .tabs > button");
+  
+  tabs.forEach(t => t.classList.remove("active"));
+  tabButtons.forEach(b => b.classList.remove("active"));
 
   // 3. Показываем нужную вкладку
   const targetTab = document.getElementById(id);
   if (targetTab) targetTab.classList.add("active");
   if (btn) btn.classList.add("active");
 
-  // 4. Специфичная логика для разных вкладок (Загрузка данных)
+  // 4. Принудительно скрываем вкладки из других разделов производства
+  if (id === "supplies") {
+    document.getElementById("batches").classList.remove("active");
+    document.getElementById("products").classList.remove("active");
+  } else if (id === "batches") {
+    document.getElementById("supplies").classList.remove("active");
+    document.getElementById("products").classList.remove("active");
+  } else if (id === "products") {
+    document.getElementById("batches").classList.remove("active");
+    document.getElementById("supplies").classList.remove("active");
+  }
+
+  // 5. Специфичная логика для разных вкладок (Загрузка данных)
   if (id === "stock") renderStock();
   if (id === "supplies") { 
     renderSupplyStockSelect(); 
-    loadCategoriesToSupplySelect().then(() => {
-      const categorySelect = document.getElementById("sup_category");
-      if (categorySelect && categorySelect.value) {
-        loadContractorsToSupplySelect(categorySelect.value);
-      } else {
-        loadContractorsToSupplySelect(null);
-      }
-    });
+    if (typeof loadCategoriesToSupplySelect === 'function') {
+      loadCategoriesToSupplySelect().then(() => {
+        const categorySelect = document.getElementById("sup_category");
+        if (categorySelect && categorySelect.value) {
+          loadContractorsToSupplySelect(categorySelect.value);
+        } else {
+          loadContractorsToSupplySelect(null);
+        }
+      });
+    }
     renderSupplies(); 
   }
   if (id === "archive") renderArchive();

@@ -765,3 +765,55 @@
 
 # 2026-10-21 23:20:43.952758
 +Друг я правда устал но проблема одна и та же. при переходе с партии в поставки в поставках отображается активные портии и поставки а потои при переходе на сервис и компанию везде видно создать поставку. умоляю реши эту проблему
+
+# 2026-10-21 23:26:13.488295
++ничего не изменилось
+
+# 2026-10-21 23:33:27.423632
++d
+
+# 2026-10-21 23:34:35.848900
++/clear
+
+# 2026-10-21 23:34:44.442827
++/add index.html
+
+# 2026-10-21 23:34:51.232221
++/editor
+
+# 2026-10-21 23:34:58.204945
++У меня в index.html баг: при переключении вкладок внутри раздела "Производство" (Изделия / Партии / Поставки) на вкладке "Поставки" отображаются блоки от вкладки "Партии" (Активные партии и Завершённые партии), хотя не должны.
++
++Причина: функция showTab() снимает .active через querySelectorAll(".tab") без :scope >, из-за чего задевает вложенные вкладки, а также может не снять .active с #batches, если btn.closest('.main-section') вернул не тот элемент или btn равен null. Плюс в showMain() есть "хак", который сбрасывает все .active во всех разделах без :scope >, что ломает вложенные вкладки Wildberries (#wb-stocks, #wb-seo, #wb-prices, #wb-reports) и вкладки внутри #main-company.
++
++Нужно сделать следующее, аккуратно, не ломая остальное:
++
++1. Перепиши функцию showTab(id, btn) так, чтобы:
++   - она находила контейнер раздела через btn.closest('.main-section'), а если btn отсутствует — через document.querySelector('.main-section.active');
++   - снимала .active ТОЛЬКО с прямых дочерних .tab этого раздела: activeMainSection.querySelectorAll(":scope > .tab");
++   - снимала .active ТОЛЬКО с прямых кнопок вкладок этого раздела: activeMainSection.querySelectorAll(":scope > .tabs > button");
++   - включала .active у targetTab (document.getElementById(id)) и у btn;
++   - в конце, если id === "supplies", дополнительно принудительно снимала .active с #batches и #products (страховка от одновременного отображения);
++   - если id === "batches", принудительно снимала .active с #supplies и #products;
++   - если id === "products", принудительно снимала .active с #batches и #supplies;
++   - сохранила существующую логику загрузки данных (renderStock, renderSupplies + loadCategoriesToSupplySelect + loadContractorsToSupplySelect, renderArchive, renderBatches) без изменений.
++
++2. Перепиши функцию showMain(mainId, btn) так, чтобы:
++   - блок "5. ХАК: Принудительно сбрасываем ВСЕ внутренние вкладки" использовал :scope > для .tab и :scope > .tabs > button, чтобы не задевать вложенные вкладки (например, вкладки Wildberries внутри #company-analytics и вложенные .tab в #company-chat);
++   - при mainId === "production" включала .active у #products и у соответствующей кнопки;
++   - при mainId === "company" включала .active у #company-calendar и у кнопки calendar, и дополнительно возвращала отображение карточки списка чатов: document.querySelector("#company-chat > .card").style.display = "block";
++   - при mainId === "service" включала .active у #sku и у кнопки sku;
++   - при mainId === "contractors" показывала #contractors-categories-view (display block), скрывала #contractors-list-view (display none) и вызывала renderCategories(), если функция существует;
++   - сохранила сброс _currentChatId = null и скрытие #chat_window в начале функции.
++
++3. Перепиши функцию showCompanyTab(id, btn) так, чтобы она использовала :scope > для снятия .active с .tab и .tabs > button внутри #main-company, чтобы не задевать вложенные вкладки Wildberries (#wb-stocks и т.д.). Логика показа #company-<id> и вызова renderEmployees / renderBoards / renderChats / showWbTab сохраняется.
++
++4. Перепиши функцию showServiceTab(id, btn) так, чтобы она использовала :scope > для снятия .active внутри #main-service. Логика показа #service-<id> и вызова renderArchivedChats сохраняется.
++
++5. Перепиши функцию showWbTab(id, btn) так, чтобы она снимала .active ТОЛЬКО с прямых вкладок #company-analytics: analyticsSection.querySelectorAll(":scope > .tab") и analyticsSection.querySelectorAll(":scope > .tabs > button") — без проверки tab.id.startsWith('wb-'), потому что :scope > уже отсекает вложенные. Логика показа #wb-<id>, активации btn и загрузки данных (renderWbStocks / loadWbSeo / loadWbPrices / loadWbReports) сохраняется.
++
++6. В функции showTab для id === "supplies" убедись, что loadContractorsToSupplySelect вызывается корректно: если sup_category имеет значение — передавай его, иначе передавай null. Сейчас там .then-цепочка — оставь её, но проверь, что она не вызывает ошибок, если document.getElementById("sup_category") равен null.
++
++Ничего другого в файле не трогай: не меняй addCategory, addContractor, deleteContractor, renderSupplies, renderStock, renderAll, initApp, renderWbStocks и остальные функции. Только пять функций: showTab, showMain, showCompanyTab, showServiceTab, showWbTab.
++
++После правок покажи дифф и объясни, что именно изменилось в каждой функции.
