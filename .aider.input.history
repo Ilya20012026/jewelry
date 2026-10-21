@@ -485,3 +485,9 @@
 +
 +4. В функции renderDayTasks() найди блок с if (t.type === "restock")... и добавь туда строку:
 +  if (t.type === "supply_task") { typeLabel = "ПОСТАВКА"; typeCls = "dot-supply"; }
+
+# 2026-10-21 13:48:42.996098
++Ошибка на строке 2320 из-за символов .
+
+# 2026-10-21 13:50:35.626853
++висит ошибка Uncaught SyntaxError: Unexpected token  (at jewelry/:2320:1) найди проверь и удали из файла index.html все строки, которые начинаются с  SEARCH, ======= и  REPLACE. Их там сейчас несколько, они ломают JavaScript.
