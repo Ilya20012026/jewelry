@@ -151,13 +151,16 @@
   .main-tabs button { flex: 1; background: none; border: none; color: #666; padding: 18px 24px; cursor: pointer; font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; transition: color .15s, background .15s; border-bottom: 3px solid transparent; }
   .main-tabs button:hover { color: #fff; }
   .main-tabs button.active { color: #fff; background: #000; border-bottom-color: #fff; }
-  .main-section { display: none; }
-  .main-section.active { display: block; }
+    .main-section { display: none !important; }
+  .main-section.active { display: block !important; }
 
   .tabs { display: flex; background: #2a2a2a; flex-wrap: wrap; border-bottom: 1px solid #1a1a1a; }
   .tabs button { background: none; border: none; color: #999; padding: 14px 22px; cursor: pointer; font-size: 14px; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
   .tabs button:hover { color: #fff; }
   .tabs button.active { color: #fff; border-bottom-color: #fff; background: #000; }
+
+  .main-section > .tab { display: none !important; padding: 28px; }
+  .main-section > .tab.active { display: block !important; }
 
   .tab { display: none; padding: 28px; }
   .tab.active { display: block; }
@@ -737,6 +740,7 @@
 <!-- /ОБЁРТКА: КОНТРАГЕНТЫ -->
 
 <!-- ОБЁРТКА: СЕРВИС -->
+
 <div id="main-service" class="main-section">
 <div class="tabs">
     <button class="active" onclick="showTab('sku', this)">Склад материалов</button>
@@ -746,6 +750,7 @@
   <button onclick="showServiceTab('backup', this)">Резервная копия</button>
   <button onclick="showServiceTab('archive_chats', this)">Архив чатов</button>
 </div>
+
 <!-- СКЛАД МАТЕРИАЛОВ -->
 <div id="sku" class="tab active">
   <div class="card master-hidden">
@@ -767,6 +772,7 @@
     </table>
   </div>
 </div>
+
 <!-- СПРАВОЧНИКИ -->
 <div id="refs" class="tab">
   <div class="card master-hidden">
@@ -805,6 +811,7 @@
     </table>
   </div>
 </div>
+
 <!-- СКЛАД ГОТОВОЙ -->
 <div id="stock" class="tab">
   <div class="card">
@@ -833,6 +840,7 @@
     <div id="w_result"></div>
   </div>
 </div>
+
 <!-- АРХИВ -->
 <div id="archive" class="tab">
   <div class="card">
@@ -856,7 +864,6 @@
     </table>
   </div>
   <div class="card">
-    
     <h3>Сводка по каналам</h3>
     <table>
       <thead><tr><th>Канал</th><th>Продано, шт</th><th>Выручка</th><th>Себестоимость</th><th>Прибыль</th><th>Маржа, %</th></tr></thead>
@@ -865,38 +872,38 @@
   </div>
 </div>
 
-  <div id="service-archive_chats" class="tab">
-    <div class="card">
-      <h3>Архив закрытых чатов</h3>
-      <p class="hint">Здесь хранятся чаты задач и партий, которые уже выполнены.</p>
-      <div id="archived_chats_list"></div>
-    </div>
+<div id="service-archive_chats" class="tab">
+  <div class="card">
+    <h3>Архив закрытых чатов</h3>
+    <p class="hint">Здесь хранятся чаты задач и партий, которые уже выполнены.</p>
+    <div id="archived_chats_list"></div>
   </div>
+</div>
 
-  <div id="service-backup" class="tab">
-    <div class="card">
-      <h3>Резервная копия</h3>
-      <p class="hint">Данные хранятся в этом браузере. Раз в неделю скачивайте копию.</p>
-      <button class="action" onclick="exportData()">Скачать копию</button>
-      <div style="margin-top:14px">
-        <input type="file" id="import_file" accept=".json">
-        <button class="action" onclick="importData()">Загрузить из копии</button>
-      </div>
-      <div style="margin-top:14px">
-        <button class="action danger" onclick="clearAll()">Удалить все данные</button>
-      </div>
+<div id="service-backup" class="tab">
+  <div class="card">
+    <h3>Резервная копия</h3>
+    <p class="hint">Данные хранятся в этом браузере. Раз в неделю скачивайте копию.</p>
+    <button class="action" onclick="exportData()">Скачать копию</button>
+    <div style="margin-top:14px">
+      <input type="file" id="import_file" accept=".json">
+      <button class="action" onclick="importData()">Загрузить из копии</button>
     </div>
-    <div class="card">
-      <h3>Синхронизация с облаком</h3>
-      <p class="hint">Одна база на всех устройствах: ПК, телефон, планшет.</p>
-      <div class="row">
-        <button class="action" onclick="uiPushToCloud()">⬆️ Отправить в облако</button>
-        <button class="action" onclick="uiPullFromCloud()">⬇️ Скачать из облака</button>
-        <button class="action ok" onclick="uiFullSync()">🔄 Полная синхронизация</button>
-      </div>
-      <div id="sync_status" style="margin-top:12px; font-size:14px; color:#555;"></div>
+    <div style="margin-top:14px">
+      <button class="action danger" onclick="clearAll()">Удалить все данные</button>
     </div>
   </div>
+  <div class="card">
+    <h3>Синхронизация с облаком</h3>
+    <p class="hint">Одна база на всех устройствах: ПК, телефон, планшет.</p>
+    <div class="row">
+      <button class="action" onclick="uiPushToCloud()">⬆️ Отправить в облако</button>
+      <button class="action" onclick="uiPullFromCloud()">⬇️ Скачать из облака</button>
+      <button class="action ok" onclick="uiFullSync()">🔄 Полная синхронизация</button>
+    </div>
+    <div id="sync_status" style="margin-top:12px; font-size:14px; color:#555;"></div>
+  </div>
+</div>
 
 </div> <!-- Закрывается main-service -->
 <!-- /ОБЁРТКА: СЕРВИС -->
@@ -2312,46 +2319,19 @@ function showServiceTab(id, btn) {
 }
 
 function showTab(id, btn) {
-  // 1. Находим главный раздел (Производство или Сервис)
   const activeMainSection = btn ? btn.closest('.main-section') : document.querySelector('.main-section.active');
   if (!activeMainSection) return;
 
-  // 2. Прячем ВСЕ вкладки внутри этого раздела (жестко, через style)
-  activeMainSection.querySelectorAll(":scope > .tab").forEach(t => {
-    t.style.display = "none";
-    t.classList.remove("active");
-  });
-  
-  // Прячем ВСЕ кнопки вкладок
-  activeMainSection.querySelectorAll(":scope > .tabs > button").forEach(b => {
-    b.classList.remove("active");
-  });
+  // Снимаем класс active со всех вкладок и кнопок внутри этого раздела
+  activeMainSection.querySelectorAll(":scope > .tab").forEach(t => t.classList.remove("active"));
+  activeMainSection.querySelectorAll(":scope > .tabs > button").forEach(b => b.classList.remove("active"));
 
-  // 3. Показываем нужную вкладку
+  // Показываем нужную вкладку
   const targetTab = document.getElementById(id);
-  if (targetTab) {
-    targetTab.style.display = "block";
-    targetTab.classList.add("active");
-  }
-  
-  // Подсвечиваем кнопку
+  if (targetTab) targetTab.classList.add("active");
   if (btn) btn.classList.add("active");
 
-  // 4. Жесткая страховка для Производства: прячем лишнее
-  if (id === "supplies") {
-    document.getElementById("batches").style.display = "none";
-    document.getElementById("products").style.display = "none";
-  }
-  if (id === "batches") {
-    document.getElementById("supplies").style.display = "none";
-    document.getElementById("products").style.display = "none";
-  }
-  if (id === "products") {
-    document.getElementById("supplies").style.display = "none";
-    document.getElementById("batches").style.display = "none";
-  }
-
-  // 5. Загрузка данных
+  // Загрузка данных для специфичных вкладок
   if (id === "stock") renderStock();
   if (id === "supplies") { 
     renderSupplyStockSelect(); 
