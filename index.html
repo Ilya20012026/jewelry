@@ -763,12 +763,22 @@
       <input id="m_unit" placeholder="Ед. (г/мл/шт)" value="г" style="width:90px">
       <input id="m_price" type="number" step="0.01" placeholder="Цена за ед.">
       <input id="m_stock" type="number" step="0.01" placeholder="Остаток" value="0">
+      <select id="m_type" style="width:150px">
+        <option value="">— Тип (не обяз.) —</option>
+        <option value="metal">Металл</option>
+        <option value="wax">Воск</option>
+        <option value="formomass">Формомасса</option>
+        <option value="water">Вода</option>
+        <option value="consumable">Расходник</option>
+        <option value="packaging">Упаковка</option>
+        <option value="energy">Электроэнергия</option>
+      </select>
       <button class="action" onclick="addMaterial()">Добавить</button>
     </div>
   </div>
   <div class="card">
     <table>
-      <thead><tr><th>Название</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
+      <thead><tr><th>Название</th><th>Тип</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
       <tbody id="m_table"></tbody>
     </table>
   </div>
@@ -2378,10 +2388,12 @@ function addMaterial() {
     price: +document.getElementById("m_price").value || 0, 
     stock: stockVal || 0,
     // Если ввели 999999 или больше - считаем материал бесконечным
-    infinite: (stockVal >= 999999) 
+    infinite: (stockVal >= 999999),
+    type: document.getElementById("m_type").value || "" // <-- ДОБАВИТЬ ЭТО
   });
   
   ["m_name","m_brand","m_price","m_stock"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("m_type").value = "";
   save(); renderMaterials(); renderAllMaterialSelects();
   showToast("✅ Материал добавлен", "success");
 }
@@ -2422,10 +2434,24 @@ function renderMaterials() {
   document.getElementById("m_table").innerHTML = data.materials.map(m => {
     const isInfinite = m.infinite === true;
     const stockDisplay = isInfinite ? "∞" : fmt(m.stock, 3);
+    const typeDisplay = m.type === 'metal' ? 'Металл' : 
+                       m.type === 'wax' ? 'Воск' : 
+                       m.type === 'formomass' ? 'Формомасса' : 
+                       m.type === 'water' ? 'Вода' : 
+                       m.type === 'consumable' ? 'Расходник' : 
+                       m.type === 'packaging' ? 'Упаковка' : 
+                       m.type === 'energy' ? 'Электроэнергия' : '—';
     return `
-    <tr><td>${escapeHtml(m.name)}</td><td>${escapeHtml(m.brand) || "—"}</td><td>${escapeHtml(m.unit)}</td><td>${fmt(m.price)} ₽</td><td>${stockDisplay}</td>
-    <td><button class="action" onclick="topUp(${m.id})">+</button></td>
-    <td><button class="action danger master-hidden" onclick="delMaterial(${m.id})">×</button></td></tr>`;
+    <tr>
+      <td>${escapeHtml(m.name)}</td>
+      <td>${escapeHtml(typeDisplay)}</td>
+      <td>${escapeHtml(m.brand) || "—"}</td>
+      <td>${escapeHtml(m.unit)}</td>
+      <td>${fmt(m.price)} ₽</td>
+      <td>${stockDisplay}</td>
+      <td><button class="action" onclick="topUp(${m.id})">+</button></td>
+      <td><button class="action danger master-hidden" onclick="delMaterial(${m.id})">×</button></td>
+    </tr>`;
   }).join("");
 }
 
@@ -2939,8 +2965,8 @@ function renderBatchCard(b) {
     if (st === 2) {
       html += `<div class="row">
         <select id="s2_opoka_${b.id}">${data.opokas.map(o => `<option value="${o.id}">${escapeHtml(o.name)} (${o.mass} г + ${o.water} мл)</option>`).join("")}</select>
-        <select id="s2_mat_mass_${b.id}">${data.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (Формомасса)</option>`).join("")}</select>
-        <select id="s2_mat_water_${b.id}">${data.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)} (Вода)</option>`).join("")}</select>
+        <select id="s2_mat_mass_${b.id}">${data.materials.filter(m => m.type === 'formomass').map(m => `<option value="${m.id}">${escapeHtml(m.name)} (Формомасса)</option>`).join("")}</select>
+        <select id="s2_mat_water_${b.id}">${data.materials.filter(m => m.type === 'water').map(m => `<option value="${m.id}">${escapeHtml(m.name)} (Вода)</option>`).join("")}</select>
         <button class="action ok" onclick="completeStage2(${b.id})">Этап завершён</button>
       </div>`;
     }
@@ -2963,7 +2989,7 @@ function renderBatchCard(b) {
     html += `<div class="stage ${st===4?'active':''}"><div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Выберите металл и укажите вес:</div>`;
     if (st === 4) {
       html += `<div class="row">
-        <select id="s4_mat_metal_${b.id}">${data.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("")}</select>
+        <select id="s4_mat_metal_${b.id}">${data.materials.filter(m => m.type === 'metal').map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("")}</select>
         <input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г">
         <input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0">
         <input type="file" id="s4_photo_${b.id}" accept="image/*" style="display:none" onchange="uploadStagePhoto('${b.id}', 4, this)">
