@@ -382,11 +382,10 @@
     <div class="row" style="margin-top:12px">
       <input id="b_title" placeholder="Название задания (например, Заказ №5)" style="width:280px">
       <select id="b_responsible" style="min-width:180px"></select>
-<select id="b_type" style="width:200px">
+      <select id="b_type" style="width:200px">
         <option value="restock">Пополнение (Красная точка)</option>
         <option value="new_item">Новая позиция (Зеленая точка)</option>
       </select>
-    </div>
     </div>
     <div class="row">
       <label style="font-size:13px;color:#555">Срок с: <input id="b_date_start" type="date"></label>
@@ -405,7 +404,7 @@
     <h3>Завершённые партии</h3>
     <div id="done_batches"></div>
   </div>
-</div>
+</div> <!-- ЗАКРЫВАЕТСЯ ВКЛАДКА ПАРТИИ -->
 
 <!-- ПОСТАВКИ -->
 <div id="supplies" class="tab">
@@ -439,7 +438,7 @@
     <div class="row" style="margin-top:12px;">
       <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
       <button class="action" onclick="document.getElementById('sup_pdf').click()">📎 PDF (штрихкоды)</button>
-            <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
+      <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
       <div id="sup_pdf_status" style="font-size:13px; color:#888;"></div>
     </div>
   </div>
@@ -452,9 +451,9 @@
     <h3>Архив поставок</h3>
     <div id="supplies_archive_list"></div>
   </div>
-</div> 
-</div>
+</div> <!-- ЗАКРЫВАЕТСЯ ВКЛАДКА ПОСТАВКИ -->
 
+</div> <!-- ЗАКРЫВАЕТСЯ main-production -->
 <!-- /ОБЁРТКА: ПРОИЗВОДСТВО -->
 
 
