@@ -2856,7 +2856,10 @@ function completeStage4(bid) {
   b.stages[4].done = true;
   
   const m = matById(matMetalId); 
-  if (m) m.stock = (+m.stock || 0) + ret;
+  if (m && ret > 0) {
+    m.stock = (+m.stock || 0) + ret;
+    m.updatedAt = new Date().toISOString();
+  }
   
   b.stageCosts[4] = cost; 
   b.stage = 5; 
@@ -2880,10 +2883,11 @@ function completeStageN(bid, stageNum) {
   const cost = matId ? writeOffMaterial(matId, qty, true) : 0; 
   if (cost === null) return;
   
-  b.stageCosts[stageNum] = cost; 
-  b.stages[stageNum].done = true;
-  
-  if (stageNum === 8) {
+  if (stageNum >= 5 && stageNum <= 8) {
+    b.stageCosts[stageNum] = cost;
+    b.stages[stageNum].done = true;
+    b.stage = stageNum + 1;
+  } else if (stageNum === 8) {
     b.stage = 9; 
     b.finished = true; 
     b.finishedAt = new Date().toLocaleString(); // <-- ДОБАВИЛИ ДАТУ
