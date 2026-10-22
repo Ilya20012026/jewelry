@@ -763,6 +763,7 @@
       <input id="m_unit" placeholder="Ед. (г/мл/шт)" value="г" style="width:90px">
       <input id="m_price" type="number" step="0.01" placeholder="Цена за ед.">
       <input id="m_stock" type="number" step="0.01" placeholder="Остаток" value="0">
+      <input id="m_density" type="number" step="0.01" placeholder="Плотность (г/см³)" style="width:130px">
       <select id="m_type" style="width:150px">
         <option value="">— Тип (не обяз.) —</option>
         <option value="metal">Металл</option>
@@ -778,7 +779,7 @@
   </div>
   <div class="card">
     <table>
-      <thead><tr><th>Название</th><th>Тип</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
+      <thead><tr><th>Название</th><th>Тип</th><th>Плотность</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
       <tbody id="m_table"></tbody>
     </table>
   </div>
@@ -812,12 +813,13 @@
       <select id="o_mass_mat_sel"></select>
       <input id="o_water" type="number" step="0.1" placeholder="Вода, мл">
       <select id="o_water_mat_sel"></select>
+      <input id="o_gating" type="number" step="0.1" placeholder="Вес литника, г" style="width:130px">
       <button class="action" onclick="addOpoka()">Добавить</button>
     </div>
   </div>
   <div class="card">
     <table>
-      <thead><tr><th>Название</th><th>Формомасса</th><th>Материал</th><th>Вода</th><th>Материал</th><th></th></tr></thead>
+      <thead><tr><th>Название</th><th>Формомасса</th><th>Литник, г</th><th>Материал</th><th>Вода</th><th>Материал</th><th></th></tr></thead>
       <tbody id="o_table"></tbody>
     </table>
   </div>
@@ -2389,10 +2391,11 @@ function addMaterial() {
     stock: stockVal || 0,
     // Если ввели 999999 или больше - считаем материал бесконечным
     infinite: (stockVal >= 999999),
-    type: document.getElementById("m_type").value || "" // <-- ДОБАВИТЬ ЭТО
+    type: document.getElementById("m_type").value || "",
+    density: +document.getElementById("m_density").value || 0
   });
   
-  ["m_name","m_brand","m_price","m_stock"].forEach(id => document.getElementById(id).value = "");
+  ["m_name","m_brand","m_price","m_stock","m_density"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("m_type").value = "";
   save(); renderMaterials(); renderAllMaterialSelects();
   showToast("✅ Материал добавлен", "success");
@@ -2445,6 +2448,7 @@ function renderMaterials() {
     <tr>
       <td>${escapeHtml(m.name)}</td>
       <td>${escapeHtml(typeDisplay)}</td>
+      <td>${m.density ? fmt(m.density) : "—"}</td>
       <td>${escapeHtml(m.brand) || "—"}</td>
       <td>${escapeHtml(m.unit)}</td>
       <td>${fmt(m.price)} ₽</td>
@@ -2606,8 +2610,16 @@ function renderCycles() {
 }
 function addOpoka() {
   const name = document.getElementById("o_name").value.trim(); if (!name) return alert("Введите название");
-  data.opokas.push({ id: uid(), name, mass: +document.getElementById("o_mass").value || 0, water: +document.getElementById("o_water").value || 0, matMass: +document.getElementById("o_mass_mat_sel").value || null, matWater: +document.getElementById("o_water_mat_sel").value || null });
-  ["o_name","o_mass","o_water"].forEach(id => document.getElementById(id).value = "");
+  data.opokas.push({ 
+    id: uid(), 
+    name, 
+    mass: +document.getElementById("o_mass").value || 0, 
+    water: +document.getElementById("o_water").value || 0, 
+    matMass: +document.getElementById("o_mass_mat_sel").value || null, 
+    matWater: +document.getElementById("o_water_mat_sel").value || null,
+    gating_weight: +document.getElementById("o_gating").value || 0
+  });
+  ["o_name","o_mass","o_water","o_gating"].forEach(id => document.getElementById(id).value = "");
   save(); renderOpokas();
 }
 function delOpoka(id) { markDeleted(data, "opokas", id); save(); renderOpokas(); }
@@ -2632,7 +2644,7 @@ function editOpoka(id) {
 function renderOpokas() {
   document.getElementById("o_table").innerHTML = data.opokas.map(o => {
     const mm = matById(o.matMass); const mw = matById(o.matWater);
-    return `<tr><td>${escapeHtml(o.name)}</td><td>${o.mass} г</td><td>${mm ? escapeHtml(mm.name) : "—"}</td><td>${o.water} мл</td><td>${mw ? escapeHtml(mw.name) : "—"}</td>
+    return `<tr><td>${escapeHtml(o.name)}</td><td>${o.mass} г</td><td>${o.gating_weight ? fmt(o.gating_weight) : "—"} г</td><td>${mm ? escapeHtml(mm.name) : "—"}</td><td>${o.water} мл</td><td>${mw ? escapeHtml(mw.name) : "—"}</td>
     <td>
       <button class="action" onclick="editOpoka(${o.id})" style="padding:5px 10px; font-size:12px;">✏️</button>
       <button class="action danger master-hidden" onclick="delOpoka(${o.id})">×</button>
@@ -2771,17 +2783,20 @@ function completeStage1(bid) {
   const p = data.products.find(x => String(x.id) === String(b.productId));
   if (!p) return alert("Изделие удалено. Удалите партию и создайте заново.");
   
+  const waxId = document.getElementById("s1_wax_"+bid).value;
   const used = +document.getElementById("s1_"+bid).value || 0;
   if (used <= 0) return alert("Укажите вес воска");
+  if (!waxId) return alert("Выберите воск");
   
-  const cost = writeOffMaterial(p.matWax, used, true); 
+  const cost = writeOffMaterial(waxId, used, true); 
   if (cost === null) return;
   
   b.stages[1].waxUsed = used; 
+  b.stages[1].waxId = waxId;
   b.stages[1].done = true; 
   b.stageCosts[1] = cost; 
   b.stage = 2; 
-  save(); // <-- ДОБАВИТЬ ЭТУ СТРОКУ
+  save();
   renderBatches();
 }
 
@@ -2924,6 +2939,25 @@ function completeStageN(bid, stageNum) {
   renderCalendar();
 }
 
+function calcTheoreticalMetal(bid) {
+  const b = data.batches.find(x => String(x.id) === String(bid));
+  if (!b) return;
+  
+  const opoka = data.opokas.find(o => String(o.id) === String(b.stages[2].opokaId));
+  const gatingWeight = opoka ? (opoka.gating_weight || 0) : 0;
+  const totalWax = (b.stages[1].waxUsed || 0) + gatingWeight;
+  
+  const metalId = document.getElementById("s4_mat_metal_"+bid).value;
+  const metal = data.materials.find(m => String(m.id) === String(metalId));
+  
+  if (metal && metal.density > 0) {
+    const theoretical = totalWax * metal.density;
+    document.getElementById("s4_theoretical_"+bid).textContent = `≈ ${fmt(theoretical, 3)} г`;
+  } else {
+    document.getElementById("s4_theoretical_"+bid).textContent = `(плотность не указана)`;
+  }
+}
+
 function renderBatchCard(b) {
   if (typeof renderAllMaterialSelects === 'function') renderAllMaterialSelects(); // <-- ДОБАВИТЬ ЭТУ СТРОКУ
   const p = data.products.find(x => x.id === b.productId); if (!p) return "";
@@ -2953,8 +2987,16 @@ function renderBatchCard(b) {
 
   if (!s[1].done) {
     const norm = p.normWax * b.qty;
-    html += `<div class="stage ${st===1?'active':''}"><div class="stage-title">1. Создание восковок ${st===1?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Норма: ${fmt(norm,3)} г воска. Введите фактический вес:</div>`;
-    if (st === 1) html += `<div class="row"><input id="s1_${b.id}" type="number" step="0.001" placeholder="Вес воска, г"><input type="file" id="s1_photo_${b.id}" accept="image/*" style="display:none" onchange="uploadStagePhoto('${b.id}', 1, this)"><button class="action" onclick="document.getElementById('s1_photo_${b.id}').click()">📷 Фото</button><button class="action ok" onclick="completeStage1(${b.id})">Этап завершён</button></div>`;
+    html += `<div class="stage ${st===1?'active':''}"><div class="stage-title">1. Создание восковок ${st===1?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Норма: ${fmt(norm,3)} г воска. Выберите воск и введите вес:</div>`;
+    if (st === 1) {
+      html += `<div class="row">
+        <select id="s1_wax_${b.id}">${data.materials.filter(m => m.type === 'wax').map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("")}</select>
+        <input id="s1_${b.id}" type="number" step="0.001" placeholder="Вес воска, г">
+        <input type="file" id="s1_photo_${b.id}" accept="image/*" style="display:none" onchange="uploadStagePhoto('${b.id}', 1, this)">
+        <button class="action" onclick="document.getElementById('s1_photo_${b.id}').click()">📷 Фото</button>
+        <button class="action ok" onclick="completeStage1(${b.id})">Этап завершён</button>
+      </div>`;
+    }
     html += `</div>`;
   } else {
     html += `<div class="stage done"><div class="stage-title">1. Восковки <span class="badge badge-done">завершён</span></div><div class="stage-info">Использовано: ${fmt(s[1].waxUsed,3)} г — ${fmt(b.stageCosts[1])} ₽</div></div>`;
@@ -2986,11 +3028,19 @@ function renderBatchCard(b) {
   }
 
   if (s[3].done && !s[4].done) {
-    html += `<div class="stage ${st===4?'active':''}"><div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Выберите металл и укажите вес:</div>`;
+    const opoka = data.opokas.find(o => String(o.id) === String(s[2].opokaId));
+    const gatingWeight = opoka ? (opoka.gating_weight || 0) : 0;
+    const totalWax = (s[1].waxUsed || 0) + gatingWeight;
+    
+    html += `<div class="stage ${st===4?'active':''}"><div class="stage-title">4. Литьё ${st===4?'<span class="badge badge-active">активен</span>':''}</div>`;
+    html += `<div class="stage-info">Вес воска с литником: <b>${fmt(totalWax,3)} г</b></div>`;
+    html += `<div class="stage-info">Выберите металл (теоретический вес рассчитается автоматически):</div>`;
+    
     if (st === 4) {
       html += `<div class="row">
-        <select id="s4_mat_metal_${b.id}">${data.materials.filter(m => m.type === 'metal').map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("")}</select>
-        <input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Использовано, г">
+        <select id="s4_mat_metal_${b.id}" onchange="calcTheoreticalMetal(${b.id})">${data.materials.filter(m => m.type === 'metal').map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("")}</select>
+        <span id="s4_theoretical_${b.id}" style="font-weight:600; color:#2b6cb0;"></span>
+        <input id="s4_used_${b.id}" type="number" step="0.001" placeholder="Факт. использовано, г">
         <input id="s4_ret_${b.id}" type="number" step="0.001" placeholder="Возврат, г" value="0">
         <input type="file" id="s4_photo_${b.id}" accept="image/*" style="display:none" onchange="uploadStagePhoto('${b.id}', 4, this)">
         <button class="action" onclick="document.getElementById('s4_photo_${b.id}').click()">📷 Фото</button>
