@@ -965,6 +965,50 @@
   </div>
 </div>
 
+<!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ ИЗДЕЛИЯ -->
+<div id="product_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:15000; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#fff; width:100%; max-width:800px; border-radius:8px; padding:24px; position:relative; max-height:90vh; overflow-y:auto;">
+    <button onclick="closeProductModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; cursor:pointer;">×</button>
+    <h3 style="margin-top:0; padding-right:30px;">Редактирование изделия</h3>
+    
+    <input type="hidden" id="edit_p_id">
+    
+    <div class="row">
+      <input id="edit_p_article" placeholder="Артикул" style="width:120px">
+      <input id="edit_p_name" placeholder="Название" style="width:180px">
+      <input id="edit_p_cat" placeholder="Категория" style="width:140px">
+    </div>
+    
+    <table style="margin-top:16px;">
+      <thead><tr><th>Этап / параметр</th><th>Норма на 1 шт</th><th>Ед.</th><th>Материал</th></tr></thead>
+      <tbody>
+        <tr><td>Восковки — норма воска</td>
+          <td><input id="edit_n_wax" type="number" step="0.001"></td>
+          <td>г</td><td><select id="edit_n_wax_mat"></select></td></tr>
+        <tr><td>Обработка — расход</td>
+          <td><input id="edit_n_proc" type="number" step="0.001"></td>
+          <td>—</td><td><select id="edit_n_proc_mat"></select></td></tr>
+        <tr><td>Гальваника — электролит</td>
+          <td><input id="edit_n_galv" type="number" step="0.001"></td>
+          <td>мл</td><td><select id="edit_n_galv_mat"></select></td></tr>
+        <tr><td>Чернение — расходники</td>
+          <td><input id="edit_n_blk" type="number" step="0.001"></td>
+          <td>—</td><td><select id="edit_n_blk_mat"></select></td></tr>
+        <tr><td>Упаковка</td>
+          <td><input id="edit_n_pack" type="number" step="0.001"></td>
+          <td>шт</td><td><select id="edit_n_pack_mat"></select></td></tr>
+        <tr><td>Литьё — материал (металл)</td>
+          <td colspan="2"></td><td><select id="edit_n_metal_mat"></select></td></tr>
+      </tbody>
+    </table>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+      <button class="action ok" onclick="saveProductFromModal()">💾 Сохранить</button>
+      <button class="action danger" onclick="closeProductModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
 <!-- МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ СОТРУДНИКА -->
 <div id="employee_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:15000; align-items:center; justify-content:center; padding:20px;">
   <div style="background:#fff; width:100%; max-width:500px; border-radius:8px; padding:24px; position:relative;">
@@ -2541,21 +2585,68 @@ function editProduct(id) {
   const p = data.products.find(x => String(x.id) === String(id));
   if (!p) return;
 
-  const newName = prompt("Название изделия:", p.name);
-  if (newName === null) return;
-  const newArticle = prompt("Артикул:", p.article || "");
-  if (newArticle === null) return;
-  const newCat = prompt("Категория:", p.category || "");
-  if (newCat === null) return;
+  document.getElementById('edit_p_id').value = p.id;
+  document.getElementById('edit_p_article').value = p.article || '';
+  document.getElementById('edit_p_name').value = p.name || '';
+  document.getElementById('edit_p_cat').value = p.category || '';
 
-  p.name = newName.trim() || p.name;
-  p.article = newArticle.trim();
-  p.category = newCat.trim();
-  p.updatedAt = new Date().toISOString();
+  document.getElementById('edit_n_wax').value = p.normWax || '';
+  document.getElementById('edit_n_proc').value = p.normProc || '';
+  document.getElementById('edit_n_galv').value = p.normGalv || '';
+  document.getElementById('edit_n_blk').value = p.normBlk || '';
+  document.getElementById('edit_n_pack').value = p.normPack || '';
+
+  const fillSelect = (selectId, selectedValue) => {
+    const sel = document.getElementById(selectId);
+    sel.innerHTML = '<option value="">— Не выбрано —</option>' + data.materials.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join("");
+    if (selectedValue) sel.value = selectedValue;
+  };
+
+  fillSelect('edit_n_wax_mat', p.matWax);
+  fillSelect('edit_n_proc_mat', p.matProc);
+  fillSelect('edit_n_galv_mat', p.matGalv);
+  fillSelect('edit_n_blk_mat', p.matBlk);
+  fillSelect('edit_n_pack_mat', p.matPack);
+  fillSelect('edit_n_metal_mat', p.matMetal);
+
+  document.getElementById('product_modal').style.display = 'flex';
+}
+
+function closeProductModal() {
+  document.getElementById('product_modal').style.display = 'none';
+}
+
+function saveProductFromModal() {
+  const id = document.getElementById('edit_p_id').value;
+  if (!id) return;
+  const p = data.products.find(x => String(x.id) === String(id));
+  if (!p) return;
+
+  const name = document.getElementById('edit_p_name').value.trim();
+  if (!name) return alert("Введите название");
+
+  p.article = document.getElementById('edit_p_article').value.trim();
+  p.name = name;
+  p.category = document.getElementById('edit_p_cat').value.trim();
   
+  p.normWax = +document.getElementById('edit_n_wax').value || 0;
+  p.normProc = +document.getElementById('edit_n_proc').value || 0;
+  p.normGalv = +document.getElementById('edit_n_galv').value || 0;
+  p.normBlk = +document.getElementById('edit_n_blk').value || 0;
+  p.normPack = +document.getElementById('edit_n_pack').value || 0;
+
+  p.matWax = +document.getElementById('edit_n_wax_mat').value || null;
+  p.matProc = +document.getElementById('edit_n_proc_mat').value || null;
+  p.matGalv = +document.getElementById('edit_n_galv_mat').value || null;
+  p.matBlk = +document.getElementById('edit_n_blk_mat').value || null;
+  p.matPack = +document.getElementById('edit_n_pack_mat').value || null;
+  p.matMetal = +document.getElementById('edit_n_metal_mat').value || null;
+
+  p.updatedAt = new Date().toISOString();
   save();
   renderProducts();
   renderBatchProductSelect();
+  closeProductModal();
   showToast("✅ Изделие обновлено", "success");
 }
 function renderProducts() {
