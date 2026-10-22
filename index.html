@@ -2370,7 +2370,7 @@ function showTab(id, btn) {
 }
 
 function fmt(n, d=2) { return (+n || 0).toFixed(d); }
-function matById(id) { return data.materials.find(m => m.id === id); }
+function matById(id) { return data.materials.find(m => String(m.id) === String(id)); }
 function escapeHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 }
@@ -2402,6 +2402,11 @@ function addMaterial() {
 }
 
 function delMaterial(id) {
+  const m = matById(id);
+  if (!m) {
+    showToast("❌ Материал не найден. Обновите страницу.", "error");
+    return;
+  }
   if (!confirm("Удалить материал?")) return;
   markDeleted(data, "materials", id); 
   save(); 
@@ -2411,7 +2416,10 @@ function delMaterial(id) {
 
 function topUp(id) {
   const m = matById(id); 
-  if (!m) return;
+  if (!m) {
+    showToast("❌ Материал не найден. Обновите страницу.", "error");
+    return;
+  }
   
   const v = window.prompt(`Сколько добавить "${m.name}" на склад? (Текущий: ${m.infinite ? '∞' : m.stock})`);
   
@@ -2665,7 +2673,7 @@ function renderOpokas() {
     return `<tr>
       <td>${escapeHtml(o.name)}</td>
       <td>${o.mass} г</td>
-      <td>${o.gating_weight ? fmt(o.gating_weight) : "—"} г</td>
+      <td>${o.gating_weight != null ? fmt(o.gating_weight) : "—"} г</td>
       <td>${mm ? escapeHtml(mm.name) : "—"}</td>
       <td>${o.water} мл</td>
       <td>${mw ? escapeHtml(mw.name) : "—"}</td>
@@ -2973,8 +2981,8 @@ function calcTheoreticalMetal(bid) {
   if (!b) return;
   
   const opoka = data.opokas.find(o => String(o.id) === String(b.stages[2].opokaId));
-  const gatingWeight = opoka ? (opoka.gating_weight || 0) : 0;
-  const totalWax = (b.stages[1].waxUsed || 0) + gatingWeight;
+  const gatingWeight = opoka && opoka.gating_weight != null ? +opoka.gating_weight : 0;
+  const totalWax = (+b.stages[1].waxUsed || 0) + gatingWeight;
   
   const metalId = document.getElementById("s4_mat_metal_"+bid).value;
   const metal = data.materials.find(m => String(m.id) === String(metalId));
