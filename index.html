@@ -618,6 +618,8 @@
               <th>Артикул</th>
               <th>FBS (шт)</th>
               <th>FBO (шт)</th>
+              <th>В пути (FBS)</th>
+              <th>В пути (FBO)</th>
               <th>Всего на WB</th>
               <th>Мой склад (РУСИЧЪ)</th>
               <th>Себестоимость</th>
@@ -625,7 +627,7 @@
             </tr>
           </thead>
           <tbody id="wb-stocks-table">
-            <tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">Данные загружаются...</td></tr>
+            <tr><td colspan="10" style="text-align:center;padding:20px;color:#888;">Данные загружаются...</td></tr>
           </tbody>
         </table>
       </div>
@@ -3515,7 +3517,7 @@ async function renderWbStocks() {
     if (error) throw error;
     
     if (!wbStocks || wbStocks.length === 0) {
-      table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">Нет данных о товарах на Wildberries</td></tr>';
+      table.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:#888;">Нет данных о товарах на Wildberries</td></tr>';
       return;
     }
     
@@ -3551,7 +3553,9 @@ async function renderWbStocks() {
       
       const fbsQty = wbItem.fbs_quantity || 0;
       const fboQty = wbItem.fbo_quantity || 0;
-      const wbTotal = fbsQty + fboQty;
+      const inWayFbs = wbItem.in_way_fbs || 0;
+      const inWayFbo = wbItem.in_way_fbo || 0;
+      const wbTotal = fbsQty + fboQty + inWayFbs + inWayFbo;
       const myStockQty = stockItem ? stockItem.remaining : 0;
       const cost = stockItem ? stockItem.costPerUnit : 0;
       
@@ -3579,6 +3583,8 @@ async function renderWbStocks() {
           <td>${escapeHtml(article)}</td>
           <td>${fbsQty}</td>
           <td>${fboQty}</td>
+          <td>${inWayFbs}</td>
+          <td>${inWayFbo}</td>
           <td>${wbTotal}</td>
           <td>${myStockQty}</td>
           <td>${fmt(cost)} ₽</td>
@@ -3591,7 +3597,7 @@ async function renderWbStocks() {
     
   } catch (error) {
     console.error('Ошибка загрузки данных WB:', error);
-    table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#c53030;">Ошибка загрузки данных: ' + escapeHtml(error.message) + '</td></tr>';
+    table.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:#c53030;">Ошибка загрузки данных: ' + escapeHtml(error.message) + '</td></tr>';
   }
 }
 

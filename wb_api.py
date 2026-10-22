@@ -31,11 +31,15 @@ def get_fbs_stocks(nm_ids):
         if response.status_code == 200:
             data = response.json()
             items = data.get("data", {}).get("items", [])
-            result = {str(nm_id): 0 for nm_id in nm_ids}
+            result = {str(nm_id): {"qty": 0, "in_way": 0} for nm_id in nm_ids}
             for item in items:
                 nm_id = str(item.get('nmId'))
                 if nm_id in result:
-                    result[nm_id] += item.get('quantity', 0)
+                    result[nm_id]["qty"] += item.get('quantity', 0)
+                    # Суммируем показатели "в пути" для FBS
+                    in_way_to_client = item.get('inWayToClient', 0)
+                    in_way_from_client = item.get('inWayFromClient', 0)
+                    result[nm_id]["in_way"] += in_way_to_client + in_way_from_client
             return result
         return {}
     except Exception as e:
@@ -51,11 +55,15 @@ def get_fbo_stocks(nm_ids):
         if response.status_code == 200:
             data = response.json()
             items = data.get("data", {}).get("items", [])
-            result = {str(nm_id): 0 for nm_id in nm_ids}
+            result = {str(nm_id): {"qty": 0, "in_way": 0} for nm_id in nm_ids}
             for item in items:
                 nm_id = str(item.get('nmId'))
                 if nm_id in result:
-                    result[nm_id] += item.get('quantity', 0)
+                    result[nm_id]["qty"] += item.get('quantity', 0)
+                    # Суммируем показатели "в пути" для FBO
+                    in_way_to_client = item.get('inWayToClient', 0)
+                    in_way_from_client = item.get('inWayFromClient', 0)
+                    result[nm_id]["in_way"] += in_way_to_client + in_way_from_client
             return result
         return {}
     except Exception as e:
@@ -76,12 +84,18 @@ def save_to_supabase(nm_ids, fbs_stocks, fbo_stocks, cards):
                     title = card.get('title') or "Без названия"
                     break
             
+            # Получаем данные с учетом новой структуры
+            fbs_data = fbs_stocks.get(str(nm_id), {"qty": 0, "in_way": 0})
+            fbo_data = fbo_stocks.get(str(nm_id), {"qty": 0, "in_way": 0})
+            
             rows.append({
                 "nm_id": str(nm_id),
                 "article": article,
                 "title": title,
-                "fbs_quantity": int(fbs_stocks.get(str(nm_id), 0)),
-                "fbo_quantity": int(fbo_stocks.get(str(nm_id), 0)),
+                "fbs_quantity": int(fbs_data.get("qty", 0)),
+                "fbo_quantity": int(fbo_data.get("qty", 0)),
+                "in_way_fbs": int(fbs_data.get("in_way", 0)),
+                "in_way_fbo": int(fbo_data.get("in_way", 0)),
                 "updated_at": datetime.now().isoformat()
             })
         if rows:
