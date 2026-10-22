@@ -214,8 +214,22 @@
   .calendar-grid .day.today.selected .day-number { color: #fff; }
 
   /* Убираем артефакты */
-  .calendar-grid .day .dots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; background: transparent; border: none; position: absolute; bottom: 10px; left: 10px; }
-  .calendar-grid .day .day-number { background: transparent; border: none; font-family: var(--font-head); font-size: 14px; font-weight: 600; position: absolute; top: 10px; left: 10px; }
+  .calendar-grid .day .day-number {
+    background: transparent; 
+    border: none; 
+    font-family: var(--font-head); 
+    font-size: 14px; 
+    font-weight: 600;
+    z-index: 1;
+  }
+  .calendar-grid .day .dots { 
+    display: flex; 
+    gap: 4px; 
+    flex-wrap: wrap; 
+    margin-top: auto; 
+    background: transparent; 
+    border: none; 
+  }
 
   .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
   .dot-restock { background: #ef4444; }
@@ -297,34 +311,41 @@
   }
 </style>
    
-<div id="splash_screen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #09090b; color: #fff; z-index: 20000; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s;">
+<div id="splash_screen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #09090b; color: #fff; z-index: 20000; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s ease;">
   <style>
-    @keyframes letterPulse {
-      0%, 100% { opacity: 0.2; transform: translateY(0); }
-      50% { opacity: 1; transform: translateY(-4px); text-shadow: 0 0 20px rgba(255,255,255,0.5); }
-    }
-    .splash-letter {
-      display: inline-block;
-      font-family: var(--font-head);
+    .splash-loader {
+      display: flex;
+      gap: 8px;
+      font-family: 'Archivo', sans-serif;
       font-size: 42px;
       font-weight: 800;
-      letter-spacing: 8px;
-      animation: letterPulse 1.5s ease-in-out infinite;
+      text-transform: uppercase;
     }
-    .splash-letter:nth-child(1) { animation-delay: 0.0s; }
-    .splash-letter:nth-child(2) { animation-delay: 0.1s; }
-    .splash-letter:nth-child(3) { animation-delay: 0.2s; }
-    .splash-letter:nth-child(4) { animation-delay: 0.3s; }
-    .splash-letter:nth-child(5) { animation-delay: 0.4s; }
-    .splash-letter:nth-child(6) { animation-delay: 0.5s; }
+    .splash-loader .char {
+      color: rgba(255, 255, 255, 0.15);
+      animation: fillLetter 3s infinite both;
+    }
+    .splash-loader .char:nth-child(1) { animation-delay: -2.0s; }
+    .splash-loader .char:nth-child(2) { animation-delay: -2.25s; }
+    .splash-loader .char:nth-child(3) { animation-delay: -2.5s; }
+    .splash-loader .char:nth-child(4) { animation-delay: -2.75s; }
+    .splash-loader .char:nth-child(5) { animation-delay: -3.0s; }
+    .splash-loader .char:nth-child(6) { animation-delay: -3.25s; }
+
+    @keyframes fillLetter {
+      0% { color: rgba(255, 255, 255, 0.15); }
+      15% { color: #ffffff; }
+      99% { color: #ffffff; }
+      100% { color: rgba(255, 255, 255, 0.15); }
+    }
   </style>
-  <div style="display: flex;">
-    <span class="splash-letter">Р</span>
-    <span class="splash-letter">У</span>
-    <span class="splash-letter">С</span>
-    <span class="splash-letter">И</span>
-    <span class="splash-letter">Ч</span>
-    <span class="splash-letter">Ъ</span>
+  <div class="splash-loader">
+    <span class="char">Р</span>
+    <span class="char">У</span>
+    <span class="char">С</span>
+    <span class="char">И</span>
+    <span class="char">Ч</span>
+    <span class="char">Ъ</span>
   </div>
 </div>
 <div id="login_screen" class="login-screen" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #09090b; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; font-family: var(--font-body);">
@@ -537,7 +558,11 @@
         <div style="padding: 0 24px 24px 24px; border-top: 1px solid var(--border-light);">
           <p class="hint">Пополнение и новая позиция — автоматически создадут партию в производстве.</p>
           <div class="row">
-            <select id="task_type" onchange="onTaskTypeChange()" style="flex:1;"></select>
+            <select id="task_type" onchange="onTaskTypeChange()" style="flex:1;">
+              <option value="task">Задача</option>
+              <option value="restock">Пополнение позиций</option>
+              <option value="new_item">Новая позиция</option>
+            </select>
             <select id="task_product" style="flex:1;"></select>
             <input id="task_qty" type="number" placeholder="Кол-во, шт" style="width:110px;">
           </div>
@@ -667,8 +692,8 @@
         <div id="wb-stocks" class="tab active">
           <p class="hint">Сравнение остатков на Wildberries и на вашем складе</p>
           <div class="row" style="margin-bottom:16px;">
-            <button class="action" onclick="renderWbStocks()" style="width:auto;">🔄 Обновить все</button>
-            <button class="action" onclick="alert('Запустите python wb_api.py, чтобы обновить данные')" style="width:auto;">🔄 Синхронизировать с WB</button>
+            <button class="action" onclick="renderWbStocks()" style="width:auto; background: #8b5cf6; border-color: #8b5cf6; color: white; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);">🔄 Обновить все</button>
+            <button class="action" onclick="alert('Запустите python wb_api.py, чтобы обновить данные')" style="width:auto; background: #8b5cf6; border-color: #8b5cf6; color: white; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);">🔄 Синхронизировать с WB</button>
           </div>
           <div style="overflow-x:auto;">
             <table>
@@ -1835,7 +1860,7 @@ function renderColumns(boardId) {
     const cardsHTML = colTasks.map(t => `
   <div style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor:pointer;" onclick="openTaskModal('${t.id}')">
     ${t.photo ? `<img src="${escapeHtml(t.photo)}" style="width:100%; height:100px; object-fit:cover; border-radius:4px; margin-bottom:6px;">` : ''}
-    <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">${escapeHtml(t.title)}</div>
+    <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px; color: #09090b;">${escapeHtml(t.title)}</div>
     ${t.note ? `<div style="font-size:11px; color:#888; margin-bottom:4px;">${escapeHtml(t.note.slice(0,30))}...</div>` : ''}
     <div style="display: flex; justify-content: space-between; gap: 4px;">
       <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="event.stopPropagation(); deleteBoardTask('${t.id}')">×</button>
@@ -4584,12 +4609,12 @@ function renderSupplies() {
       }
       
       return `
-      <div class="card" style="margin-bottom:12px; border-left:4px solid #000;">
+      <div class="card" style="margin-bottom:12px; border-left:4px solid var(--accent); background: #ffffff; color: #09090b;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
           <div>
-            <h4 style="margin:0 0 4px 0;">${escapeHtml(s.title)}</h4>
-            <div style="font-size:12px; color:#666; margin-bottom:8px;">${s.date} • ${escapeHtml(counterpartyName)} ${s.responsible ? '• Отв: ' + escapeHtml(s.responsible) : ''}</div>
-            <div style="font-size:13px; margin-bottom:8px;">
+            <h4 style="margin:0 0 4px 0; color: #09090b;">${escapeHtml(s.title)}</h4>
+            <div style="font-size:12px; color:#666; margin-bottom:8px; color: #09090b;">${s.date} • ${escapeHtml(counterpartyName)} ${s.responsible ? '• Отв: ' + escapeHtml(s.responsible) : ''}</div>
+            <div style="font-size:13px; margin-bottom:8px; color: #09090b;">
               <b>Состав:</b> ${(s.items || []).map(i => `${escapeHtml(i.productName)} × ${i.qty}`).join(', ')}
             </div>
             ${s.pdfUrl ? `<a href="${escapeHtml(s.pdfUrl)}" target="_blank" style="font-size:12px; color:#2b6cb0;">📎 Скачать PDF</a>` : ''}
