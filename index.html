@@ -2609,7 +2609,9 @@ function renderCycles() {
   }).join("");
 }
 function addOpoka() {
-  const name = document.getElementById("o_name").value.trim(); if (!name) return alert("Введите название");
+  const name = document.getElementById("o_name").value.trim(); 
+  if (!name) return alert("Введите название");
+  
   data.opokas.push({ 
     id: uid(), 
     name, 
@@ -2619,36 +2621,59 @@ function addOpoka() {
     matWater: +document.getElementById("o_water_mat_sel").value || null,
     gating_weight: +document.getElementById("o_gating").value || 0
   });
-  ["o_name","o_mass","o_water","o_gating"].forEach(id => document.getElementById(id).value = "");
-  save(); renderOpokas();
+  
+  ["o_name","o_mass","o_water","o_gating"].forEach(id => { 
+    const el = document.getElementById(id); 
+    if (el) el.value = ""; 
+  });
+  
+  save(); 
+  renderOpokas();
 }
 function delOpoka(id) { markDeleted(data, "opokas", id); save(); renderOpokas(); }
 
 function editOpoka(id) {
   const o = data.opokas.find(x => String(x.id) === String(id));
   if (!o) return;
+  
   const newName = prompt("Название опоки:", o.name);
   if (newName === null) return;
+  
   const newMass = prompt("Формомасса (г):", o.mass);
   if (newMass === null) return;
+  
   const newWater = prompt("Вода (мл):", o.water);
   if (newWater === null) return;
+  
+  const newGating = prompt("Вес литника (г):", o.gating_weight || 0);
+  if (newGating === null) return;
   
   o.name = newName.trim() || o.name;
   o.mass = +newMass || 0;
   o.water = +newWater || 0;
+  o.gating_weight = +newGating || 0;
   o.updatedAt = new Date().toISOString();
-  save(); renderOpokas();
+  
+  save(); 
+  renderOpokas();
   showToast("✅ Опока обновлена", "success");
 }
 function renderOpokas() {
   document.getElementById("o_table").innerHTML = data.opokas.map(o => {
-    const mm = matById(o.matMass); const mw = matById(o.matWater);
-    return `<tr><td>${escapeHtml(o.name)}</td><td>${o.mass} г</td><td>${o.gating_weight ? fmt(o.gating_weight) : "—"} г</td><td>${mm ? escapeHtml(mm.name) : "—"}</td><td>${o.water} мл</td><td>${mw ? escapeHtml(mw.name) : "—"}</td>
-    <td>
-      <button class="action" onclick="editOpoka(${o.id})" style="padding:5px 10px; font-size:12px;">✏️</button>
-      <button class="action danger master-hidden" onclick="delOpoka(${o.id})">×</button>
-    </td></tr>`;
+    const mm = matById(o.matMass); 
+    const mw = matById(o.matWater);
+    return `<tr>
+      <td>${escapeHtml(o.name)}</td>
+      <td>${o.mass} г</td>
+      <td>${o.gating_weight ? fmt(o.gating_weight) : "—"} г</td>
+      <td>${mm ? escapeHtml(mm.name) : "—"}</td>
+      <td>${o.water} мл</td>
+      <td>${mw ? escapeHtml(mw.name) : "—"}</td>
+      <td>
+        <button class="action" onclick="editOpoka(${o.id})" style="padding:5px 10px; font-size:12px;">✏️</button>
+        <button class="action danger master-hidden" onclick="delOpoka(${o.id})">×</button>
+      </td>
+    </tr>`;
   }).join("");
 }
 /* Партии: строки с изделиями */
