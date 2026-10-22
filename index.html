@@ -60,6 +60,8 @@
     width: 100%;
     border-bottom: 1px solid var(--border-light);
     position: sticky; top: 0; z-index: 100;
+    display: flex;
+    flex-direction: column;
   }
 
   header {
@@ -78,10 +80,12 @@
     animation: pulseDot 2s infinite; flex-shrink: 0;
   }
 
+  /* Главные табы (без отступов, чтобы сливались) */
   .main-tabs { 
     padding: 0 40px; height: 56px; 
     display: flex; align-items: center; gap: 4px; 
     overflow-x: auto; scrollbar-width: none; 
+    border-bottom: 1px solid rgba(255,255,255,0.05);
   }
   .main-tabs::-webkit-scrollbar { display: none; }
   .main-tabs button {
@@ -93,8 +97,9 @@
   .main-tabs button:hover { color: #fff; background: rgba(255,255,255,0.08); }
   .main-tabs button.active { color: var(--ink); background: #fff; }
 
+  /* Под-табы (прилипают к главным) */
   .tabs { 
-    display: flex; gap: 4px; padding: 16px 40px; 
+    display: flex; gap: 4px; padding: 12px 40px; 
     background: rgba(9,9,11,0.98); flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
   }
   .tabs::-webkit-scrollbar { display: none; }
@@ -177,6 +182,7 @@
     min-height: 80px; padding: 10px; background: #fff; color: var(--ink);
     border-radius: var(--r-md); cursor: pointer; display: flex; flex-direction: column;
     transition: all 0.25s var(--bounce); border: 1px solid transparent;
+    position: relative; overflow: hidden;
   }
   .calendar-grid .day:hover:not(.empty) { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15); z-index: 10; }
   .calendar-grid .day:active:not(.empty) { transform: scale(0.92); }
@@ -189,7 +195,7 @@
     border-color: var(--accent);
   }
   .calendar-grid .day.today .day-number { color: #fff; }
-  .calendar-grid .day.today .dots .dot { background: rgba(0,0,0,0.4); } /* Точки темные на янтарном */
+  .calendar-grid .day.today .dots .dot { background: rgba(0,0,0,0.4); }
 
   /* Выбранный - Янтарная рамка */
   .calendar-grid .day.selected {
@@ -199,7 +205,7 @@
   }
   .calendar-grid .day.selected .day-number { color: var(--accent); }
 
-  /* Если день И сегодня И выбран */
+  /* Если сегодня И выбран */
   .calendar-grid .day.today.selected {
     background: var(--accent) !important;
     color: #fff !important;
@@ -207,9 +213,9 @@
   }
   .calendar-grid .day.today.selected .day-number { color: #fff; }
 
-  /* Убираем артефакты (белые полосы) */
-  .calendar-grid .day .dots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; background: transparent; border: none; }
-  .calendar-grid .day .day-number { background: transparent; border: none; font-family: var(--font-head); font-size: 14px; font-weight: 600; }
+  /* Убираем артефакты */
+  .calendar-grid .day .dots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; background: transparent; border: none; position: absolute; bottom: 10px; left: 10px; }
+  .calendar-grid .day .day-number { background: transparent; border: none; font-family: var(--font-head); font-size: 14px; font-weight: 600; position: absolute; top: 10px; left: 10px; }
 
   .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
   .dot-restock { background: #ef4444; }
@@ -291,22 +297,51 @@
   }
 </style>
    
-<div id="splash_screen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; color: #fff; z-index: 20000; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s;">
-  <h1 style="font-size: 24px; letter-spacing: 2px; font-weight: 700; color: #fff; margin-bottom: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">РУСИЧЪ</h1>
-  <div style="width: 40px; height: 40px; border: 3px solid #333; border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-  <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+<div id="splash_screen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #09090b; color: #fff; z-index: 20000; display: flex; align-items: center; justify-content: center; transition: opacity 0.3s;">
+  <style>
+    @keyframes letterPulse {
+      0%, 100% { opacity: 0.2; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-4px); text-shadow: 0 0 20px rgba(255,255,255,0.5); }
+    }
+    .splash-letter {
+      display: inline-block;
+      font-family: var(--font-head);
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: 8px;
+      animation: letterPulse 1.5s ease-in-out infinite;
+    }
+    .splash-letter:nth-child(1) { animation-delay: 0.0s; }
+    .splash-letter:nth-child(2) { animation-delay: 0.1s; }
+    .splash-letter:nth-child(3) { animation-delay: 0.2s; }
+    .splash-letter:nth-child(4) { animation-delay: 0.3s; }
+    .splash-letter:nth-child(5) { animation-delay: 0.4s; }
+    .splash-letter:nth-child(6) { animation-delay: 0.5s; }
+  </style>
+  <div style="display: flex;">
+    <span class="splash-letter">Р</span>
+    <span class="splash-letter">У</span>
+    <span class="splash-letter">С</span>
+    <span class="splash-letter">И</span>
+    <span class="splash-letter">Ч</span>
+    <span class="splash-letter">Ъ</span>
+  </div>
 </div>
-<div id="login_screen" class="login-screen" style="display: none;">
-  <div class="login-box">
-    <h1>РУСИЧЪ</h1>
-    <h2>ВХОД</h2>
-    <div class="login-form">
-      <label>ФИО:</label>
-      <input id="login_name" type="text" placeholder="Иван Петров" autocomplete="off">
-      <label>PIN:</label>
-      <input id="login_pin" type="password" placeholder="••••" inputmode="numeric" maxlength="6" autocomplete="off">
-      <div id="login_error" class="login-error"></div>
-      <button class="action ok" onclick="doLogin()">ВОЙТИ</button>
+<div id="login_screen" class="login-screen" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #09090b; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; font-family: var(--font-body);">
+  <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-light); padding: 48px; border-radius: var(--r-xl); width: 100%; max-width: 400px; text-align: center; box-shadow: var(--float-2);">
+    <h1 style="font-family: var(--font-head); font-size: 28px; letter-spacing: 4px; text-transform: uppercase; color: #fff; margin-bottom: 8px;">РУСИЧЪ</h1>
+    <h2 style="font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 32px;">Вход в систему</h2>
+    <div style="display: flex; flex-direction: column; gap: 16px; text-align: left;">
+      <div>
+        <label style="font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block;">ФИО</label>
+        <input id="login_name" type="text" placeholder="Иван Петров" autocomplete="off" style="width: 100%; padding: 14px 16px; background: #fff; color: #09090b; border: none; border-radius: var(--r-md); font-size: 14px; font-family: var(--font-body); outline: none;">
+      </div>
+      <div>
+        <label style="font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block;">PIN-код</label>
+        <input id="login_pin" type="password" placeholder="••••" inputmode="numeric" maxlength="6" autocomplete="off" style="width: 100%; padding: 14px 16px; background: #fff; color: #09090b; border: none; border-radius: var(--r-md); font-size: 14px; font-family: var(--font-body); outline: none;">
+      </div>
+      <div id="login_error" style="color: #ef4444; font-size: 12px; min-height: 18px; text-align: center;"></div>
+      <button class="action" onclick="doLogin()" style="width: 100%; padding: 16px; font-size: 12px; margin-top: 8px;">ВОЙТИ</button>
     </div>
   </div>
 </div>
@@ -341,37 +376,42 @@
     </div>
 
     <div id="products" class="tab active">
-      <div class="card master-hidden">
-        <h3>Добавить изделие</h3>
-        <p class="hint">Нормы расхода на 1 изделие — используются системой автоматически на этапах.</p>
-        <div class="row">
-          <input id="p_article" placeholder="Артикул" style="flex:1;">
-          <input id="p_name" placeholder="Название" style="flex:2;">
-          <input id="p_cat" placeholder="Категория" style="flex:1;">
+      <details class="card" style="padding: 0; overflow: hidden;">
+        <summary style="padding: 20px 24px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; border: none; padding: 0;">ДОБАВИТЬ ИЗДЕЛИЕ</h3>
+          <span style="color: var(--accent); font-size: 24px;">+</span>
+        </summary>
+        <div style="padding: 0 24px 24px 24px; border-top: 1px solid var(--border-light);">
+          <p class="hint">Нормы расхода на 1 изделие — используются системой автоматически на этапах.</p>
+          <div class="row">
+            <input id="p_article" placeholder="Артикул" style="flex:1;">
+            <input id="p_name" placeholder="Название" style="flex:2;">
+            <input id="p_cat" placeholder="Категория" style="flex:1;">
+          </div>
+          <div class="row" style="align-items:center;margin-top:8px">
+            <input id="p_photo_file" type="file" accept="image/*" style="display:none" onchange="uploadProductPhoto(this)">
+            <button type="button" class="action" onclick="document.getElementById('p_photo_file').click()" style="width:auto;">📷 Загрузить фото</button>
+            <img id="p_photo_preview" src="" alt="" style="display:none;width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+            <span id="p_photo_status" style="font-size:13px;color:rgba(255,255,255,0.5);"></span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Этап / параметр</th><th>Норма на 1 шт</th><th>Ед.</th><th>Материал</th></tr></thead>
+              <tbody>
+                <tr><td>Восковки — норма воска</td><td><input id="n_wax" type="number" step="0.001" placeholder="3.5"></td><td>г</td><td><select id="n_wax_mat"></select></td></tr>
+                <tr><td>Обработка — расход</td><td><input id="n_proc" type="number" step="0.001" placeholder="0.05"></td><td>—</td><td><select id="n_proc_mat"></select></td></tr>
+                <tr><td>Гальваника — электролит</td><td><input id="n_galv" type="number" step="0.001" placeholder="0.5"></td><td>мл</td><td><select id="n_galv_mat"></select></td></tr>
+                <tr><td>Чернение — расходники</td><td><input id="n_blk" type="number" step="0.001" placeholder="0.3"></td><td>—</td><td><select id="n_blk_mat"></select></td></tr>
+                <tr><td>Упаковка</td><td><input id="n_pack" type="number" step="0.001" placeholder="1"></td><td>шт</td><td><select id="n_pack_mat"></select></td></tr>
+                <tr><td>Литьё — материал (металл)</td><td colspan="2"></td><td><select id="n_metal_mat"></select></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top:16px">
+            <button class="action" onclick="addProduct()">Сохранить изделие</button>
+          </div>
         </div>
-        <div class="row" style="align-items:center;margin-top:8px">
-          <input id="p_photo_file" type="file" accept="image/*" style="display:none" onchange="uploadProductPhoto(this)">
-          <button type="button" class="action" onclick="document.getElementById('p_photo_file').click()" style="width:auto;">📷 Загрузить фото</button>
-          <img id="p_photo_preview" src="" alt="" style="display:none;width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
-          <span id="p_photo_status" style="font-size:13px;color:rgba(255,255,255,0.5);"></span>
-        </div>
-        <div style="overflow-x:auto;">
-          <table>
-            <thead><tr><th>Этап / параметр</th><th>Норма на 1 шт</th><th>Ед.</th><th>Материал</th></tr></thead>
-            <tbody>
-              <tr><td>Восковки — норма воска</td><td><input id="n_wax" type="number" step="0.001" placeholder="3.5"></td><td>г</td><td><select id="n_wax_mat"></select></td></tr>
-              <tr><td>Обработка — расход</td><td><input id="n_proc" type="number" step="0.001" placeholder="0.05"></td><td>—</td><td><select id="n_proc_mat"></select></td></tr>
-              <tr><td>Гальваника — электролит</td><td><input id="n_galv" type="number" step="0.001" placeholder="0.5"></td><td>мл</td><td><select id="n_galv_mat"></select></td></tr>
-              <tr><td>Чернение — расходники</td><td><input id="n_blk" type="number" step="0.001" placeholder="0.3"></td><td>—</td><td><select id="n_blk_mat"></select></td></tr>
-              <tr><td>Упаковка</td><td><input id="n_pack" type="number" step="0.001" placeholder="1"></td><td>шт</td><td><select id="n_pack_mat"></select></td></tr>
-              <tr><td>Литьё — материал (металл)</td><td colspan="2"></td><td><select id="n_metal_mat"></select></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div style="margin-top:16px">
-          <button class="action" onclick="addProduct()">Сохранить изделие</button>
-        </div>
-      </div>
+      </details>
       <div class="card">
         <h3>Список изделий</h3>
         <input type="text" id="p_search" placeholder="Поиск по названию или артикулу..." oninput="renderProducts()" style="width: 100%; margin-bottom: 16px;">
@@ -385,36 +425,41 @@
     </div>
 
     <div id="batches" class="tab">
-      <div class="card master-hidden">
-        <h3>Создать производственное задание</h3>
-        <p class="hint">Одна строка — обычная партия. Нажмите «+ Ещё изделие», чтобы создать группу.</p>
-        <div id="batch_items_rows">
-          <div class="row batch-item-row">
-            <select class="batch-product" style="flex:1;"></select>
-            <input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px;">
+      <details class="card" style="padding: 0; overflow: hidden;">
+        <summary style="padding: 20px 24px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; border: none; padding: 0;">СОЗДАТЬ ПРОИЗВОДСТВЕННОЕ ЗАДАНИЕ</h3>
+          <span style="color: var(--accent); font-size: 24px;">+</span>
+        </summary>
+        <div style="padding: 0 24px 24px 24px; border-top: 1px solid var(--border-light);">
+          <p class="hint">Одна строка — обычная партия. Нажмите «+ Ещё изделие», чтобы создать группу.</p>
+          <div id="batch_items_rows">
+            <div class="row batch-item-row">
+              <select class="batch-product" style="flex:1;"></select>
+              <input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px;">
+            </div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="action" onclick="addBatchItemRow()">+ Ещё изделие</button>
+            <button class="action danger" onclick="removeLastBatchItemRow()">− Убрать последнюю</button>
+          </div>
+          <div class="row" style="margin-top:16px">
+            <input id="b_title" placeholder="Название задания" style="flex:1;">
+            <select id="b_responsible" style="width:180px;"></select>
+            <select id="b_type" style="width:200px;">
+              <option value="restock">Пополнение (Красная точка)</option>
+              <option value="new_item">Новая позиция (Зеленая точка)</option>
+            </select>
+          </div>
+          <div class="row">
+            <input id="b_date_start" type="date">
+            <input id="b_date_end" type="date">
+            <input id="b_note" placeholder="Комментарий" style="flex:1;">
+          </div>
+          <div class="row" style="margin-top:16px">
+            <button class="action ok" onclick="createBatch()">СОЗДАТЬ</button>
           </div>
         </div>
-        <div class="row" style="margin-top:12px">
-          <button class="action" onclick="addBatchItemRow()">+ Ещё изделие</button>
-          <button class="action danger" onclick="removeLastBatchItemRow()">− Убрать последнюю</button>
-        </div>
-        <div class="row" style="margin-top:16px">
-          <input id="b_title" placeholder="Название задания" style="flex:1;">
-          <select id="b_responsible" style="width:180px;"></select>
-          <select id="b_type" style="width:200px;">
-            <option value="restock">Пополнение (Красная точка)</option>
-            <option value="new_item">Новая позиция (Зеленая точка)</option>
-          </select>
-        </div>
-        <div class="row">
-          <input id="b_date_start" type="date">
-          <input id="b_date_end" type="date">
-          <input id="b_note" placeholder="Комментарий" style="flex:1;">
-        </div>
-        <div class="row" style="margin-top:16px">
-          <button class="action ok" onclick="createBatch()">СОЗДАТЬ</button>
-        </div>
-      </div>
+      </details>
       <div class="card">
         <h3>Активные партии</h3>
         <div id="active_batches"></div>
@@ -426,35 +471,40 @@
     </div>
 
     <div id="supplies" class="tab">
-      <div class="card master-hidden">
-        <h3>Создать поставку</h3>
-        <div class="row">
-          <input id="sup_title" placeholder="Название поставки" style="flex:1;">
-          <input id="sup_date" type="date">
-          <select id="sup_category" onchange="loadContractorsToSupplySelect(this.value)"></select>
-          <select id="sup_counterparty"></select>
-          <select id="sup_responsible"></select>
-        </div>
-        <div style="margin-top:16px; padding:16px; background:rgba(255,255,255,0.03); border-radius:var(--r-md);">
-          <b style="font-size:12px; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,0.6);">Товары в поставке:</b>
-          <div id="supply_items_rows" style="margin-top:12px;">
-            <div class="row supply-item-row">
-              <select class="supply-stock-select" style="flex:1;"></select>
-              <input class="supply-qty" type="number" value="1" min="1" placeholder="Кол-во" style="width:100px">
+      <details class="card" style="padding: 0; overflow: hidden;">
+        <summary style="padding: 20px 24px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; border: none; padding: 0;">СОЗДАТЬ ПОСТАВКУ</h3>
+          <span style="color: var(--accent); font-size: 24px;">+</span>
+        </summary>
+        <div style="padding: 0 24px 24px 24px; border-top: 1px solid var(--border-light);">
+          <div class="row">
+            <input id="sup_title" placeholder="Название поставки" style="flex:1;">
+            <input id="sup_date" type="date">
+            <select id="sup_category" onchange="loadContractorsToSupplySelect(this.value)"></select>
+            <select id="sup_counterparty"></select>
+            <select id="sup_responsible"></select>
+          </div>
+          <div style="margin-top:16px; padding:16px; background:rgba(255,255,255,0.03); border-radius:var(--r-md);">
+            <b style="font-size:12px; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,0.6);">Товары в поставке:</b>
+            <div id="supply_items_rows" style="margin-top:12px;">
+              <div class="row supply-item-row">
+                <select class="supply-stock-select" style="flex:1;"></select>
+                <input class="supply-qty" type="number" value="1" min="1" placeholder="Кол-во" style="width:100px">
+              </div>
+            </div>
+            <div class="row" style="margin-top:12px;">
+              <button class="action" onclick="addSupplyItemRow()">+ Ещё товар</button>
+              <button class="action danger" onclick="removeLastSupplyItemRow()">− Убрать</button>
             </div>
           </div>
-          <div class="row" style="margin-top:12px;">
-            <button class="action" onclick="addSupplyItemRow()">+ Ещё товар</button>
-            <button class="action danger" onclick="removeLastSupplyItemRow()">− Убрать</button>
+          <div class="row" style="margin-top:16px;">
+            <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
+            <button class="action" onclick="document.getElementById('sup_pdf').click()" style="width:auto;">📎 PDF (штрихкоды)</button>
+            <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
+            <div id="sup_pdf_status" style="font-size:13px; color:rgba(255,255,255,0.5);"></div>
           </div>
         </div>
-        <div class="row" style="margin-top:16px;">
-          <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
-          <button class="action" onclick="document.getElementById('sup_pdf').click()" style="width:auto;">📎 PDF (штрихкоды)</button>
-          <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
-          <div id="sup_pdf_status" style="font-size:13px; color:rgba(255,255,255,0.5);"></div>
-        </div>
-      </div>
+      </details>
       <div class="card">
         <h3>Активные поставки</h3>
         <div id="supplies_active_list"></div>
@@ -479,30 +529,35 @@
     </div>
 
     <div id="company-calendar" class="tab active">
-      <div class="card master-hidden">
-        <h3>Добавить план</h3>
-        <p class="hint">Пополнение и новая позиция — автоматически создадут партию в производстве.</p>
-        <div class="row">
-          <select id="task_type" onchange="onTaskTypeChange()" style="flex:1;"></select>
-          <select id="task_product" style="flex:1;"></select>
-          <input id="task_qty" type="number" placeholder="Кол-во, шт" style="width:110px;">
+      <details class="card" style="padding: 0; overflow: hidden;">
+        <summary style="padding: 20px 24px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center;">
+          <h3 style="margin: 0; border: none; padding: 0;">ДОБАВИТЬ ПЛАН</h3>
+          <span style="color: var(--accent); font-size: 24px;">+</span>
+        </summary>
+        <div style="padding: 0 24px 24px 24px; border-top: 1px solid var(--border-light);">
+          <p class="hint">Пополнение и новая позиция — автоматически создадут партию в производстве.</p>
+          <div class="row">
+            <select id="task_type" onchange="onTaskTypeChange()" style="flex:1;"></select>
+            <select id="task_product" style="flex:1;"></select>
+            <input id="task_qty" type="number" placeholder="Кол-во, шт" style="width:110px;">
+          </div>
+          <div class="row">
+            <input id="task_title" placeholder="Название задачи" style="flex:2;">
+            <input id="task_date_start" type="date" title="Дата начала" style="flex:1;">
+            <input id="task_date_end" type="date" title="Дата окончания" style="flex:1;">
+          </div>
+          <div class="row">
+            <select id="task_responsible" style="flex:1;"></select>
+            <select id="task_repeat" style="flex:1;">
+              <option value="none">Разово</option>
+              <option value="monthly">Каждый месяц</option>
+              <option value="weekly">Каждую неделю</option>
+            </select>
+            <input id="task_note" placeholder="Комментарий" style="flex:2;">
+            <button class="action" onclick="addTask()" style="width:auto;">ДОБАВИТЬ</button>
+          </div>
         </div>
-        <div class="row">
-          <input id="task_title" placeholder="Название задачи" style="flex:2;">
-          <input id="task_date_start" type="date" title="Дата начала" style="flex:1;">
-          <input id="task_date_end" type="date" title="Дата окончания" style="flex:1;">
-        </div>
-        <div class="row">
-          <select id="task_responsible" style="flex:1;"></select>
-          <select id="task_repeat" style="flex:1;">
-            <option value="none">Разово</option>
-            <option value="monthly">Каждый месяц</option>
-            <option value="weekly">Каждую неделю</option>
-          </select>
-          <input id="task_note" placeholder="Комментарий" style="flex:2;">
-          <button class="action" onclick="addTask()" style="width:auto;">ДОБАВИТЬ</button>
-        </div>
-      </div>
+      </details>
       <div class="card">
         <div class="calendar-header">
           <button class="action" onclick="changeMonth(-1)" style="padding:8px 16px; background:rgba(255,255,255,0.1); color:#fff; box-shadow:none;">←</button>
