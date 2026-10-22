@@ -11,256 +11,256 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ювелирка">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #f4f4f5;
+    --ink: #09090b;
+    --card-bg: #09090b;
+    --input-bg: #ffffff;
+    --accent: #d97706; 
+    --accent-hover: #f59e0b;
+    --border-light: rgba(255, 255, 255, 0.08);
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 20px;
+    --r-xl: 28px;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-head: 'Archivo', -apple-system, sans-serif;
+    --spring: cubic-bezier(0.25, 1, 0.5, 1);
+    --bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
   * { box-sizing: border-box; }
+  
   body {
-    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
-    margin: 0; background: #fafafa; color: #111;
+    font-family: var(--font-body);
+    margin: 0; 
+    background: var(--bg); 
+    color: var(--ink);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    line-height: 1.5;
+  }
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes pulseDot {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.5); }
+    50% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(217, 119, 6, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+  }
+
+  /* ШАПКА И НАВИГАЦИЯ */
+  .top-bar-wrapper {
+    background: rgba(9, 9, 11, 0.98);
+    backdrop-filter: blur(24px) saturate(180%);
+    width: 100%;
+    border-bottom: 1px solid var(--border-light);
+    position: sticky; top: 0; z-index: 100;
   }
 
   header {
-    background: #000; color: #fff;
-    padding: 20px 28px; font-size: 20px;
-    font-weight: 600; letter-spacing: 1.5px;
+    padding: 0 40px; height: 76px;
     display: flex; align-items: center; justify-content: space-between;
-    border-bottom: 1px solid #000;
+    color: #fff;
   }
-  header span:first-child { text-transform: uppercase; }
-
-  #cloud_dot {
-    display: inline-block; width: 10px; height: 10px;
-    border-radius: 50%; background: #666;
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.15);
-    transition: background .2s;
-    flex-shrink: 0;
+  header span:first-child { 
+    font-family: var(--font-head); font-weight: 600; font-size: 20px; 
+    letter-spacing: 4px; text-transform: uppercase; margin: 0;
   }
-
-  body.is-master .master-hidden { display: none !important; }
-
-  /* Прогресс-бар партии */
-  .progress-track {
-    display: flex; align-items: center; justify-content: space-between;
-    margin: 12px 0; position: relative;
-  }
-  .progress-track::before {
-    content: ''; position: absolute; top: 50%; left: 10px; right: 10px; height: 2px;
-    background: #eee; z-index: 1; transform: translateY(-50%);
-  }
-  .progress-step {
-    width: 22px; height: 22px; border-radius: 50%;
-    background: #fff; border: 2px solid #ccc;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700; color: #888;
-    position: relative; z-index: 2; transition: all 0.3s ease;
-  }
-  .progress-step.done { background: #000; border-color: #000; color: #fff; }
-  .progress-step.current {
-    border-color: #000; color: #000;
-    box-shadow: 0 0 0 3px rgba(0,0,0,0.1); animation: pulse 1.5s infinite;
-  }
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(0,0,0,0.2); }
-    70% { box-shadow: 0 0 0 6px rgba(0,0,0,0); }
-    100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+  
+  #cloud_dot { 
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%; 
+    background: var(--accent); box-shadow: 0 0 8px var(--accent);
+    animation: pulseDot 2s infinite; flex-shrink: 0;
   }
 
-  /* Всплывающие уведомления */
-  #toast_box {
-    position: fixed; right: 16px; bottom: 16px; z-index: 9999;
-    display: flex; flex-direction: column; gap: 8px;
-    pointer-events: none; max-width: 320px;
+  .main-tabs { 
+    padding: 0 40px; height: 56px; 
+    display: flex; align-items: center; gap: 4px; 
+    overflow-x: auto; scrollbar-width: none; 
   }
-  .toast-item {
-    padding: 10px 16px; border-radius: 8px; font-size: 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    opacity: 0; transform: translateY(10px);
-    transition: opacity .25s, transform .25s;
-    pointer-events: auto; color: #fff;
+  .main-tabs::-webkit-scrollbar { display: none; }
+  .main-tabs button {
+    background: transparent; border: none; color: rgba(255, 255, 255, 0.5);
+    padding: 8px 16px; font-family: var(--font-head); font-size: 11px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; border-radius: var(--r-sm);
+    transition: all 0.3s var(--bounce); white-space: nowrap;
   }
-  .toast-item.show { opacity: 1; transform: translateY(0); }
-  .toast-item.info    { background: #2b6cb0; }
-  .toast-item.success { background: #2f855a; }
-  .toast-item.error   { background: #c53030; }
-  .toast-item.warn    { background: #b7791f; }
+  .main-tabs button:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .main-tabs button.active { color: var(--ink); background: #fff; }
 
-  .chat-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: #fff; border: 1px solid #eee; border-radius: 4px; margin-bottom: 8px; cursor: pointer; transition: background .15s, border-color .15s; }
-  .chat-item:hover { background: #f5f5f5; border-color: #ccc; }
-  .chat-item.pinned { border-left: 4px solid #000; background: #fafafa; }
-  .chat-item-info { display: flex; flex-direction: column; gap: 4px; }
-  .chat-item-title { font-size: 14px; font-weight: 600; color: #000; }
-  .chat-item-meta { font-size: 12px; color: #888; }
-  .chat-item-badge { background: #000; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
-
-  .chat-message { padding: 10px 14px; margin-bottom: 10px; border-radius: 6px; background: #fff; border: 1px solid #eee; max-width: 80%; word-wrap: break-word; }
-  .chat-message.own { background: #000; color: #fff; margin-left: auto; border-color: #000; }
-  .chat-message-header { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; margin-bottom: 4px; }
-  .chat-message.own .chat-message-header { color: #ccc; }
-  .chat-message-sender { font-weight: 700; }
-  .chat-message-time { color: #888; font-size: 11px; }
-  .chat-message.own .chat-message-time { color: #999; }
-  .chat-message-text { font-size: 14px; line-height: 1.4; white-space: pre-wrap; }
-  .chat-message-file { margin-top: 8px; }
-  .chat-message-file img { max-width: 300px; max-height: 300px; border-radius: 4px; cursor: pointer; }
-  .chat-message-file a { color: #2b6cb0; text-decoration: underline; font-size: 13px; }
-  .chat-message.own .chat-message-file a { color: #ccc; }
-
-  .chat-participant-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fff; border: 1px solid #ccc; border-radius: 12px; font-size: 12px; margin: 2px; }
-  .chat-participant-chip button { background: none; border: none; color: #c53030; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0; line-height: 1; }
-
-  .login-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; color: #fff; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .login-screen.hidden { display: none; }
-  .login-box { max-width: 400px; width: 100%; text-align: center; }
-  .login-box h1 { font-size: 22px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 30px 0; color: #fff; }
-  .login-box h2 { font-size: 14px; font-weight: 400; letter-spacing: 3px; text-transform: uppercase; color: #888; margin: 0 0 30px 0; }
-  .login-form { display: flex; flex-direction: column; gap: 12px; text-align: left; }
-  .login-form label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: -6px; }
-  .login-form input { width: 100%; padding: 14px 16px; font-size: 16px; background: #1a1a1a; color: #fff; border: 1px solid #333; border-radius: 4px; box-sizing: border-box; margin: 0; }
-  .login-form input:focus { outline: none; border-color: #fff; }
-  .login-form button.action { width: 100%; padding: 16px; font-size: 14px; letter-spacing: 2px; margin-top: 10px; background: #fff; color: #000; border: 1px solid #fff; }
-  .login-form button.action:hover { background: #ddd; }
-  .login-error { color: #ff5555; font-size: 13px; min-height: 18px; text-align: center; }
-
-  .calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
-  .calendar-header h3 { margin: 0; border: none; padding: 0; text-transform: none; letter-spacing: 0; font-size: 18px; font-weight: 700; }
-  .calendar-header button.action { padding: 6px 14px; font-size: 16px; }
-  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; }
-  .calendar-grid .day-name { padding: 8px 4px; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #888; font-weight: 700; }
-  .calendar-grid .day { min-height: 68px; padding: 6px; background: #fafafa; border: 1px solid #eee; border-radius: 3px; cursor: pointer; transition: background .15s, border-color .15s; display: flex; flex-direction: column; gap: 4px; position: relative; }
-  .calendar-grid .day:hover { background: #f0f0f0; border-color: #ccc; }
-  .calendar-grid .day.empty { background: transparent; border: none; cursor: default; }
-  .calendar-grid .day.today { border-color: #000; border-width: 2px; background: #fff; }
-  .calendar-grid .day.selected { background: #000; color: #fff; border-color: #000; }
-  .calendar-grid .day.selected .day-number { color: #fff; }
-  .calendar-grid .day .day-number { font-size: 13px; font-weight: 600; color: #333; }
-  .calendar-grid .day .dots { display: flex; gap: 3px; flex-wrap: wrap; }
-
-  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ccc; }
-  .dot-restock { background: #d32f2f; }
-  .dot-new     { background: #2e7d32; }
-  .dot-task    { background: #1976d2; }
-  .dot-done { background: #ccc; }
-  .dot-production { background: #ff0000; }
-  .dot-regular { background: #eab308; }
-  .dot-supply { background: #8b5cf6; }
-
-  .calendar-legend { display: flex; gap: 18px; margin-top: 16px; font-size: 12px; color: #666; flex-wrap: wrap; }
-  .calendar-legend > span { display: flex; align-items: center; gap: 6px; }
-
-  .main-tabs { display: flex; background: #000; border-bottom: 3px solid #444; }
-  .main-tabs button { flex: 1; background: none; border: none; color: #666; padding: 18px 24px; cursor: pointer; font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; transition: color .15s, background .15s; border-bottom: 3px solid transparent; }
-  .main-tabs button:hover { color: #fff; }
-  .main-tabs button.active { color: #fff; background: #000; border-bottom-color: #fff; }
-    .main-section { display: none !important; }
-  .main-section.active { display: block !important; }
-
-  .tabs { display: flex; background: #2a2a2a; flex-wrap: wrap; border-bottom: 1px solid #1a1a1a; }
-  .tabs button { background: none; border: none; color: #999; padding: 14px 22px; cursor: pointer; font-size: 14px; letter-spacing: 0.5px; text-transform: uppercase; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; }
+  .tabs { 
+    display: flex; gap: 4px; padding: 16px 40px; 
+    background: rgba(9,9,11,0.98); flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button {
+    background: transparent; border: none; color: rgba(255, 255, 255, 0.5);
+    padding: 6px 16px; font-family: var(--font-head); font-size: 10px; font-weight: 500;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer; border-radius: var(--r-sm);
+    transition: all 0.3s var(--bounce); white-space: nowrap;
+  }
   .tabs button:hover { color: #fff; }
-  .tabs button.active { color: #fff; border-bottom-color: #fff; background: #000; }
+  .tabs button.active { color: var(--ink); background: #fff; }
 
-  .main-section > .tab { display: none !important; padding: 28px; }
-  .main-section > .tab.active { display: block !important; }
-
-  .tab { display: none; padding: 28px; }
+  /* КОНТЕНТ */
+  .main-section { display: none !important; padding: 24px 40px 60px 40px; max-width: 1400px; margin: 0 auto; }
+  .main-section.active { display: block !important; animation: fadeSlideUp 0.4s var(--spring) forwards; }
+  .tab { display: none; padding: 0; }
   .tab.active { display: block; }
 
-  .card { background: #fff; padding: 24px; border: 1px solid #e5e5e5; border-radius: 4px; margin-bottom: 20px; overflow-x: auto; }
-  h3 { margin-top: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 14px; color: #000; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+  .card {
+    background: var(--card-bg); padding: 32px; border-radius: var(--r-xl);
+    margin-bottom: 24px; color: #fff; border: 1px solid var(--border-light);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.4s var(--spring), transform 0.4s var(--spring);
+    overflow-x: auto;
+  }
+  .card:hover { box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.3); transform: translateY(-2px); }
+
+  h3 { 
+    margin-top: 0; font-family: var(--font-head); font-weight: 600; 
+    text-transform: uppercase; letter-spacing: 1.5px; font-size: 14px; 
+    color: rgba(255, 255, 255, 0.9); padding-bottom: 16px; 
+    border-bottom: 1px solid var(--border-light); margin-bottom: 16px;
+  }
+  .hint { color: rgba(255, 255, 255, 0.45); font-size: 13px; margin-top: 16px; margin-bottom: 24px; line-height: 1.6; }
+
   table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-  th, td { padding: 10px 12px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; white-space: nowrap; }
-  th { background: #fafafa; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; color: #666; font-weight: 600; }
+  th { text-align: left; padding: 12px 16px; font-family: var(--font-head); font-size: 10px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.4); border-bottom: 1px solid var(--border-light); white-space: nowrap; }
+  td { padding: 16px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); color: rgba(255,255,255,0.7); white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.04); }
+  td b { color: #fff; font-weight: 500; }
 
-  input, select { padding: 9px 12px; border: 1px solid #ccc; border-radius: 3px; font-size: 14px; margin: 3px 4px 3px 0; background: #fff; color: #111; transition: border-color .15s; max-width: 100%; }
-  input:focus, select:focus { outline: none; border-color: #000; }
-  input[type=number] { width: 110px; }
-
-  button.action { background: #000; color: #fff; border: 1px solid #000; padding: 9px 18px; border-radius: 3px; cursor: pointer; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; transition: background .15s, color .15s; white-space: nowrap; }
-  button.action:hover { background: #333; }
-  button.action.ok { background: #000; }
-  button.action.ok:hover { background: #333; }
-  button.action.danger { background: #fff; color: #000; border: 1px solid #ccc; padding: 5px 12px; font-size: 12px; }
-  button.action.danger:hover { background: #000; color: #fff; border-color: #000; }
-  button.action.warn { background: #000; color: #fff; }
-  button.action.warn:hover { background: #333; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
   
-  button.action:disabled { background: #ccc !important; color: #666 !important; border-color: #ccc !important; cursor: not-allowed; }
-
-  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
-  .result { background: #f5f5f5; border: 1px solid #ddd; padding: 16px; border-radius: 3px; margin-top: 12px; }
-  .warnbox { background: #fafafa; border: 1px solid #ddd; padding: 12px; border-radius: 3px; margin-top: 10px; font-size: 14px; }
-  .hint { color: #888; font-size: 13px; margin-bottom: 10px; }
-
-  .stage { border-left: 3px solid #ddd; padding: 14px 18px; margin-bottom: 10px; background: #fafafa; border-radius: 2px; }
-  .stage.done { border-left-color: #000; background: #f5f5f5; }
-  .stage.active { border-left-color: #000; background: #fff; border: 1px solid #000; }
-  .stage-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-  .stage-info { font-size: 13px; color: #666; margin-bottom: 6px; }
-  .badge { display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; }
-  .badge-done { background: #000; color: #fff; }
-  .badge-active { background: #fff; color: #000; border: 1px solid #000; }
-  .badge-wait { background: #eee; color: #666; }
-
-  .summary { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
-  .summary .box { background: #fafafa; padding: 14px 20px; border: 1px solid #e5e5e5; border-radius: 3px; min-width: 140px; }
-  .summary .box .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
-  .summary .box .value { font-size: 20px; font-weight: 700; color: #000; margin-top: 4px; }
-  .profit { color: #000; font-weight: 700; }
-  .loss { color: #888; font-weight: 700; }
-
-  /* Анимация для экрана загрузки (спиннер) */
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  @media (max-width: 700px) {
-    header { padding: 14px 16px; font-size: 15px; letter-spacing: 1px; }
-    #chat_messages { max-height: 50vh !important; min-height: 200px; }
-    .chat-message { max-width: 95%; }
-    .tabs button { padding: 12px 12px; font-size: 11px; letter-spacing: 0; }
-    .main-tabs { flex-wrap: wrap; }
-    .main-tabs button { padding: 12px 8px; font-size: 11px; letter-spacing: 1px; flex: 1 1 30%; min-width: 0; }
-    .tab { padding: 12px; }
-    .card { padding: 14px; margin-bottom: 12px; border-radius: 3px; }
-    h3 { font-size: 12px; padding-bottom: 8px; }
-    th, td { padding: 8px 6px; font-size: 12px; }
-    th { font-size: 10px; }
-    input, select { padding: 8px 10px; font-size: 13px; margin: 2px 3px 2px 0; }
-    input[type=number] { width: 80px; }
-    button.action { padding: 8px 12px; font-size: 11px; letter-spacing: 0; }
-    
-    .stage .row button.action { width: 100%; padding: 14px; font-size: 14px; margin-top: 4px; }
-    
-    .stage { padding: 10px 12px; margin-bottom: 8px; }
-    .stage-title { font-size: 13px; }
-    .stage-info { font-size: 12px; }
-    .summary .box { padding: 10px 14px; min-width: 110px; }
-    .summary .box .value { font-size: 16px; }
-    .hint { font-size: 12px; }
-    .calendar-grid { gap: 2px; }
-    .calendar-grid .day { min-height: 48px; padding: 4px; }
-    .calendar-grid .day .day-number { font-size: 11px; }
-    .calendar-grid .day .dot { width: 6px; height: 6px; }
-    .calendar-grid .day-name { font-size: 9px; padding: 4px 2px; }
-    .calendar-header h3 { font-size: 14px; }
-    .calendar-header button.action { padding: 4px 10px; font-size: 13px; }
-    .calendar-legend { font-size: 10px; gap: 10px; }
+  input, select, textarea {
+    padding: 12px 16px; border: 1px solid transparent; border-radius: var(--r-md);
+    font-size: 13px; background: var(--input-bg); color: var(--ink); font-family: var(--font-body);
+    font-weight: 400; outline: none; transition: all 0.25s var(--spring);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); max-width: 100%;
   }
-    /* Принудительный стиль для кнопки Войти (черный фон, белый текст) */
-  .login-form button.action,
-  #login_screen button.action { 
-    background: #000000 !important; 
-    color: #ffffff !important; 
-    border: 1px solid #ffffff !important; 
-    font-weight: 700 !important;
-    letter-spacing: 1px;
-    cursor: pointer;
+  input::placeholder, textarea::placeholder { color: rgba(9, 9, 11, 0.35); }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2); }
+  select {
+    appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2309090b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; padding-right: 40px; cursor: pointer;
   }
+
+  button.action {
+    background: var(--accent); color: #fff; border: none; border-radius: var(--r-md);
+    padding: 12px 20px; cursor: pointer; font-family: var(--font-head); font-size: 11px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+    transition: all 0.3s var(--bounce); box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2); 
+    white-space: nowrap;
+  }
+  button.action:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(217, 119, 6, 0.3); background: var(--accent-hover); }
+  button.action:active { transform: scale(0.96); }
+  button.action.ok { background: #fff; color: var(--ink); }
+  button.action.danger { background: transparent; color: rgba(255, 255, 255, 0.5); border: 1px solid var(--border-light); box-shadow: none; }
+  button.action.danger:hover { background: #fff; color: var(--ink); border-color: #fff; }
+  button.action.warn { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+
+  /* КАЛЕНДАРЬ */
+  .calendar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .calendar-header h3 { margin: 0; border: none; padding: 0; font-size: 16px; }
+  .calendar-header button.action { padding: 8px 16px; font-size: 16px; }
   
-  /* Колесико загрузки */
-  #splash_screen div[style*="border-top-color"] {
-    animation: spin 1s linear infinite !important;
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .calendar-grid .day-name { padding: 8px 4px; text-align: center; font-family: var(--font-head); font-size: 9px; font-weight: 600; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; }
+  .calendar-grid .day {
+    min-height: 80px; padding: 10px; background: #fff; color: var(--ink);
+    border-radius: var(--r-md); cursor: pointer; display: flex; flex-direction: column;
+    transition: all 0.25s var(--bounce); border: 1px solid transparent;
   }
-  @keyframes spin { 
-    to { transform: rotate(360deg); } 
+  .calendar-grid .day:hover:not(.empty) { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15); z-index: 10; }
+  .calendar-grid .day:active:not(.empty) { transform: scale(0.92); }
+  .calendar-grid .day.empty { background: transparent; cursor: default; }
+  .calendar-grid .day.selected { background: var(--accent); color: #fff; box-shadow: 0 10px 30px rgba(217, 119, 6, 0.4); }
+  .calendar-grid .day .day-number { font-family: var(--font-head); font-size: 14px; font-weight: 600; }
+
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+  .dot-restock { background: #ef4444; }
+  .dot-new { background: #22c55e; }
+  .dot-task { background: #3b82f6; }
+  .dot-regular { background: #f59e0b; }
+  .dot-supply { background: #8b5cf6; }
+  .dot-done { background: rgba(255,255,255,0.3); }
+  .dot-production { background: #ef4444; }
+  
+  .calendar-grid .day.selected .day-number,
+  .calendar-grid .day.selected .dots .dot-done { color: #fff; background: #fff; }
+  
+  .calendar-legend { display: flex; gap: 16px; margin-top: 24px; font-size: 10px; color: rgba(255,255,255,0.5); font-family: var(--font-head); text-transform: uppercase; letter-spacing: 1px; flex-wrap: wrap; }
+  .calendar-legend > span { display: flex; align-items: center; gap: 6px; }
+
+  .stage { border-left: 3px solid rgba(255,255,255,0.2); padding: 16px 20px; margin-bottom: 12px; background: rgba(255,255,255,0.03); border-radius: var(--r-md); }
+  .stage.done { border-left-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.05); }
+  .stage.active { border-left-color: var(--accent); background: rgba(255,255,255,0.06); }
+  .stage-title { font-family: var(--font-head); font-weight: 600; font-size: 13px; margin-bottom: 8px; color: #fff; }
+  .stage-info { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 6px; }
+  
+  .badge { display: inline-block; padding: 4px 10px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; border-radius: 99px; }
+  .badge-done { background: rgba(255,255,255,0.1); color: #fff; }
+  .badge-active { background: var(--accent); color: #fff; }
+  .badge-wait { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); }
+
+  .progress-track { display: flex; align-items: center; justify-content: space-between; margin: 12px 0; position: relative; }
+  .progress-track::before { content: ''; position: absolute; top: 50%; left: 10px; right: 10px; height: 2px; background: rgba(255,255,255,0.1); z-index: 1; transform: translateY(-50%); }
+  .progress-step { width: 24px; height: 24px; border-radius: 50%; background: #16161a; border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); position: relative; z-index: 2; transition: all 0.3s ease; }
+  .progress-step.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .progress-step.current { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2); }
+
+  .chat-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: var(--r-md); margin-bottom: 8px; cursor: pointer; transition: background .15s; }
+  .chat-item:hover { background: rgba(255,255,255,0.08); }
+  .chat-item.pinned { border-left: 3px solid var(--accent); }
+  .chat-item-info { display: flex; flex-direction: column; gap: 4px; }
+  .chat-item-title { font-size: 14px; font-weight: 500; color: #fff; }
+  .chat-item-meta { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .chat-item-badge { background: var(--accent); color: #fff; font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+
+  .chat-message { padding: 12px 16px; margin-bottom: 10px; border-radius: var(--r-md); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); max-width: 80%; word-wrap: break-word; }
+  .chat-message.own { background: var(--accent); color: #fff; margin-left: auto; border-color: var(--accent); }
+  .chat-message-header { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; margin-bottom: 6px; color: rgba(255,255,255,0.5); }
+  .chat-message.own .chat-message-header { color: rgba(255,255,255,0.8); }
+  .chat-message-sender { font-weight: 600; }
+  .chat-message-text { font-size: 13px; line-height: 1.5; }
+
+  /* МОДАЛКИ В ТЕМНОМ СТИЛЕ */
+  #task_modal > div, #product_modal > div, #employee_modal > div, #contractor_modal > div, #archived_supply_modal > div {
+    background: #16161a !important; color: #fff !important; border: 1px solid var(--border-light);
+  }
+  #task_modal h3, #product_modal h3, #employee_modal h3, #contractor_modal h3 { color: #fff; border-bottom-color: rgba(255,255,255,0.1); }
+  #task_modal label, #product_modal label { color: rgba(255,255,255,0.5) !important; }
+  #task_modal table th, #product_modal table th { color: rgba(255,255,255,0.4); background: transparent; }
+  #task_modal table td, #product_modal table td { border-bottom-color: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7); }
+  #task_modal button[onclick="closeTaskModal()"], #product_modal button[onclick="closeProductModal()"] { color: #fff; }
+
+  /* АДАПТИВ ПОД МОБИЛЬНЫЕ */
+  @media (max-width: 900px) {
+    header { padding: 0 16px; height: 64px; }
+    .main-tabs { padding: 0 16px; height: 48px; }
+    .tabs { padding: 12px 16px; }
+    .main-section { padding: 16px 16px 40px 16px; }
+    .card { padding: 20px; border-radius: var(--r-lg); margin-bottom: 16px; }
+    
+    .calendar-grid { gap: 4px; }
+    .calendar-grid .day { min-height: 56px; padding: 6px; border-radius: var(--r-sm); }
+    .calendar-grid .day .day-number { font-size: 12px; }
+    
+    input, select, textarea, button.action { width: 100%; margin-bottom: 8px; }
+    .row { flex-direction: column; align-items: stretch; gap: 4px; }
+    
+    table { display: block; overflow-x: auto; white-space: nowrap; }
+    
+    #task_modal > div, #product_modal > div, #employee_modal > div, #contractor_modal > div, #archived_supply_modal > div {
+      width: 100% !important; max-width: 100% !important; height: 100% !important; max-height: 100% !important; border-radius: 0 !important; padding: 16px !important;
+    }
   }
 </style>
    
@@ -284,644 +284,605 @@
   </div>
 </div>
 <div id="app_main" style="display:none;">
-<header>
-  <span>РУСИЧЪ</span>
-  <span style="display:flex; align-items:center; gap:14px;">
-    <span id="current_user_name" style="font-size:12px; color:#999; letter-spacing:1px; text-transform:uppercase;"></span>
-    <span id="cloud_dot" title="Облако: офлайн"></span>
-    <button onclick="doLogout()" class="action danger" style="padding:5px 10px; font-size:11px;">ВЫЙТИ</button>
-  </span>
-</header>
-<div class="main-tabs">
-  <button onclick="showMain('production', this)">ПРОИЗВОДСТВО</button>
-  <button class="active" onclick="showMain('company', this)">КОМПАНИЯ</button>
-  <button onclick="showMain('contractors', this)">КОНТРАГЕНТЫ</button>
-  <button onclick="showMain('service', this)">СЕРВИС</button>
-</div>
-
-
-
-<!-- ОБЁРТКА: ПРОИЗВОДСТВО -->
-<div id="main-production" class="main-section">
-<div class="tabs">
-    <button class="active" onclick="showTab('products', this)">Изделия</button>
-  <button onclick="showTab('batches', this)">Партии</button>
-  <button onclick="showTab('supplies', this)">Поставки</button>
-</div>
-
-
-
-<!-- ИЗДЕЛИЯ -->
-<div id="products" class="tab active">
-  <div class="card master-hidden">
-    <h3>Добавить изделие</h3>
-    <p class="hint">Нормы расхода на 1 изделие — используются системой автоматически на этапах.</p>
-    <div class="row">
-      <input id="p_article" placeholder="Артикул" style="width:120px">
-      <input id="p_name" placeholder="Название" style="width:180px">
-      <input id="p_cat" placeholder="Категория" style="width:140px">
-    </div>
-    <div class="row" style="align-items:center;margin-top:8px">
-      <input id="p_photo_file" type="file" accept="image/*" style="display:none" onchange="uploadProductPhoto(this)">
-      <button type="button" class="action" onclick="document.getElementById('p_photo_file').click()">📷 Загрузить фото</button>
-      <img id="p_photo_preview" src="" alt="" style="display:none;width:80px;height:80px;object-fit:cover;border-radius:4px;border:1px solid #ddd;">
-      <span id="p_photo_status" style="font-size:13px;color:#888;"></span>
-    </div>
-    <table>
-      <thead><tr><th>Этап / параметр</th><th>Норма на 1 шт</th><th>Ед.</th><th>Материал</th></tr></thead>
-      <tbody>
-        <tr><td>Восковки — норма воска</td>
-          <td><input id="n_wax" type="number" step="0.001" placeholder="3.5"></td>
-          <td>г</td><td><select id="n_wax_mat"></select></td></tr>
-        <tr><td>Обработка — расход</td>
-          <td><input id="n_proc" type="number" step="0.001" placeholder="0.05"></td>
-          <td>—</td><td><select id="n_proc_mat"></select></td></tr>
-        <tr><td>Гальваника — электролит</td>
-          <td><input id="n_galv" type="number" step="0.001" placeholder="0.5"></td>
-          <td>мл</td><td><select id="n_galv_mat"></select></td></tr>
-        <tr><td>Чернение — расходники</td>
-          <td><input id="n_blk" type="number" step="0.001" placeholder="0.3"></td>
-          <td>—</td><td><select id="n_blk_mat"></select></td></tr>
-        <tr><td>Упаковка</td>
-          <td><input id="n_pack" type="number" step="0.001" placeholder="1"></td>
-          <td>шт</td><td><select id="n_pack_mat"></select></td></tr>
-        <tr><td>Литьё — материал (металл)</td>
-          <td colspan="2"></td><td><select id="n_metal_mat"></select></td></tr>
-      </tbody>
-    </table>
-    <div style="margin-top:12px">
-      <button class="action" onclick="addProduct()">Сохранить изделие</button>
-    </div>
-  </div>
-  <div class="card">
-    <h3>Список изделий</h3>
-    <input type="text" id="p_search" placeholder="Поиск по названию или артикулу..." oninput="renderProducts()" style="width: 100%; margin-bottom: 10px; padding: 10px;">
-    <table>
-      <thead><tr><th>Фото</th><th>Артикул</th><th>Название</th><th>Категория</th><th></th></tr></thead>
-      <tbody id="p_table"></tbody>
-    </table>
-  </div>
-</div>
-
-
-
-<!-- ПАРТИИ -->
-<div id="batches" class="tab">
-<div class="card master-hidden">
-    <h3>Создать производственное задание</h3>
-    <p class="hint">Одна строка — обычная партия. Нажмите «+ Ещё изделие», чтобы создать группу из нескольких партий.</p>
-    <div id="batch_items_rows">
-      <div class="row batch-item-row">
-        <select class="batch-product" style="min-width:220px"></select>
-        <input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px">
-      </div>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <button class="action" onclick="addBatchItemRow()">+ Ещё изделие</button>
-      <button class="action danger" onclick="removeLastBatchItemRow()">− Убрать последнюю</button>
-    </div>
-    <div class="row" style="margin-top:12px">
-      <input id="b_title" placeholder="Название задания (например, Заказ №5)" style="width:280px">
-      <select id="b_responsible" style="min-width:180px"></select>
-      <select id="b_type" style="width:200px">
-        <option value="restock">Пополнение (Красная точка)</option>
-        <option value="new_item">Новая позиция (Зеленая точка)</option>
-      </select>
-    </div>
-    <div class="row">
-      <label style="font-size:13px;color:#555">Срок с: <input id="b_date_start" type="date"></label>
-      <label style="font-size:13px;color:#555">по: <input id="b_date_end" type="date"></label>
-      <input id="b_note" placeholder="Комментарий" style="width:280px">
-    </div>
-    <div class="row" style="margin-top:12px">
-      <button class="action ok" onclick="createBatch()">СОЗДАТЬ</button>
-    </div>
-  </div>
-  <div class="card">
-    <h3>Активные партии</h3>
-    <div id="active_batches"></div>
-  </div>
-  <div class="card">
-    <h3>Завершённые партии</h3>
-    <div id="done_batches"></div>
-  </div>
-</div> <!-- ЗАКРЫВАЕТСЯ ВКЛАДКА ПАРТИИ -->
-
-<!-- ПОСТАВКИ -->
-<div id="supplies" class="tab">
-  <div class="card master-hidden">
-    <h3>Создать поставку</h3>
-    <div class="row">
-      <input id="sup_title" placeholder="Название (например, Собрать поставку WB)" style="width:280px">
-      <input id="sup_date" type="date">
-      <select id="sup_category" style="width:180px" onchange="loadContractorsToSupplySelect(this.value)">
-        <option value="">— Категория —</option>
-      </select>
-      <select id="sup_counterparty" style="width:180px">
-        <option value="">— Контрагент —</option>
-      </select>
-      <select id="sup_responsible" style="width:180px"></select>
-    </div>
-    
-    <div style="margin-top:12px; padding:12px; background:#f9f9f9; border:1px solid #eee; border-radius:4px;">
-      <b style="font-size:13px;">Товары в поставке:</b>
-      <div id="supply_items_rows" style="margin-top:8px;">
-        <div class="row supply-item-row">
-          <select class="supply-stock-select" style="min-width:250px"></select>
-          <input class="supply-qty" type="number" value="1" min="1" placeholder="Кол-во" style="width:100px">
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px;">
-        <button class="action" onclick="addSupplyItemRow()">+ Ещё товар</button>
-        <button class="action danger" onclick="removeLastSupplyItemRow()">− Убрать</button>
-      </div>
-    </div>
-
-    <div class="row" style="margin-top:12px;">
-      <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
-      <button class="action" onclick="document.getElementById('sup_pdf').click()">📎 PDF (штрихкоды)</button>
-      <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
-      <div id="sup_pdf_status" style="font-size:13px; color:#888;"></div>
-    </div>
-  </div>
   
-  <div class="card">
-    <h3>Активные поставки</h3>
-    <div id="supplies_active_list"></div>
+  <div class="top-bar-wrapper">
+    <header>
+      <span>РУСИЧЪ</span>
+      <span style="display:flex; align-items:center; gap:12px;">
+        <span id="current_user_name" style="font-family:var(--font-head); font-size:10px; color:rgba(255,255,255,0.5); letter-spacing:2px; text-transform:uppercase;"></span>
+        <span id="cloud_dot" title="Облако: офлайн"></span>
+        <button onclick="doLogout()" class="action danger" style="padding: 6px 12px; font-size: 10px; width:auto;">ВЫЙТИ</button>
+      </span>
+    </header>
+
+    <div class="main-tabs">
+      <button onclick="showMain('production', this)">ПРОИЗВОДСТВО</button>
+      <button class="active" onclick="showMain('company', this)">КОМПАНИЯ</button>
+      <button onclick="showMain('contractors', this)">КОНТРАГЕНТЫ</button>
+      <button onclick="showMain('service', this)">СЕРВИС</button>
+    </div>
   </div>
-  <div class="card">
-    <h3>Архив поставок</h3>
-    <div id="supplies_archive_list"></div>
-  </div>
-</div> <!-- ЗАКРЫВАЕТСЯ ВКЛАДКА ПОСТАВКИ -->
 
-</div> <!-- ЗАКРЫВАЕТСЯ main-production -->
-<!-- /ОБЁРТКА: ПРОИЗВОДСТВО -->
-
-
-<!-- ОБЁРТКА: КОМПАНИЯ -->
-<div id="main-company" class="main-section active">
+  <!-- ==========================================
+       РАЗДЕЛ: ПРОИЗВОДСТВО
+       ========================================== -->
+  <div id="main-production" class="main-section">
     <div class="tabs">
-    <button class="active" onclick="showCompanyTab('calendar', this)">Календарь</button>
-    <button onclick="showCompanyTab('boards', this)">Доски</button>
-    <button onclick="showCompanyTab('employees', this)">Сотрудники</button>
-    <button onclick="showCompanyTab('chat', this)">Сообщения</button>
-    <button onclick="showCompanyTab('analytics', this)">Аналитика</button>
-  </div>
+      <button class="active" onclick="showTab('products', this)">Изделия</button>
+      <button onclick="showTab('batches', this)">Партии</button>
+      <button onclick="showTab('supplies', this)">Поставки</button>
+    </div>
 
-  <div id="company-calendar" class="tab active">
-    <div class="card master-hidden">
-      <h3>Добавить план</h3>
-      <p class="hint">Пополнение и новая позиция — автоматически создадут партию в производстве, когда наступит дата. Задача — просто напоминание.</p>
-      <div class="row">
-        <select id="task_type" onchange="onTaskTypeChange()" style="width:180px">
-          <option value="task">Задача</option>
-          <option value="restock">Пополнение позиций</option>
-          <option value="new_item">Новая позиция</option>
-        </select>
-        <select id="task_product" style="width:220px"></select>
-        <input id="task_qty" type="number" placeholder="Кол-во, шт" style="width:110px">
-      </div>
-      <div class="row">
-        <input id="task_title" placeholder="Название задачи" style="width:280px">
-        <input id="task_date_start" type="date" title="Дата начала">
-        <input id="task_date_end" type="date" title="Дата окончания (необязательно)">
-      </div>
-      <div class="row">
-        <select id="task_responsible" style="width:220px"></select>
-        <select id="task_repeat" style="width:180px">
-          <option value="none">Разово</option>
-          <option value="monthly">Каждый месяц</option>
-          <option value="weekly">Каждую неделю</option>
-        </select>
-        <input id="task_note" placeholder="Комментарий" style="width:320px">
-        <button class="action" onclick="addTask()">ДОБАВИТЬ</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="calendar-header">
-        <button class="action" onclick="changeMonth(-1)">←</button>
-        <h3 id="calendar_title">Месяц</h3>
-        <button class="action" onclick="changeMonth(1)">→</button>
-      </div>
-      <div class="calendar-grid" id="calendar_grid"></div>
-      <div class="calendar-legend">
-        <span><span class="dot dot-restock"></span> Пополнение</span>
-        <span><span class="dot dot-new"></span> Новая позиция</span>
-        <span><span class="dot dot-task"></span> Задача</span>
-        <span><span class="dot dot-regular"></span> Регулярная</span>
-      </div>
-    </div>
-    <div class="card" id="day_tasks_card" style="display:none">
-      <h3 id="day_tasks_title">Задачи дня</h3>
-      <div id="day_tasks_list"></div>
-    </div>
-  </div>
-
-
-  <div id="company-boards" class="tab">
-    <div class="card">
-      <h3>Создать новую доску</h3>
-      <p class="hint">Например: Wildberries, Производство, Закупки.</p>
-      <div class="row">
-        <input id="board_title" placeholder="Название доски" style="width:300px">
-        <button class="action" onclick="addBoard()">+ СОЗДАТЬ ДОСКУ</button>
-      </div>
-    </div>
-    <div class="card">
-      <div id="boards_list"></div>
-      <p id="boards_empty" class="hint" style="display:none;">Пока нет досок. Создайте первую!</p>
-    </div>
-  </div>
-
-  <div id="company-employees" class="tab">
-    <div class="card">
-      <h3>Добавить сотрудника</h3>
-      <p class="hint">Сотрудники будут использоваться при назначении ответственных за задачи.</p>
-      <div class="row">
-        <input id="emp_name" placeholder="ФИО" style="width:220px">
-        <select id="emp_role" style="width:180px">
-          <option value="master">Сотрудник</option>
-          <option value="admin">Руководитель</option>
-        </select>
-        <input id="emp_pin" placeholder="PIN (4 цифры)" maxlength="6" style="width:130px">
-        <input id="emp_phone" placeholder="Телефон (опц.)" style="width:150px">
-        <input id="emp_note" placeholder="Комментарий" style="width:180px">
-        <button class="action" onclick="addEmployee()">Добавить</button>
-      </div>
-    </div>
-    <div class="card">
-      <h3>Список сотрудников</h3>
-      <table>
-        <thead><tr><th>ФИО</th><th>Роль</th><th>PIN</th><th>Телефон</th><th>Комментарий</th><th></th></tr></thead>
-        <tbody id="employees_table"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div id="company-chat" class="tab">
-    <div class="card">
-      <h3>Сообщения</h3>
-      <div class="row" style="margin-bottom:12px">
-        <button class="action" onclick="createCustomChat()">+ Создать чат</button>
-      </div>
-      <div id="chats_list"></div>
-      <p id="chats_empty" class="hint" style="display:none;">Нет чатов. Нажмите «+ Создать чат».</p>
-    </div>
-    <div class="card" id="chat_window" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
-        <button class="action" onclick="closeChatWindow()">← Назад к списку</button>
-        <h3 id="chat_title" style="margin:0;"></h3>
-        <button class="action danger master-hidden" onclick="deleteCurrentChat()">× Удалить чат</button>
-      </div>
-      <div id="chat_participants_bar" class="row" style="margin-bottom:12px;padding:10px;background:#f5f5f5;border-radius:4px;">
-        <span style="font-size:13px;color:#666;">Участники:</span>
-        <span id="chat_participants_list"></span>
-        <select id="chat_add_participant" class="master-hidden" style="min-width:180px;">
-          <option value="">— Добавить участника —</option>
-        </select>
-        <button class="action master-hidden" onclick="addChatParticipant()">+ Добавить</button>
-      </div>
-      <div id="chat_messages" style="max-height:500px;overflow-y:auto;padding:10px;background:#fafafa;border:1px solid #eee;border-radius:4px;margin-bottom:12px;"></div>
-      <div class="row" style="flex-wrap: nowrap; gap: 8px;">
-        <button class="action" onclick="closeChatWindow()" style="padding: 8px 12px; flex-shrink: 0;" title="Назад к списку">←</button>
-        <input id="chat_input" placeholder="Написать сообщение..." style="flex:1; min-width: 100px;" onkeydown="if(event.key==='Enter'){sendMessage();}">
-        <input id="chat_file" type="file" style="display:none" onchange="uploadChatFile(this)">
-        <button class="action" onclick="document.getElementById('chat_file').click()" style="padding: 8px 12px; flex-shrink: 0;">📎</button>
-        <button class="action ok" onclick="sendMessage()" style="flex-shrink: 0;">➤</button>
-      </div>
-      <div id="chat_file_status" style="font-size:13px;color:#888;margin-top:6px;"></div>
-    </div>
-  </div>
-
-  <div id="company-analytics" class="tab">
-    <div class="card" style="border-left: 4px solid #8b5cf6;">
-      <h3>Wildberries</h3>
-      <div class="tabs" style="background: #f3e8ff;">
-        <button class="active" onclick="showWbTab('stocks', this)">Остатки</button>
-        <button onclick="showWbTab('seo', this)">SEO и Запросы</button>
-        <button onclick="showWbTab('prices', this)">Цены и Акции</button>
-        <button onclick="showWbTab('reports', this)">Отчеты</button>
-      </div>
-      
-      <div id="wb-stocks" class="tab active">
-        <h4>Остатки на Wildberries</h4>
-        <p class="hint">Сравнение остатков на Wildberries и на вашем складе</p>
-        <div class="row" style="margin-bottom:12px;">
-          <button class="action" onclick="renderWbStocks()">🔄 Обновить все</button>
-          <button class="action" onclick="alert('Запустите python wb_api.py, чтобы обновить данные')">🔄 Синхронизировать с WB</button>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Товар (Название)</th>
-              <th>Артикул</th>
-              <th>FBS (шт)</th>
-              <th>FBO (шт)</th>
-              <th>В пути (FBS)</th>
-              <th>В пути (FBO)</th>
-              <th>Всего на WB</th>
-              <th>Мой склад (РУСИЧЪ)</th>
-              <th>Себестоимость</th>
-              <th>Статус</th>
-            </tr>
-          </thead>
-          <tbody id="wb-stocks-table">
-            <tr><td colspan="10" style="text-align:center;padding:20px;color:#888;">Данные загружаются...</td></tr>
-          </tbody>
-        </table>
-      </div>
-      
-      <div id="wb-seo" class="tab">
-        <h4>SEO аналитика</h4>
-        <p class="hint">Аналитика поисковых запросов и позиций товаров</p>
+    <div id="products" class="tab active">
+      <div class="card master-hidden">
+        <h3>Добавить изделие</h3>
+        <p class="hint">Нормы расхода на 1 изделие — используются системой автоматически на этапах.</p>
         <div class="row">
-          <input id="wb-seo-query" placeholder="Поисковый запрос" style="width:200px;">
-          <button class="action" onclick="loadSeoData()">Загрузить данные</button>
+          <input id="p_article" placeholder="Артикул" style="flex:1;">
+          <input id="p_name" placeholder="Название" style="flex:2;">
+          <input id="p_cat" placeholder="Категория" style="flex:1;">
         </div>
-        <div id="wb-seo-content"></div>
-      </div>
-      
-      <div id="wb-prices" class="tab">
-        <h4>Цены и акции</h4>
-        <p class="hint">Мониторинг цен и акционных предложений</p>
-        <div id="wb-prices-content"></div>
-      </div>
-      
-      <div id="wb-reports" class="tab">
-        <h4>Отчеты по продажам</h4>
-        <p class="hint">Детальные отчеты о продажах на Wildberries</p>
-        <div class="row">
-          <label>С: <input type="date" id="wb-reports-from"></label>
-          <label>По: <input type="date" id="wb-reports-to"></label>
-          <button class="action" onclick="generateWbReport()">Сформировать отчет</button>
+        <div class="row" style="align-items:center;margin-top:8px">
+          <input id="p_photo_file" type="file" accept="image/*" style="display:none" onchange="uploadProductPhoto(this)">
+          <button type="button" class="action" onclick="document.getElementById('p_photo_file').click()" style="width:auto;">📷 Загрузить фото</button>
+          <img id="p_photo_preview" src="" alt="" style="display:none;width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+          <span id="p_photo_status" style="font-size:13px;color:rgba(255,255,255,0.5);"></span>
         </div>
-        <div id="wb-reports-content"></div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Этап / параметр</th><th>Норма на 1 шт</th><th>Ед.</th><th>Материал</th></tr></thead>
+            <tbody>
+              <tr><td>Восковки — норма воска</td><td><input id="n_wax" type="number" step="0.001" placeholder="3.5"></td><td>г</td><td><select id="n_wax_mat"></select></td></tr>
+              <tr><td>Обработка — расход</td><td><input id="n_proc" type="number" step="0.001" placeholder="0.05"></td><td>—</td><td><select id="n_proc_mat"></select></td></tr>
+              <tr><td>Гальваника — электролит</td><td><input id="n_galv" type="number" step="0.001" placeholder="0.5"></td><td>мл</td><td><select id="n_galv_mat"></select></td></tr>
+              <tr><td>Чернение — расходники</td><td><input id="n_blk" type="number" step="0.001" placeholder="0.3"></td><td>—</td><td><select id="n_blk_mat"></select></td></tr>
+              <tr><td>Упаковка</td><td><input id="n_pack" type="number" step="0.001" placeholder="1"></td><td>шт</td><td><select id="n_pack_mat"></select></td></tr>
+              <tr><td>Литьё — материал (металл)</td><td colspan="2"></td><td><select id="n_metal_mat"></select></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:16px">
+          <button class="action" onclick="addProduct()">Сохранить изделие</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Список изделий</h3>
+        <input type="text" id="p_search" placeholder="Поиск по названию или артикулу..." oninput="renderProducts()" style="width: 100%; margin-bottom: 16px;">
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Фото</th><th>Артикул</th><th>Название</th><th>Категория</th><th></th></tr></thead>
+            <tbody id="p_table"></tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
-</div>
-<!-- /ОБЁРТКА: КОМПАНИЯ -->
 
-<!-- ОБЁРТКА: КОНТРАГЕНТЫ -->
-<div id="main-contractors" class="main-section">
-  <!-- КАТЕГОРИИ КОНТРАГЕНТОВ (основной вид) -->
-  <div id="contractors-categories-view">
-    <div class="card">
-      <h3>Категории контрагентов</h3>
-      <p class="hint">Создайте категории для группировки контрагентов (например: Поставщики, Клиенты, Партнеры)</p>
-      <div class="row master-hidden">
-        <input id="category_name" placeholder="Название категории" style="width:300px">
-        <button class="action" onclick="addCategory()">+ Добавить категорию</button>
-      </div>
-      <div id="categories_list" style="margin-top:16px;"></div>
-    </div>
-  </div>
-
-  <!-- СПИСОК КОНТРАГЕНТОВ В КАТЕГОРИИ (скрыт по умолчанию) -->
-  <div id="contractors-list-view" style="display:none">
-    <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h3 id="current_category_title">Контрагенты в категории</h3>
-        <button class="action" onclick="backToCategories()">← Назад к категориям</button>
-      </div>
-      
-      <!-- Форма добавления контрагента (только для админа) -->
-      <div class="master-hidden">
-        <h4>Добавить контрагента</h4>
-        <p class="hint">Заполните информацию о контрагенте</p>
-        <div class="row">
-          <input id="contractor_name" placeholder="Название" style="width:300px">
-          <!-- Категория скрыта - автоматически подставляется из текущей -->
-          <input type="hidden" id="contractor_category">
-          <input type="hidden" id="current_category_id" value="">
-        </div>
-        <div class="row">
-          <input id="contractor_address" placeholder="Адрес" style="width:300px">
-          <input id="contractor_phone" placeholder="Телефон" style="width:200px">
-        </div>
-        <div class="row">
-          <select id="contractor_status" style="width:200px">
-            <option value="active">Активный</option>
-            <option value="inactive">Неактивный</option>
-            <option value="blocked">Заблокирован</option>
-          </select>
-          <input id="contractor_email" placeholder="Email" style="width:300px">
-        </div>
-        <div class="row">
-          <input id="contractor_contact_person" placeholder="Контактное лицо" style="width:300px">
-          <input id="contractor_inn" placeholder="ИНН" style="width:200px">
-        </div>
-        <div class="row">
-          <textarea id="contractor_notes" placeholder="Дополнительная информация" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:3px; margin-top:4px; resize:vertical;" rows="3"></textarea>
+    <div id="batches" class="tab">
+      <div class="card master-hidden">
+        <h3>Создать производственное задание</h3>
+        <p class="hint">Одна строка — обычная партия. Нажмите «+ Ещё изделие», чтобы создать группу.</p>
+        <div id="batch_items_rows">
+          <div class="row batch-item-row">
+            <select class="batch-product" style="flex:1;"></select>
+            <input class="batch-qty" type="number" value="1" placeholder="Количество" style="width:110px;">
+          </div>
         </div>
         <div class="row" style="margin-top:12px">
-          <button class="action ok" onclick="addContractor()">+ Добавить контрагента</button>
+          <button class="action" onclick="addBatchItemRow()">+ Ещё изделие</button>
+          <button class="action danger" onclick="removeLastBatchItemRow()">− Убрать последнюю</button>
+        </div>
+        <div class="row" style="margin-top:16px">
+          <input id="b_title" placeholder="Название задания" style="flex:1;">
+          <select id="b_responsible" style="width:180px;"></select>
+          <select id="b_type" style="width:200px;">
+            <option value="restock">Пополнение (Красная точка)</option>
+            <option value="new_item">Новая позиция (Зеленая точка)</option>
+          </select>
+        </div>
+        <div class="row">
+          <input id="b_date_start" type="date">
+          <input id="b_date_end" type="date">
+          <input id="b_note" placeholder="Комментарий" style="flex:1;">
+        </div>
+        <div class="row" style="margin-top:16px">
+          <button class="action ok" onclick="createBatch()">СОЗДАТЬ</button>
         </div>
       </div>
-      
-      <!-- Список контрагентов -->
-      <div style="margin-top:20px;">
-        <h4>Список контрагентов</h4>
-        <table style="margin-top:12px; width:100%">
-          <thead>
-            <tr>
-              <th>Название</th>
-              <th>Контактное лицо</th>
-              <th>Телефон</th>
-              <th>Email</th>
-              <th>Статус</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody id="contractors_table"></tbody>
-        </table>
+      <div class="card">
+        <h3>Активные партии</h3>
+        <div id="active_batches"></div>
+      </div>
+      <div class="card">
+        <h3>Завершённые партии</h3>
+        <div id="done_batches"></div>
+      </div>
+    </div>
+
+    <div id="supplies" class="tab">
+      <div class="card master-hidden">
+        <h3>Создать поставку</h3>
+        <div class="row">
+          <input id="sup_title" placeholder="Название поставки" style="flex:1;">
+          <input id="sup_date" type="date">
+          <select id="sup_category" onchange="loadContractorsToSupplySelect(this.value)"></select>
+          <select id="sup_counterparty"></select>
+          <select id="sup_responsible"></select>
+        </div>
+        <div style="margin-top:16px; padding:16px; background:rgba(255,255,255,0.03); border-radius:var(--r-md);">
+          <b style="font-size:12px; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,0.6);">Товары в поставке:</b>
+          <div id="supply_items_rows" style="margin-top:12px;">
+            <div class="row supply-item-row">
+              <select class="supply-stock-select" style="flex:1;"></select>
+              <input class="supply-qty" type="number" value="1" min="1" placeholder="Кол-во" style="width:100px">
+            </div>
+          </div>
+          <div class="row" style="margin-top:12px;">
+            <button class="action" onclick="addSupplyItemRow()">+ Ещё товар</button>
+            <button class="action danger" onclick="removeLastSupplyItemRow()">− Убрать</button>
+          </div>
+        </div>
+        <div class="row" style="margin-top:16px;">
+          <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
+          <button class="action" onclick="document.getElementById('sup_pdf').click()" style="width:auto;">📎 PDF (штрихкоды)</button>
+          <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
+          <div id="sup_pdf_status" style="font-size:13px; color:rgba(255,255,255,0.5);"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Активные поставки</h3>
+        <div id="supplies_active_list"></div>
+      </div>
+      <div class="card">
+        <h3>Архив поставок</h3>
+        <div id="supplies_archive_list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       РАЗДЕЛ: КОМПАНИЯ
+       ========================================== -->
+  <div id="main-company" class="main-section active">
+    <div class="tabs">
+      <button class="active" onclick="showCompanyTab('calendar', this)">Календарь</button>
+      <button onclick="showCompanyTab('boards', this)">Доски</button>
+      <button onclick="showCompanyTab('employees', this)">Сотрудники</button>
+      <button onclick="showCompanyTab('chat', this)">Сообщения</button>
+      <button onclick="showCompanyTab('analytics', this)">Аналитика</button>
+    </div>
+
+    <div id="company-calendar" class="tab active">
+      <div class="card master-hidden">
+        <h3>Добавить план</h3>
+        <p class="hint">Пополнение и новая позиция — автоматически создадут партию в производстве.</p>
+        <div class="row">
+          <select id="task_type" onchange="onTaskTypeChange()" style="flex:1;"></select>
+          <select id="task_product" style="flex:1;"></select>
+          <input id="task_qty" type="number" placeholder="Кол-во, шт" style="width:110px;">
+        </div>
+        <div class="row">
+          <input id="task_title" placeholder="Название задачи" style="flex:2;">
+          <input id="task_date_start" type="date" title="Дата начала" style="flex:1;">
+          <input id="task_date_end" type="date" title="Дата окончания" style="flex:1;">
+        </div>
+        <div class="row">
+          <select id="task_responsible" style="flex:1;"></select>
+          <select id="task_repeat" style="flex:1;">
+            <option value="none">Разово</option>
+            <option value="monthly">Каждый месяц</option>
+            <option value="weekly">Каждую неделю</option>
+          </select>
+          <input id="task_note" placeholder="Комментарий" style="flex:2;">
+          <button class="action" onclick="addTask()" style="width:auto;">ДОБАВИТЬ</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="calendar-header">
+          <button class="action" onclick="changeMonth(-1)" style="padding:8px 16px; background:rgba(255,255,255,0.1); color:#fff; box-shadow:none;">←</button>
+          <h3 id="calendar_title" style="margin:0; border:none; padding:0; font-size:16px;">Месяц</h3>
+          <button class="action" onclick="changeMonth(1)" style="padding:8px 16px; background:rgba(255,255,255,0.1); color:#fff; box-shadow:none;">→</button>
+        </div>
+        <div class="calendar-grid" id="calendar_grid"></div>
+        <div class="calendar-legend">
+          <span><span class="dot dot-restock"></span> Пополнение</span>
+          <span><span class="dot dot-new"></span> Новая позиция</span>
+          <span><span class="dot dot-task"></span> Задача</span>
+          <span><span class="dot dot-regular"></span> Регулярная</span>
+        </div>
+      </div>
+      <div class="card" id="day_tasks_card" style="display:none">
+        <h3 id="day_tasks_title">Задачи дня</h3>
+        <div id="day_tasks_list"></div>
+      </div>
+    </div>
+
+    <div id="company-boards" class="tab">
+      <div class="card">
+        <h3>Создать новую доску</h3>
+        <p class="hint">Например: Wildberries, Производство, Закупки.</p>
+        <div class="row">
+          <input id="board_title" placeholder="Название доски" style="flex:1;">
+          <button class="action" onclick="addBoard()" style="width:auto;">+ СОЗДАТЬ ДОСКУ</button>
+        </div>
+      </div>
+      <div class="card">
+        <div id="boards_list"></div>
+        <p id="boards_empty" class="hint" style="display:none;">Пока нет досок. Создайте первую!</p>
+      </div>
+    </div>
+
+    <div id="company-employees" class="tab">
+      <div class="card">
+        <h3>Добавить сотрудника</h3>
+        <div class="row">
+          <input id="emp_name" placeholder="ФИО" style="flex:1;">
+          <select id="emp_role" style="flex:1;">
+            <option value="master">Сотрудник</option>
+            <option value="admin">Руководитель</option>
+          </select>
+          <input id="emp_pin" placeholder="PIN" maxlength="6" style="width:100px;">
+          <input id="emp_phone" placeholder="Телефон (опц.)" style="flex:1;">
+          <input id="emp_note" placeholder="Комментарий" style="flex:1;">
+          <button class="action" onclick="addEmployee()" style="width:auto;">Добавить</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Список сотрудников</h3>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>ФИО</th><th>Роль</th><th>PIN</th><th>Телефон</th><th>Комментарий</th><th></th></tr></thead>
+            <tbody id="employees_table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="company-chat" class="tab">
+      <div class="card">
+        <h3>Сообщения</h3>
+        <div class="row" style="margin-bottom:16px">
+          <button class="action" onclick="createCustomChat()" style="width:auto;">+ Создать чат</button>
+        </div>
+        <div id="chats_list"></div>
+        <p id="chats_empty" class="hint" style="display:none;">Нет чатов. Нажмите «+ Создать чат».</p>
+      </div>
+      <div class="card" id="chat_window" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;">
+          <button class="action" onclick="closeChatWindow()" style="width:auto;">← Назад к списку</button>
+          <h3 id="chat_title" style="margin:0; border:none; padding:0;"></h3>
+          <button class="action danger master-hidden" onclick="deleteCurrentChat()" style="width:auto;">× Удалить чат</button>
+        </div>
+        <div id="chat_participants_bar" class="row" style="margin-bottom:16px;padding:12px;background:rgba(255,255,255,0.05);border-radius:var(--r-md);">
+          <span style="font-size:13px;color:rgba(255,255,255,0.5);">Участники:</span>
+          <span id="chat_participants_list"></span>
+          <select id="chat_add_participant" class="master-hidden" style="min-width:180px;">
+            <option value="">— Добавить участника —</option>
+          </select>
+          <button class="action master-hidden" onclick="addChatParticipant()" style="width:auto;">+ Добавить</button>
+        </div>
+        <div id="chat_messages" style="max-height:500px;overflow-y:auto;padding:12px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:var(--r-md);margin-bottom:12px;"></div>
+        <div class="row" style="flex-wrap: nowrap; gap: 8px;">
+          <button class="action" onclick="closeChatWindow()" style="padding: 8px 12px; flex-shrink: 0; width:auto;" title="Назад к списку">←</button>
+          <input id="chat_input" placeholder="Написать сообщение..." style="flex:1; min-width: 100px;" onkeydown="if(event.key==='Enter'){sendMessage();}">
+          <input id="chat_file" type="file" style="display:none" onchange="uploadChatFile(this)">
+          <button class="action" onclick="document.getElementById('chat_file').click()" style="padding: 8px 12px; flex-shrink: 0; width:auto;">📎</button>
+          <button class="action ok" onclick="sendMessage()" style="flex-shrink: 0; width:auto;">➤</button>
+        </div>
+        <div id="chat_file_status" style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:6px;"></div>
+      </div>
+    </div>
+
+    <div id="company-analytics" class="tab">
+      <div class="card">
+        <h3>Wildberries</h3>
+        <div class="tabs" style="background: transparent; padding: 0 0 16px 0;">
+          <button class="active" onclick="showWbTab('stocks', this)">Остатки</button>
+          <button onclick="showWbTab('seo', this)">SEO и Запросы</button>
+          <button onclick="showWbTab('prices', this)">Цены и Акции</button>
+          <button onclick="showWbTab('reports', this)">Отчеты</button>
+        </div>
+        
+        <div id="wb-stocks" class="tab active">
+          <p class="hint">Сравнение остатков на Wildberries и на вашем складе</p>
+          <div class="row" style="margin-bottom:16px;">
+            <button class="action" onclick="renderWbStocks()" style="width:auto;">🔄 Обновить все</button>
+            <button class="action" onclick="alert('Запустите python wb_api.py, чтобы обновить данные')" style="width:auto;">🔄 Синхронизировать с WB</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Товар (Название)</th><th>Артикул</th><th>FBS (шт)</th><th>FBO (шт)</th><th>Всего на WB</th><th>Мой склад</th><th>Себестоимость</th><th>Статус</th>
+                </tr>
+              </thead>
+              <tbody id="wb-stocks-table">
+                <tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Данные загружаются...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div id="wb-seo" class="tab">
+          <p class="hint">Аналитика поисковых запросов и позиций товаров</p>
+          <div class="row">
+            <input id="wb-seo-query" placeholder="Поисковый запрос" style="flex:1;">
+            <button class="action" onclick="loadSeoData()" style="width:auto;">Загрузить данные</button>
+          </div>
+          <div id="wb-seo-content"></div>
+        </div>
+        
+        <div id="wb-prices" class="tab">
+          <p class="hint">Мониторинг цен и акционных предложений</p>
+          <div id="wb-prices-content"></div>
+        </div>
+        
+        <div id="wb-reports" class="tab">
+          <p class="hint">Детальные отчеты о продажах на Wildberries</p>
+          <div class="row">
+            <input type="date" id="wb-reports-from">
+            <input type="date" id="wb-reports-to">
+            <button class="action" onclick="generateWbReport()" style="width:auto;">Сформировать отчет</button>
+          </div>
+          <div id="wb-reports-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       РАЗДЕЛ: КОНТРАГЕНТЫ
+       ========================================== -->
+  <div id="main-contractors" class="main-section">
+    <div id="contractors-categories-view">
+      <div class="card">
+        <h3>Категории контрагентов</h3>
+        <p class="hint">Создайте категории для группировки контрагентов (например: Поставщики, Клиенты, Партнеры)</p>
+        <div class="row master-hidden">
+          <input id="category_name" placeholder="Название категории" style="flex:1;">
+          <button class="action" onclick="addCategory()" style="width:auto;">+ Добавить категорию</button>
+        </div>
+        <div id="categories_list" style="margin-top:16px;"></div>
+      </div>
+    </div>
+
+    <div id="contractors-list-view" style="display:none">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px;">
+          <h3 id="current_category_title" style="margin:0; border:none; padding:0;">Контрагенты в категории</h3>
+          <button class="action" onclick="backToCategories()" style="width:auto;">← Назад к категориям</button>
+        </div>
+        
+        <div class="master-hidden">
+          <p class="hint">Заполните информацию о контрагенте</p>
+          <div class="row">
+            <input id="contractor_name" placeholder="Название" style="flex:1;">
+            <input type="hidden" id="contractor_category">
+            <input type="hidden" id="current_category_id" value="">
+          </div>
+          <div class="row">
+            <input id="contractor_address" placeholder="Адрес" style="flex:1;">
+            <input id="contractor_phone" placeholder="Телефон" style="flex:1;">
+          </div>
+          <div class="row">
+            <select id="contractor_status" style="flex:1;">
+              <option value="active">Активный</option>
+              <option value="inactive">Неактивный</option>
+              <option value="blocked">Заблокирован</option>
+            </select>
+            <input id="contractor_email" placeholder="Email" style="flex:1;">
+          </div>
+          <div class="row">
+            <input id="contractor_contact_person" placeholder="Контактное лицо" style="flex:1;">
+            <input id="contractor_inn" placeholder="ИНН" style="flex:1;">
+          </div>
+          <div class="row">
+            <textarea id="contractor_notes" placeholder="Дополнительная информация" style="width:100%; resize:vertical;" rows="3"></textarea>
+          </div>
+          <div class="row" style="margin-top:16px">
+            <button class="action ok" onclick="addContractor()" style="width:auto;">+ Добавить контрагента</button>
+          </div>
+        </div>
+        
+        <div style="margin-top:24px;">
+          <h4 style="color:#fff; margin-bottom:12px; font-family:var(--font-head); letter-spacing:1px; font-size:12px; text-transform:uppercase;">Список контрагентов</h4>
+          <div style="overflow-x:auto;">
+            <table style="width:100%">
+              <thead>
+                <tr>
+                  <th>Название</th><th>Контактное лицо</th><th>Телефон</th><th>Email</th><th>Статус</th><th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="contractors_table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       РАЗДЕЛ: СЕРВИС
+       ========================================== -->
+  <div id="main-service" class="main-section">
+    <div class="tabs">
+      <button class="active" onclick="showTab('sku', this)">Склад материалов</button>
+      <button onclick="showTab('stock', this)">Склад готовой</button>
+      <button onclick="showTab('refs', this)">Справочники</button>
+      <button onclick="showTab('archive', this)">Архив списаний</button>
+      <button onclick="showServiceTab('backup', this)">Резервная копия</button>
+      <button onclick="showServiceTab('archive_chats', this)">Архив чатов</button>
+    </div>
+
+    <div id="sku" class="tab active">
+      <div class="card master-hidden">
+        <h3>Добавить материал на склад</h3>
+        <p class="hint">Здесь всё, что расходуется: воск, формомасса, вода, металлы и т.д.</p>
+        <div class="row">
+          <input id="m_name" placeholder="Название" style="flex:1;">
+          <input id="m_brand" placeholder="Бренд (опц.)" style="flex:1;">
+          <input id="m_unit" placeholder="Ед. (г/мл/шт)" value="г" style="width:100px;">
+          <input id="m_price" type="number" step="0.01" placeholder="Цена за ед." style="flex:1;">
+          <input id="m_stock" type="number" step="0.01" placeholder="Остаток" value="0" style="flex:1;">
+          <input id="m_density" type="number" step="0.01" placeholder="Плотность (г/см³)" style="flex:1;">
+          <select id="m_type" style="flex:1;">
+            <option value="">— Тип —</option>
+            <option value="metal">Металл</option>
+            <option value="wax">Воск</option>
+            <option value="formomass">Формомасса</option>
+            <option value="water">Вода</option>
+            <option value="consumable">Расходник</option>
+            <option value="packaging">Упаковка</option>
+            <option value="energy">Электроэнергия</option>
+          </select>
+          <button class="action" onclick="addMaterial()" style="width:auto;">Добавить</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Название</th><th>Тип</th><th>Плотность</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
+            <tbody id="m_table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="refs" class="tab">
+      <div class="card master-hidden">
+        <h3>Циклы прокалки</h3>
+        <p class="hint">Время × мощность печи = кВт·ч на цикл.</p>
+        <div class="row">
+          <input id="c_name" placeholder="Название" style="flex:1;">
+          <input id="c_hours" type="number" step="0.1" placeholder="Время, ч" style="flex:1;">
+          <input id="c_kw" type="number" step="0.1" placeholder="Мощность, кВт" style="flex:1;">
+          <select id="c_energy_mat" style="flex:1;"></select>
+          <button class="action" onclick="addCycle()" style="width:auto;">Добавить</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Название</th><th>Время, ч</th><th>Мощность, кВт</th><th>кВт·ч</th><th>Материал</th><th></th></tr></thead>
+            <tbody id="c_table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card master-hidden">
+        <h3>Размеры опок</h3>
+        <div class="row">
+          <input id="o_name" placeholder="Название" style="flex:1;">
+          <input id="o_mass" type="number" step="0.1" placeholder="Формомасса, г" style="flex:1;">
+          <select id="o_mass_mat_sel" style="flex:1;"></select>
+          <input id="o_water" type="number" step="0.1" placeholder="Вода, мл" style="flex:1;">
+          <select id="o_water_mat_sel" style="flex:1;"></select>
+          <input id="o_gating" type="number" step="0.1" placeholder="Вес литника, г" style="flex:1;">
+          <button class="action" onclick="addOpoka()" style="width:auto;">Добавить</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Название</th><th>Формомасса</th><th>Литник, г</th><th>Материал</th><th>Вода</th><th>Материал</th><th></th></tr></thead>
+            <tbody id="o_table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="stock" class="tab">
+      <div class="card">
+        <h3>Склад готовой продукции</h3>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Изделие</th><th>Партия</th><th>Осталось, шт</th><th>Себест. 1 шт</th><th>Общая себест.</th><th></th></tr></thead>
+            <tbody id="stock_table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card" id="writeoff_card" style="display:none">
+        <h3>Списать изделия</h3>
+        <div class="row"><select id="w_product" disabled style="flex:1;"></select></div>
+        <div class="row">
+          <input id="w_qty" type="number" placeholder="Кол-во, шт" style="flex:1;">
+          <input id="w_price" type="number" step="0.01" placeholder="Цена за 1 шт" style="flex:1;">
+          <select id="w_channel" style="flex:1;">
+            <option>ВБ</option><option>Озон</option><option>Авито</option>
+            <option>Опт</option><option>Точка продаж</option><option>Церковь</option>
+            <option>Брак</option><option>Подарок</option><option>Другое</option>
+          </select>
+          <input id="w_note" placeholder="Комментарий" style="flex:2;">
+          <button class="action warn" onclick="writeOff()" style="width:auto;">Списать</button>
+          <button class="action" onclick="closeWriteOff()" style="width:auto;">Отмена</button>
+        </div>
+        <div id="w_result"></div>
+      </div>
+    </div>
+
+    <div id="archive" class="tab">
+      <div class="card">
+        <h3>Архив списаний</h3>
+        <div class="row">
+          <select id="f_channel" onchange="renderArchive()" style="flex:1;">
+            <option value="">Все каналы</option>
+            <option>ВБ</option><option>Озон</option><option>Авито</option>
+            <option>Опт</option><option>Точка продаж</option><option>Церковь</option>
+            <option>Брак</option><option>Подарок</option><option>Другое</option>
+          </select>
+          <input type="date" id="f_from" onchange="renderArchive()" style="flex:1;">
+          <input type="date" id="f_to" onchange="renderArchive()" style="flex:1;">
+          <button class="action" onclick="resetFilters()" style="width:auto;">Сбросить</button>
+        </div>
+        <div class="summary" id="archive_summary" style="display:flex; gap:16px; flex-wrap:wrap; margin-top:16px; margin-bottom:16px;"></div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Дата</th><th>Изделие</th><th>Кол-во</th><th>Цена</th><th>Сумма</th><th>Себест.</th><th>Прибыль</th><th>Канал</th><th>Комментарий</th><th></th></tr></thead>
+            <tbody id="archive_table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Сводка по каналам</h3>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Канал</th><th>Продано, шт</th><th>Выручка</th><th>Себестоимость</th><th>Прибыль</th><th>Маржа, %</th></tr></thead>
+            <tbody id="channel_summary"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="service-archive_chats" class="tab">
+      <div class="card">
+        <h3>Архив закрытых чатов</h3>
+        <div id="archived_chats_list"></div>
+      </div>
+    </div>
+
+    <div id="service-backup" class="tab">
+      <div class="card">
+        <h3>Резервная копия</h3>
+        <p class="hint">Данные хранятся в этом браузере. Раз в неделю скачивайте копию.</p>
+        <button class="action" onclick="exportData()" style="width:auto;">Скачать копию</button>
+        <div style="margin-top:16px">
+          <input type="file" id="import_file" accept=".json">
+          <button class="action" onclick="importData()" style="width:auto;">Загрузить из копии</button>
+        </div>
+        <div style="margin-top:16px">
+          <button class="action danger" onclick="clearAll()" style="width:auto;">Удалить все данные</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Синхронизация с облаком</h3>
+        <div class="row">
+          <button class="action" onclick="uiPushToCloud()" style="width:auto;">⬆️ Отправить в облако</button>
+          <button class="action" onclick="uiPullFromCloud()" style="width:auto;">⬇️ Скачать из облака</button>
+          <button class="action ok" onclick="uiFullSync()" style="width:auto;">🔄 Полная синхронизация</button>
+        </div>
+        <div id="sync_status" style="margin-top:12px; font-size:14px; color:rgba(255,255,255,0.6);"></div>
       </div>
     </div>
   </div>
 </div>
-<!-- /ОБЁРТКА: КОНТРАГЕНТЫ -->
-
-<!-- ОБЁРТКА: СЕРВИС -->
-
-<div id="main-service" class="main-section">
-<div class="tabs">
-    <button class="active" onclick="showTab('sku', this)">Склад материалов</button>
-  <button onclick="showTab('stock', this)">Склад готовой</button>
-  <button onclick="showTab('refs', this)">Справочники</button>
-  <button onclick="showTab('archive', this)">Архив списаний</button>
-  <button onclick="showServiceTab('backup', this)">Резервная копия</button>
-  <button onclick="showServiceTab('archive_chats', this)">Архив чатов</button>
-</div>
-
-<!-- СКЛАД МАТЕРИАЛОВ -->
-<div id="sku" class="tab active">
-  <div class="card master-hidden">
-    <h3>Добавить материал на склад</h3>
-    <p class="hint">Здесь всё, что расходуется: воск, формомасса, вода, металлы, электролит, расходники, упаковка, электроэнергия.</p>
-    <div class="row">
-      <input id="m_name" placeholder="Название" style="width:180px">
-      <input id="m_brand" placeholder="Бренд (опц.)" style="width:120px">
-      <input id="m_unit" placeholder="Ед. (г/мл/шт)" value="г" style="width:90px">
-      <input id="m_price" type="number" step="0.01" placeholder="Цена за ед.">
-      <input id="m_stock" type="number" step="0.01" placeholder="Остаток" value="0">
-      <input id="m_density" type="number" step="0.01" placeholder="Плотность (г/см³)" style="width:130px">
-      <select id="m_type" style="width:150px">
-        <option value="">— Тип (не обяз.) —</option>
-        <option value="metal">Металл</option>
-        <option value="wax">Воск</option>
-        <option value="formomass">Формомасса</option>
-        <option value="water">Вода</option>
-        <option value="consumable">Расходник</option>
-        <option value="packaging">Упаковка</option>
-        <option value="energy">Электроэнергия</option>
-      </select>
-      <button class="action" onclick="addMaterial()">Добавить</button>
-    </div>
-  </div>
-  <div class="card">
-    <table>
-      <thead><tr><th>Название</th><th>Тип</th><th>Плотность</th><th>Бренд</th><th>Ед.</th><th>Цена</th><th>Остаток</th><th>Пополнить</th><th></th></tr></thead>
-      <tbody id="m_table"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- СПРАВОЧНИКИ -->
-<div id="refs" class="tab">
-  <div class="card master-hidden">
-    <h3>Циклы прокалки</h3>
-    <p class="hint">Время × мощность печи = кВт·ч на цикл. Мастер выберет цикл на этапе прокалки.</p>
-    <div class="row">
-      <input id="c_name" placeholder="Название (Короткий)" style="width:160px">
-      <input id="c_hours" type="number" step="0.1" placeholder="Время, ч">
-      <input id="c_kw" type="number" step="0.1" placeholder="Мощность, кВт">
-      <select id="c_energy_mat"></select>
-      <button class="action" onclick="addCycle()">Добавить</button>
-    </div>
-  </div>
-  <div class="card">
-    <table>
-      <thead><tr><th>Название</th><th>Время, ч</th><th>Мощность, кВт</th><th>кВт·ч</th><th>Материал</th><th></th></tr></thead>
-      <tbody id="c_table"></tbody>
-    </table>
-  </div>
-  <div class="card master-hidden">
-    <h3>Размеры опок</h3>
-    <p class="hint">На каждый размер — расход формомассы и воды.</p>
-    <div class="row">
-      <input id="o_name" placeholder="Название (Опока №1)" style="width:160px">
-      <input id="o_mass" type="number" step="0.1" placeholder="Формомасса, г">
-      <select id="o_mass_mat_sel"></select>
-      <input id="o_water" type="number" step="0.1" placeholder="Вода, мл">
-      <select id="o_water_mat_sel"></select>
-      <input id="o_gating" type="number" step="0.1" placeholder="Вес литника, г" style="width:130px">
-      <button class="action" onclick="addOpoka()">Добавить</button>
-    </div>
-  </div>
-  <div class="card">
-    <table>
-      <thead><tr><th>Название</th><th>Формомасса</th><th>Литник, г</th><th>Материал</th><th>Вода</th><th>Материал</th><th></th></tr></thead>
-      <tbody id="o_table"></tbody>
-    </table>
-  </div>
-</div>
-
-<!-- СКЛАД ГОТОВОЙ -->
-<div id="stock" class="tab">
-  <div class="card">
-    <h3>Склад готовой продукции</h3>
-    <p class="hint">Здесь изделия, прошедшие все этапы. Списывайте их в каналы продаж.</p>
-    <table>
-      <thead><tr><th>Изделие</th><th>Партия</th><th>Осталось, шт</th><th>Себест. 1 шт</th><th>Общая себест.</th><th></th></tr></thead>
-      <tbody id="stock_table"></tbody>
-    </table>
-  </div>
-  <div class="card" id="writeoff_card" style="display:none">
-    <h3>Списать изделия</h3>
-    <div class="row"><select id="w_product" disabled style="min-width:280px"></select></div>
-    <div class="row">
-      <input id="w_qty" type="number" placeholder="Кол-во, шт" style="width:120px">
-      <input id="w_price" type="number" step="0.01" placeholder="Цена за 1 шт" style="width:130px">
-      <select id="w_channel">
-        <option>ВБ</option><option>Озон</option><option>Авито</option>
-        <option>Опт</option><option>Точка продаж</option><option>Церковь</option>
-        <option>Брак</option><option>Подарок</option><option>Другое</option>
-      </select>
-      <input id="w_note" placeholder="Комментарий" style="width:180px">
-      <button class="action warn" onclick="writeOff()">Списать</button>
-      <button class="action" onclick="closeWriteOff()">Отмена</button>
-    </div>
-    <div id="w_result"></div>
-  </div>
-</div>
-
-<!-- АРХИВ -->
-<div id="archive" class="tab">
-  <div class="card">
-    <h3>Архив списаний</h3>
-    <p class="hint">Куда, когда и за сколько списали готовые изделия.</p>
-    <div class="row">
-      <select id="f_channel" onchange="renderArchive()">
-        <option value="">Все каналы</option>
-        <option>ВБ</option><option>Озон</option><option>Авито</option>
-        <option>Опт</option><option>Точка продаж</option><option>Церковь</option>
-        <option>Брак</option><option>Подарок</option><option>Другое</option>
-      </select>
-      <label style="font-size:13px;color:#555">с <input type="date" id="f_from" onchange="renderArchive()"></label>
-      <label style="font-size:13px;color:#555">по <input type="date" id="f_to" onchange="renderArchive()"></label>
-      <button class="action" onclick="resetFilters()">Сбросить</button>
-    </div>
-    <div class="summary" id="archive_summary"></div>
-    <table>
-      <thead><tr><th>Дата</th><th>Изделие</th><th>Кол-во</th><th>Цена</th><th>Сумма</th><th>Себест.</th><th>Прибыль</th><th>Канал</th><th>Комментарий</th><th></th></tr></thead>
-      <tbody id="archive_table"></tbody>
-    </table>
-  </div>
-  <div class="card">
-    <h3>Сводка по каналам</h3>
-    <table>
-      <thead><tr><th>Канал</th><th>Продано, шт</th><th>Выручка</th><th>Себестоимость</th><th>Прибыль</th><th>Маржа, %</th></tr></thead>
-      <tbody id="channel_summary"></tbody>
-    </table>
-  </div>
-</div>
-
-<div id="service-archive_chats" class="tab">
-  <div class="card">
-    <h3>Архив закрытых чатов</h3>
-    <p class="hint">Здесь хранятся чаты задач и партий, которые уже выполнены.</p>
-    <div id="archived_chats_list"></div>
-  </div>
-</div>
-
-<div id="service-backup" class="tab">
-  <div class="card">
-    <h3>Резервная копия</h3>
-    <p class="hint">Данные хранятся в этом браузере. Раз в неделю скачивайте копию.</p>
-    <button class="action" onclick="exportData()">Скачать копию</button>
-    <div style="margin-top:14px">
-      <input type="file" id="import_file" accept=".json">
-      <button class="action" onclick="importData()">Загрузить из копии</button>
-    </div>
-    <div style="margin-top:14px">
-      <button class="action danger" onclick="clearAll()">Удалить все данные</button>
-    </div>
-  </div>
-  <div class="card">
-    <h3>Синхронизация с облаком</h3>
-    <p class="hint">Одна база на всех устройствах: ПК, телефон, планшет.</p>
-    <div class="row">
-      <button class="action" onclick="uiPushToCloud()">⬆️ Отправить в облако</button>
-      <button class="action" onclick="uiPullFromCloud()">⬇️ Скачать из облака</button>
-      <button class="action ok" onclick="uiFullSync()">🔄 Полная синхронизация</button>
-    </div>
-    <div id="sync_status" style="margin-top:12px; font-size:14px; color:#555;"></div>
-  </div>
-</div>
-
-</div> <!-- Закрывается main-service -->
-<!-- /ОБЁРТКА: СЕРВИС -->
 
 
 <!-- МОДАЛЬНОЕ ОКНО ЗАДАЧИ -->
@@ -3513,108 +3474,105 @@ function renderArchivedChats() {
 }
 
 // Заглушки функций для аналитики Wildberries
-async function renderWbStocks() {
+function renderWbStocks() {
   const table = document.getElementById('wb-stocks-table');
   if (!table) return;
   
   table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">Загрузка данных...</td></tr>';
   
   try {
-    const sb = await initCloud();
+    const sb = initCloud && initCloud();
     if (!sb) {
       table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#c53030;">Ошибка подключения к облаку</td></tr>';
       return;
     }
     
     // Загружаем ВСЕ данные из таблицы wb_stocks
-    const { data: wbStocks, error } = await sb
-      .from('wb_stocks')
-      .select('*');
+    sb.from('wb_stocks').select('*').then(({ data: wbStocks, error }) => {
+      if (error) throw error;
       
-    if (error) throw error;
-    
-    if (!wbStocks || wbStocks.length === 0) {
-      table.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:#888;">Нет данных о товарах на Wildberries</td></tr>';
-      return;
-    }
-    
-    let html = '';
-    
-    // Обрабатываем каждый товар из WB
-    wbStocks.forEach(wbItem => {
-      // Ищем товар в локальном складе по артикулу (без учета регистра)
-      let stockItem = null;
-      let productName = wbItem.title || `Товар WB: ${wbItem.nm_id}`;
-      let article = wbItem.article || '—';
+      if (!wbStocks || wbStocks.length === 0) {
+        table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">Нет данных о товарах на Wildberries</td></tr>';
+        return;
+      }
       
-      // Поиск в data.stock по артикулу
-      if (article !== '—') {
-        stockItem = (data.stock || []).find(item => 
-          item.productName && article && 
-          item.productName.toLowerCase().includes(article.toLowerCase())
-        );
+      let html = '';
+      
+      // Обрабатываем каждый товар из WB
+      wbStocks.forEach(wbItem => {
+        // Ищем товар в локальном складе по артикулу (без учета регистра)
+        let stockItem = null;
+        let productName = wbItem.title || `Товар WB: ${wbItem.nm_id}`;
+        let article = wbItem.article || '—';
         
-        // Если не нашли по частичному совпадению, попробуем найти по точному совпадению артикула в products
-        if (!stockItem) {
-          const product = (data.products || []).find(p => 
-            p.article && article && 
-            p.article.toLowerCase() === article.toLowerCase()
+        // Поиск в data.stock по артикулу
+        if (article !== '—') {
+          stockItem = (data.stock || []).find(item => 
+            item.productName && article && 
+            item.productName.toLowerCase().includes(article.toLowerCase())
           );
-          if (product) {
-            stockItem = (data.stock || []).find(item => 
-              item.productName === product.name
+          
+          // Если не нашли по частичному совпадению, попробуем найти по точному совпадению артикула в products
+          if (!stockItem) {
+            const product = (data.products || []).find(p => 
+              p.article && article && 
+              p.article.toLowerCase() === article.toLowerCase()
             );
+            if (product) {
+              stockItem = (data.stock || []).find(item => 
+                item.productName === product.name
+              );
+            }
           }
         }
-      }
+        
+        const fbsQty = wbItem.fbs_quantity || 0;
+        const fboQty = wbItem.fbo_quantity || 0;
+        const wbTotal = fbsQty + fboQty;
+        const myStockQty = stockItem ? stockItem.remaining : 0;
+        const cost = stockItem ? stockItem.costPerUnit : 0;
+        
+        // Определяем статус согласно новой логике
+        let status = '';
+        let statusColor = '';
+        
+        if (!stockItem) {
+          status = '❓ Нет в РУСИЧЪ';
+          statusColor = 'color: #2b6cb0;'; // синий
+        } else if (wbTotal > myStockQty) {
+          status = '⚠️ Меньше на складе';
+          statusColor = 'color: #c53030;'; // красный
+        } else if (wbTotal < myStockQty) {
+          status = '⚠️ Больше на складе';
+          statusColor = 'color: #b7791f;'; // оранжевый
+        } else {
+          status = '✅ ОК';
+          statusColor = 'color: #2f855a;'; // зеленый
+        }
+        
+        html += `
+          <tr>
+            <td>${escapeHtml(productName)}</td>
+            <td>${escapeHtml(article)}</td>
+            <td>${fbsQty}</td>
+            <td>${fboQty}</td>
+            <td>${wbTotal}</td>
+            <td>${myStockQty}</td>
+            <td>${fmt(cost)} ₽</td>
+            <td style="${statusColor} font-weight: 600;">${status}</td>
+          </tr>
+        `;
+      });
       
-      const fbsQty = wbItem.fbs_quantity || 0;
-      const fboQty = wbItem.fbo_quantity || 0;
-      const inWayFbs = wbItem.in_way_fbs || 0;
-      const inWayFbo = wbItem.in_way_fbo || 0;
-      const wbTotal = fbsQty + fboQty + inWayFbs + inWayFbo;
-      const myStockQty = stockItem ? stockItem.remaining : 0;
-      const cost = stockItem ? stockItem.costPerUnit : 0;
-      
-      // Определяем статус согласно новой логике
-      let status = '';
-      let statusColor = '';
-      
-      if (!stockItem) {
-        status = '❓ Нет в РУСИЧЪ';
-        statusColor = 'color: #2b6cb0;'; // синий
-      } else if (wbTotal > myStockQty) {
-        status = '⚠️ Меньше на складе';
-        statusColor = 'color: #c53030;'; // красный
-      } else if (wbTotal < myStockQty) {
-        status = '⚠️ Больше на складе';
-        statusColor = 'color: #b7791f;'; // оранжевый
-      } else {
-        status = '✅ ОК';
-        statusColor = 'color: #2f855a;'; // зеленый
-      }
-      
-      html += `
-        <tr>
-          <td>${escapeHtml(productName)}</td>
-          <td>${escapeHtml(article)}</td>
-          <td>${fbsQty}</td>
-          <td>${fboQty}</td>
-          <td>${inWayFbs}</td>
-          <td>${inWayFbo}</td>
-          <td>${wbTotal}</td>
-          <td>${myStockQty}</td>
-          <td>${fmt(cost)} ₽</td>
-          <td style="${statusColor} font-weight: 600;">${status}</td>
-        </tr>
-      `;
+      table.innerHTML = html;
+    }).catch(error => {
+      console.error('Ошибка загрузки данных WB:', error);
+      table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#c53030;">Ошибка загрузки данных: ' + escapeHtml(error.message) + '</td></tr>';
     });
-    
-    table.innerHTML = html;
     
   } catch (error) {
     console.error('Ошибка загрузки данных WB:', error);
-    table.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:#c53030;">Ошибка загрузки данных: ' + escapeHtml(error.message) + '</td></tr>';
+    table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#c53030;">Ошибка загрузки данных: ' + escapeHtml(error.message) + '</td></tr>';
   }
 }
 

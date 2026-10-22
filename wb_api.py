@@ -1,6 +1,6 @@
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from supabase import create_client
 
 # ============================================================
@@ -23,8 +23,9 @@ SUPABASE_KEY = "sb_publishable_08SQ7121NYScNVQYffjjyg_mj-VWYv-"
 # ============================================================
 # ФУНКЦИИ
 # ============================================================
+
 def get_fbs_stocks(nm_ids):
-    """Получает остатки на складах ПРОДАВЦА (FBS)"""
+    """Получает остатки на складах ПРОДАВЦА (FBS) через seller-analytics-api"""
     url = "https://seller-analytics-api.wildberries.ru/api/analytics/v1/stocks-report/seller-warehouses"
     try:
         response = requests.post(url, headers=headers, json={})
@@ -36,12 +37,10 @@ def get_fbs_stocks(nm_ids):
                 nm_id = str(item.get('nmId'))
                 if nm_id in result:
                     result[nm_id]["qty"] += item.get('quantity', 0)
-                    # Суммируем показатели "в пути" для FBS
-                    in_way_to_client = item.get('inWayToClient', 0)
-                    in_way_from_client = item.get('inWayFromClient', 0)
-                    result[nm_id]["in_way"] += in_way_to_client + in_way_from_client
             return result
-        return {}
+        else:
+            print(f"❌ Ошибка FBS: {response.status_code} - {response.text}")
+            return {}
     except Exception as e:
         print(f"❌ Ошибка FBS: {e}")
         return {}
@@ -128,12 +127,20 @@ if __name__ == "__main__":
             print("\n" + "="*70)
             print(f"{'Товар':<35} {'FBS':<10} {'FBO':<10}")
             print("="*70)
+            
             for card in cards:
                 nm_id = str(card.get('nmID'))
                 title = card.get('title', 'Без названия')[:33]
-                fbs = fbs_stocks.get(nm_id, 0)
-                fbo = fbo_stocks.get(nm_id, 0)
+                
+                # Безопасно достаем данные из словаря
+                fbs_val = fbs_stocks.get(nm_id, {})
+                fbs = fbs_val.get('qty', 0) if isinstance(fbs_val, dict) else 0
+                
+                fbo_val = fbo_stocks.get(nm_id, {})
+                fbo = fbo_val.get('qty', 0) if isinstance(fbo_val, dict) else 0
+                
                 print(f"{title:<35} {fbs:<10} {fbo:<10}")
+                
             print("="*70)
             
             save_to_supabase(nm_ids, fbs_stocks, fbo_stocks, cards)
