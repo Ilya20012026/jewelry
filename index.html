@@ -181,8 +181,35 @@
   .calendar-grid .day:hover:not(.empty) { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15); z-index: 10; }
   .calendar-grid .day:active:not(.empty) { transform: scale(0.92); }
   .calendar-grid .day.empty { background: transparent; cursor: default; }
-  .calendar-grid .day.selected { background: var(--accent); color: #fff; box-shadow: 0 10px 30px rgba(217, 119, 6, 0.4); }
-  .calendar-grid .day .day-number { font-family: var(--font-head); font-size: 14px; font-weight: 600; }
+  
+  /* Сегодня - Янтарный фон */
+  .calendar-grid .day.today {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border-color: var(--accent);
+  }
+  .calendar-grid .day.today .day-number { color: #fff; }
+  .calendar-grid .day.today .dots .dot { background: rgba(0,0,0,0.4); } /* Точки темные на янтарном */
+
+  /* Выбранный - Янтарная рамка */
+  .calendar-grid .day.selected {
+    border: 2px solid var(--accent) !important;
+    background: rgba(217, 119, 6, 0.1) !important;
+    color: var(--accent) !important;
+  }
+  .calendar-grid .day.selected .day-number { color: var(--accent); }
+
+  /* Если день И сегодня И выбран */
+  .calendar-grid .day.today.selected {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border: 2px solid var(--ink) !important;
+  }
+  .calendar-grid .day.today.selected .day-number { color: #fff; }
+
+  /* Убираем артефакты (белые полосы) */
+  .calendar-grid .day .dots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: auto; background: transparent; border: none; }
+  .calendar-grid .day .day-number { background: transparent; border: none; font-family: var(--font-head); font-size: 14px; font-weight: 600; }
 
   .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
   .dot-restock { background: #ef4444; }
@@ -1750,33 +1777,33 @@ function renderColumns(boardId) {
   
   return cols.map(c => {
     const colTasks = (data.board_tasks || []).filter(t => String(t.column_id) === String(c.id));
-       const cardsHTML = colTasks.map(t => `
-      <div style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor:pointer;" onclick="openTaskModal('${t.id}')">
-        ${t.photo ? `<img src="${escapeHtml(t.photo)}" style="width:100%; height:100px; object-fit:cover; border-radius:4px; margin-bottom:6px;">` : ''}
-        <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">${escapeHtml(t.title)}</div>
-        ${t.note ? `<div style="font-size:11px; color:#888; margin-bottom:4px;">${escapeHtml(t.note.slice(0,30))}...</div>` : ''}
-        <div style="display: flex; justify-content: space-between; gap: 4px;">
-          <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="event.stopPropagation(); deleteBoardTask('${t.id}')">×</button>
-          <div>
-            <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="event.stopPropagation(); moveBoardTask('${t.id}', 'left')">←</button>
-            <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="event.stopPropagation(); moveBoardTask('${t.id}', 'right')">→</button>
-          </div>
-        </div>
+    const cardsHTML = colTasks.map(t => `
+  <div style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 8px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor:pointer;" onclick="openTaskModal('${t.id}')">
+    ${t.photo ? `<img src="${escapeHtml(t.photo)}" style="width:100%; height:100px; object-fit:cover; border-radius:4px; margin-bottom:6px;">` : ''}
+    <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">${escapeHtml(t.title)}</div>
+    ${t.note ? `<div style="font-size:11px; color:#888; margin-bottom:4px;">${escapeHtml(t.note.slice(0,30))}...</div>` : ''}
+    <div style="display: flex; justify-content: space-between; gap: 4px;">
+      <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="event.stopPropagation(); deleteBoardTask('${t.id}')">×</button>
+      <div>
+        <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="event.stopPropagation(); moveBoardTask('${t.id}', 'left')">←</button>
+        <button class="action" style="padding: 2px 6px; font-size: 10px;" onclick="event.stopPropagation(); moveBoardTask('${t.id}', 'right')">→</button>
       </div>
-    `).join("");
+    </div>
+  </div>
+`).join("");
 
     return `
-      <div style="min-width: 220px; max-width: 260px; background: #f5f5f5; border-radius: 6px; padding: 12px; border: 1px solid #ddd; display: flex; flex-direction: column;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:8px; align-items:center;">
-          <b style="font-size:13px; text-transform:uppercase;">${escapeHtml(c.name)}</b>
-          <button class="action danger" style="padding:0 4px; font-size:10px;" onclick="deleteColumn('${c.id}')">×</button>
-        </div>
-        <div style="flex: 1; overflow-y: auto; max-height: 400px; margin-bottom: 8px;">
-          ${cardsHTML || '<p style="font-size:11px; color:#999; text-align:center;">Пусто</p>'}
-        </div>
-        <button class="action" style="width: 100%; padding: 4px; font-size: 11px;" onclick="addBoardTask('${c.id}')">+ Задача</button>
-      </div>
-    `;
+  <div style="min-width: 220px; max-width: 260px; background: #f5f5f5; border-radius: 6px; padding: 12px; border: 1px solid #ddd; display: flex; flex-direction: column;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px; align-items:center;">
+      <b style="font-size:13px; text-transform:uppercase; color:#000;">${escapeHtml(c.name)}</b>
+      <button class="action danger" style="padding:0 4px; font-size:10px;" onclick="deleteColumn('${c.id}')">×</button>
+    </div>
+    <div style="flex: 1; overflow-y: auto; max-height: 400px; margin-bottom: 8px;">
+      ${cardsHTML || '<p style="font-size:11px; color:#999; text-align:center;">Пусто</p>'}
+    </div>
+    <button class="action" style="width: 100%; padding: 4px; font-size: 11px;" onclick="addBoardTask('${c.id}')">+ Задача</button>
+  </div>
+`;
   }).join("");
 }
 
@@ -3285,35 +3312,34 @@ function renderBatches() {
     doneHtml += `<div class="task-group"><div class="task-group-header"><div class="task-group-title">✅ ЗАВЕРШЕНО: ${escapeHtml(title)}</div></div>`;
     doneHtml += `<div class="task-group-body">`;
     doneGroups[gid].forEach(b => {
-       doneHtml += `
-        <details style="margin-bottom:8px; border:1px solid #eee; border-radius:4px; padding:8px; background:#fff;">
-          <summary style="cursor:pointer; font-size:14px; font-weight:600;">Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span></summary>
-          <div style="margin-top:12px; font-size:13px;">
-            <div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #eee;">
-              <div><b>Себестоимость:</b> ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div>
-              <div><b>Ответственный:</b> ${escapeHtml(b.responsible) || "—"}</div>
-              <div><b>Завершено:</b> ${b.finishedAt || "—"}</div>
-            </div>
-            
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-              <div><b>Воск:</b> ${fmt(b.stages[1].waxUsed, 3)} г — ${fmt(b.stageCosts[1])} ₽</div>
-              <div><b>Формовка:</b> ${fmt(b.stageCosts[2])} ₽</div>
-              <div><b>Прокалка:</b> ${fmt(b.stageCosts[3])} ₽</div>
-              <div><b>Литьё (металл):</b> ${fmt(b.stages[4].metalUsed, 3)} г (возврат ${fmt(b.stages[4].metalReturned, 3)} г) — ${fmt(b.stageCosts[4])} ₽</div>
-              <div><b>Обработка:</b> ${fmt(b.stageCosts[5])} ₽</div>
-              <div><b>Гальваника:</b> ${fmt(b.stageCosts[6])} ₽</div>
-              <div><b>Чернение:</b> ${fmt(b.stageCosts[7])} ₽</div>
-              <div><b>Упаковка:</b> ${fmt(b.stageCosts[8])} ₽</div>
-            </div>
-
-            ${b.photoWax ? `<div style="margin-top:12px;"><b>Фото восковки:</b><br><img src="${escapeHtml(b.photoWax)}" style="max-height:100px; border-radius:4px; margin-top:4px;"></div>` : ''}
-            ${b.photoMetal ? `<div style="margin-top:12px;"><b>Фото литья:</b><br><img src="${escapeHtml(b.photoMetal)}" style="max-height:100px; border-radius:4px; margin-top:4px;"></div>` : ''}
-
-            <div style="margin-top:12px; border-top:1px solid #eee; padding-top:12px;">
-              <button class="action danger master-hidden" onclick="deleteBatch('${b.id}')">Удалить</button>
-            </div>
-          </div>
-        </details>`;
+      doneHtml += `
+  <details style="margin-bottom:12px; border:1px solid var(--border-light); border-radius:var(--r-md); padding:12px; background:rgba(255,255,255,0.03);">
+    <summary style="cursor:pointer; font-size:14px; font-weight:600; color:#fff; list-style: none;">
+      Партия #${b.id} — ${escapeHtml(b.productName)} × ${b.qty} шт <span class="badge badge-done">готово</span>
+    </summary>
+    <div style="margin-top:16px; font-size:13px; color:rgba(255,255,255,0.7);">
+      <div style="margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05);">
+        <div><b>Себестоимость:</b> ${fmt(b.totalCost)} ₽ (${fmt(b.totalCost/b.qty)} ₽/шт)</div>
+        <div><b>Ответственный:</b> ${escapeHtml(b.responsible) || "—"}</div>
+        <div><b>Завершено:</b> ${b.finishedAt || "—"}</div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+        <div><b>Воск:</b> ${fmt(b.stages[1].waxUsed, 3)} г — ${fmt(b.stageCosts[1])} ₽</div>
+        <div><b>Формовка:</b> ${fmt(b.stageCosts[2])} ₽</div>
+        <div><b>Прокалка:</b> ${fmt(b.stageCosts[3])} ₽</div>
+        <div><b>Литьё (металл):</b> ${fmt(b.stages[4].metalUsed, 3)} г (возврат ${fmt(b.stages[4].metalReturned, 3)} г) — ${fmt(b.stageCosts[4])} ₽</div>
+        <div><b>Обработка:</b> ${fmt(b.stageCosts[5])} ₽</div>
+        <div><b>Гальваника:</b> ${fmt(b.stageCosts[6])} ₽</div>
+        <div><b>Чернение:</b> ${fmt(b.stageCosts[7])} ₽</div>
+        <div><b>Упаковка:</b> ${fmt(b.stageCosts[8])} ₽</div>
+      </div>
+      ${b.photoWax ? `<div style="margin-top:12px;"><b>Фото восковки:</b><br><img src="${escapeHtml(b.photoWax)}" style="max-height:100px; border-radius:4px; margin-top:4px;"></div>` : ''}
+      ${b.photoMetal ? `<div style="margin-top:12px;"><b>Фото литья:</b><br><img src="${escapeHtml(b.photoMetal)}" style="max-height:100px; border-radius:4px; margin-top:4px;"></div>` : ''}
+      <div style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px;">
+        <button class="action danger master-hidden" onclick="deleteBatch('${b.id}')" style="width:auto;">Удалить</button>
+      </div>
+    </div>
+  </details>`;
     });
     doneHtml += `</div></div>`;
   });
@@ -3474,102 +3500,77 @@ function renderArchivedChats() {
 }
 
 // Заглушки функций для аналитики Wildberries
-function renderWbStocks() {
+async function renderWbStocks() {
   const table = document.getElementById('wb-stocks-table');
   if (!table) return;
   
-  table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">Загрузка данных...</td></tr>';
+  table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Загрузка данных...</td></tr>';
   
   try {
-    const sb = initCloud && initCloud();
+    const sb = await initCloud();
     if (!sb) {
-      table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#c53030;">Ошибка подключения к облаку</td></tr>';
+      table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#f87171;">Ошибка подключения к облаку</td></tr>';
       return;
     }
     
-    // Загружаем ВСЕ данные из таблицы wb_stocks
-    sb.from('wb_stocks').select('*').then(({ data: wbStocks, error }) => {
-      if (error) throw error;
+    const { data: wbStocks, error } = await sb.from('wb_stocks').select('*');
+    if (error) throw error;
+    
+    if (!wbStocks || wbStocks.length === 0) {
+      table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных о товарах на Wildberries</td></tr>';
+      return;
+    }
+    
+    let html = '';
+    wbStocks.forEach(wbItem => {
+      let stockItem = null;
+      let productName = wbItem.title || `Товар WB: ${wbItem.nm_id}`;
+      let article = wbItem.article || '—';
       
-      if (!wbStocks || wbStocks.length === 0) {
-        table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#888;">Нет данных о товарах на Wildberries</td></tr>';
-        return;
-      }
-      
-      let html = '';
-      
-      // Обрабатываем каждый товар из WB
-      wbStocks.forEach(wbItem => {
-        // Ищем товар в локальном складе по артикулу (без учета регистра)
-        let stockItem = null;
-        let productName = wbItem.title || `Товар WB: ${wbItem.nm_id}`;
-        let article = wbItem.article || '—';
-        
-        // Поиск в data.stock по артикулу
-        if (article !== '—') {
-          stockItem = (data.stock || []).find(item => 
-            item.productName && article && 
-            item.productName.toLowerCase().includes(article.toLowerCase())
+      if (article !== '—') {
+        stockItem = (data.stock || []).find(item => 
+          item.productName && article && 
+          item.productName.toLowerCase().includes(article.toLowerCase())
+        );
+        if (!stockItem) {
+          const product = (data.products || []).find(p => 
+            p.article && article && 
+            p.article.toLowerCase() === article.toLowerCase()
           );
-          
-          // Если не нашли по частичному совпадению, попробуем найти по точному совпадению артикула в products
-          if (!stockItem) {
-            const product = (data.products || []).find(p => 
-              p.article && article && 
-              p.article.toLowerCase() === article.toLowerCase()
+          if (product) {
+            stockItem = (data.stock || []).find(item => 
+              item.productName === product.name
             );
-            if (product) {
-              stockItem = (data.stock || []).find(item => 
-                item.productName === product.name
-              );
-            }
           }
         }
-        
-        const fbsQty = wbItem.fbs_quantity || 0;
-        const fboQty = wbItem.fbo_quantity || 0;
-        const wbTotal = fbsQty + fboQty;
-        const myStockQty = stockItem ? stockItem.remaining : 0;
-        const cost = stockItem ? stockItem.costPerUnit : 0;
-        
-        // Определяем статус согласно новой логике
-        let status = '';
-        let statusColor = '';
-        
-        if (!stockItem) {
-          status = '❓ Нет в РУСИЧЪ';
-          statusColor = 'color: #2b6cb0;'; // синий
-        } else if (wbTotal > myStockQty) {
-          status = '⚠️ Меньше на складе';
-          statusColor = 'color: #c53030;'; // красный
-        } else if (wbTotal < myStockQty) {
-          status = '⚠️ Больше на складе';
-          statusColor = 'color: #b7791f;'; // оранжевый
-        } else {
-          status = '✅ ОК';
-          statusColor = 'color: #2f855a;'; // зеленый
-        }
-        
-        html += `
-          <tr>
-            <td>${escapeHtml(productName)}</td>
-            <td>${escapeHtml(article)}</td>
-            <td>${fbsQty}</td>
-            <td>${fboQty}</td>
-            <td>${wbTotal}</td>
-            <td>${myStockQty}</td>
-            <td>${fmt(cost)} ₽</td>
-            <td style="${statusColor} font-weight: 600;">${status}</td>
-          </tr>
-        `;
-      });
+      }
       
-      table.innerHTML = html;
-    }).catch(error => {
-      console.error('Ошибка загрузки данных WB:', error);
-      table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#c53030;">Ошибка загрузки данных: ' + escapeHtml(error.message) + '</td></tr>';
+      const fbsQty = wbItem.fbs_quantity || 0;
+      const fboQty = wbItem.fbo_quantity || 0;
+      const wbTotal = fbsQty + fboQty;
+      const myStockQty = stockItem ? stockItem.remaining : 0;
+      const cost = stockItem ? stockItem.costPerUnit : 0;
+      
+      let status = '', statusColor = '';
+      if (!stockItem) { status = '❓ Нет в РУСИЧЪ'; statusColor = 'color: #60a5fa;'; }
+      else if (wbTotal > myStockQty) { status = '⚠️ Меньше на складе'; statusColor = 'color: #f87171;'; }
+      else if (wbTotal < myStockQty) { status = '⚠️ Больше на складе'; statusColor = 'color: #fbbf24;'; }
+      else { status = '✅ ОК'; statusColor = 'color: #4ade80;'; }
+      
+      html += `
+        <tr>
+          <td>${escapeHtml(productName)}</td>
+          <td>${escapeHtml(article)}</td>
+          <td>${fbsQty}</td>
+          <td>${fboQty}</td>
+          <td>${wbTotal}</td>
+          <td>${myStockQty}</td>
+          <td>${fmt(cost)} ₽</td>
+          <td style="${statusColor} font-weight: 600;">${status}</td>
+        </tr>
+      `;
     });
-    
+    table.innerHTML = html;
   } catch (error) {
     console.error('Ошибка загрузки данных WB:', error);
     table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#c53030;">Ошибка загрузки данных: ' + escapeHtml(error.message) + '</td></tr>';
