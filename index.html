@@ -2050,12 +2050,29 @@ function showCompanyTab(id, btn) {
   } else if (id === "analytics") {
     // При открытии аналитики показываем первую вкладку Wildberries
     const wbTabBtn = document.querySelector('#company-analytics .tabs button.active');
-    if (wbTabBtn) {
-      showWbTab(wbTabBtn.onclick.name.match(/'([^']+)'/)[1], wbTabBtn);
+    if (wbTabBtn && wbTabBtn.onclick) {
+      // Безопасно извлекаем ID вкладки из обработчика onclick
+      const match = wbTabBtn.onclick.toString().match(/'([^']+)'/);
+      if (match && match[1]) {
+        showWbTab(match[1], wbTabBtn);
+      } else {
+        // Если не удалось распарсить, показываем stocks по умолчанию
+        showWbTab('stocks', wbTabBtn);
+      }
     } else {
       // Если нет активной кнопки, показываем stocks по умолчанию
       const stocksBtn = document.querySelector('#company-analytics .tabs button[onclick*="stocks"]');
       if (stocksBtn) showWbTab('stocks', stocksBtn);
+      else {
+        // Если даже кнопки stocks нет, просто активируем первую вкладку
+        const firstTab = document.querySelector('#company-analytics .tabs button:first-child');
+        if (firstTab) {
+          const match = firstTab.onclick.toString().match(/'([^']+)'/);
+          if (match && match[1]) {
+            showWbTab(match[1], firstTab);
+          }
+        }
+      }
     }
   } else {
     document.getElementById("chat_window").style.display = "none";
