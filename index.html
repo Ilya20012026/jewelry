@@ -4335,8 +4335,16 @@ async function initApp() {
       if (typeof _currentChatId !== 'undefined' && _currentChatId) { renderChatMessages(_currentChatId); renderChatParticipants(_currentChatId); }
       renderChats();
     }
-    if (table === 'notifications') {
+        if (table === 'notifications') {
       renderNotifications();
+      
+      // Показываем всплывашку, если пришло новое уведомление для нас
+      if (payload.eventType === 'INSERT' && payload.new) {
+        const currentUser = getCurrentUser();
+        if (currentUser && String(payload.new.user_id) === String(currentUser.id)) {
+          showToast("🔔 " + (payload.new.title || "Новое уведомление"), "info");
+        }
+      }
     }
     if (table === 'tasks') { renderCalendar(); if (typeof _calSelectedDay !== 'undefined' && _calSelectedDay) renderDayTasks(_calSelectedDay); }
     if (['batches', 'groups', 'employees'].includes(table)) { renderBatches(); renderBatchResponsibleSelect(); }
