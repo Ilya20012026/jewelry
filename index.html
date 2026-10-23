@@ -1923,9 +1923,9 @@ function renderColumns(boardId) {
 
     return `
   <div style="min-width: 220px; max-width: 260px; background: #f5f5f5; border-radius: 6px; padding: 12px; border: 1px solid #ddd; display: flex; flex-direction: column;">
-    <div style="display:flex; justify-content:space-between; margin-bottom:8px; align-items:center;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px; align-items:center; gap: 8px;">
       <b style="font-size:13px; text-transform:uppercase; color:#000;">${escapeHtml(c.name)}</b>
-      <button class="action danger" style="padding:0 4px; font-size:10px;" onclick="deleteColumn('${c.id}')">×</button>
+      <button class="action danger" style="padding: 2px 8px; font-size: 14px; background: #fff; color: #c53030; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; flex-shrink: 0;" onclick="event.stopPropagation(); deleteColumn('${c.id}')" title="Удалить колонку">×</button>
     </div>
     <div style="flex: 1; overflow-y: auto; max-height: 400px; margin-bottom: 8px;">
       ${cardsHTML || '<p style="font-size:11px; color:#999; text-align:center;">Пусто</p>'}
