@@ -2367,14 +2367,19 @@ async function addNotification(userId, type, title, text, link) {
   data.notifications = data.notifications || [];
   data.notifications.push(notification);
   
-  // Сохраняем локально
+   // Сохраняем локально
   save();
-  
-  // Отправляем в Supabase (через общую синхронизацию)
+
+  // Отправляем в Supabase (защищено от обрыва связи)
   if (typeof pushAll === 'function') {
-    pushAll(data).catch(e => console.warn("Синхронизация не удалась, повторим позже:", e));
+    try {
+      // Добавляем .catch, чтобы ошибка сети не ломала приложение
+      pushAll(data).catch(e => console.warn("Сеть недоступна, синхронизируем позже:", e.message));
+    } catch (e) {
+      console.warn("Ошибка синхронизации:", e.message);
+    }
   }
-  
+
   // Обновляем UI
   renderNotifications();
   
