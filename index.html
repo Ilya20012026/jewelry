@@ -18,8 +18,8 @@
     --ink: #09090b;
     --card-bg: #09090b;
     --input-bg: #ffffff;
-    --accent: #d97706; 
-    --accent-hover: #f59e0b;
+    --accent: #8a1c2c; 
+    --accent-hover: #a32035;
     --border-light: rgba(255, 255, 255, 0.08);
     --r-sm: 8px;
     --r-md: 12px;
@@ -48,9 +48,9 @@
     to { opacity: 1; transform: translateY(0) scale(1); }
   }
   @keyframes pulseDot {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.5); }
-    50% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(217, 119, 6, 0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(138, 28, 44, 0.5); }
+    50% { transform: scale(1.2); box-shadow: 0 0 0 6px rgba(138, 28, 44, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(138, 28, 44, 0); }
   }
 
   /* ШАПКА И НАВИГАЦИЯ */
@@ -87,6 +87,37 @@
     overflow-x: auto; scrollbar-width: none; 
     border-bottom: 1px solid rgba(255,255,255,0.05);
   }
+  
+  .top-bar-wrapper .tabs {
+    display: none;
+    padding: 12px 40px;
+    background: rgba(9,9,11,0.98);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  
+  .top-bar-wrapper .tabs::-webkit-scrollbar { display: none; }
+  
+  .top-bar-wrapper .tabs button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 6px 16px;
+    font-family: var(--font-head);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--r-sm);
+    transition: all 0.3s var(--bounce);
+    white-space: nowrap;
+  }
+  
+  .top-bar-wrapper .tabs button:hover { color: #fff; }
+  .top-bar-wrapper .tabs button.active { color: var(--ink); background: #fff; }
   .main-tabs::-webkit-scrollbar { display: none; }
   .main-tabs button {
     background: transparent; border: none; color: rgba(255, 255, 255, 0.5);
@@ -113,7 +144,7 @@
   .tabs button.active { color: var(--ink); background: #fff; }
 
   /* КОНТЕНТ */
-  .main-section { display: none !important; padding: 24px 40px 60px 40px; max-width: 1400px; margin: 0 auto; }
+  .main-section { display: none !important; padding: 0 40px 60px 40px; max-width: 1400px; margin: 0 auto; }
   .main-section.active { display: block !important; animation: fadeSlideUp 0.4s var(--spring) forwards; }
   .tab { display: none; padding: 0; }
   .tab.active { display: block; }
@@ -151,7 +182,7 @@
     box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); max-width: 100%;
   }
   input::placeholder, textarea::placeholder { color: rgba(9, 9, 11, 0.35); }
-  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2); }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(138, 28, 44, 0.2); }
   select {
     appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2309090b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
     background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; padding-right: 40px; cursor: pointer;
@@ -161,10 +192,10 @@
     background: var(--accent); color: #fff; border: none; border-radius: var(--r-md);
     padding: 12px 20px; cursor: pointer; font-family: var(--font-head); font-size: 11px;
     font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
-    transition: all 0.3s var(--bounce); box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2); 
+    transition: all 0.3s var(--bounce); box-shadow: 0 4px 12px rgba(138, 28, 44, 0.2); 
     white-space: nowrap;
   }
-  button.action:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(217, 119, 6, 0.3); background: var(--accent-hover); }
+  button.action:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(138, 28, 44, 0.3); background: var(--accent-hover); }
   button.action:active { transform: scale(0.96); }
   button.action.ok { background: #fff; color: var(--ink); }
   button.action.danger { background: transparent; color: rgba(255, 255, 255, 0.5); border: 1px solid var(--border-light); box-shadow: none; }
@@ -197,10 +228,10 @@
   .calendar-grid .day.today .day-number { color: #fff; }
   .calendar-grid .day.today .dots .dot { background: rgba(0,0,0,0.4); }
 
-  /* Выбранный - Янтарная рамка */
+  /* Выбранный - Винно-красная рамка */
   .calendar-grid .day.selected {
     border: 2px solid var(--accent) !important;
-    background: rgba(217, 119, 6, 0.1) !important;
+    background: rgba(138, 28, 44, 0.1) !important;
     color: var(--accent) !important;
   }
   .calendar-grid .day.selected .day-number { color: var(--accent); }
@@ -215,12 +246,9 @@
 
   /* Убираем артефакты */
   .calendar-grid .day .day-number {
-    background: transparent; 
-    border: none; 
     font-family: var(--font-head); 
     font-size: 14px; 
     font-weight: 600;
-    z-index: 1;
   }
   .calendar-grid .day .dots { 
     display: flex; 
@@ -261,7 +289,7 @@
   .progress-track::before { content: ''; position: absolute; top: 50%; left: 10px; right: 10px; height: 2px; background: rgba(255,255,255,0.1); z-index: 1; transform: translateY(-50%); }
   .progress-step { width: 24px; height: 24px; border-radius: 50%; background: #16161a; border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); position: relative; z-index: 2; transition: all 0.3s ease; }
   .progress-step.done { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .progress-step.current { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2); }
+  .progress-step.current { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 3px rgba(138, 28, 44, 0.2); }
 
   .chat-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: var(--r-md); margin-bottom: 8px; cursor: pointer; transition: background .15s; }
   .chat-item:hover { background: rgba(255,255,255,0.08); }
@@ -313,39 +341,22 @@
    
 <div id="splash_screen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #09090b; color: #fff; z-index: 20000; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s ease;">
   <style>
-    .splash-loader {
-      display: flex;
-      gap: 8px;
-      font-family: 'Archivo', sans-serif;
-      font-size: 42px;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-    .splash-loader .char {
-      color: rgba(255, 255, 255, 0.15);
-      animation: fillLetter 3s infinite both;
-    }
-    .splash-loader .char:nth-child(1) { animation-delay: -2.0s; }
-    .splash-loader .char:nth-child(2) { animation-delay: -2.25s; }
-    .splash-loader .char:nth-child(3) { animation-delay: -2.5s; }
-    .splash-loader .char:nth-child(4) { animation-delay: -2.75s; }
-    .splash-loader .char:nth-child(5) { animation-delay: -3.0s; }
-    .splash-loader .char:nth-child(6) { animation-delay: -3.25s; }
-
+    .splash-loader { display: flex; gap: 8px; font-family: 'Archivo', sans-serif; font-size: 42px; font-weight: 800; text-transform: uppercase; }
+    .splash-loader .char { color: rgba(255, 255, 255, 0.15); animation: fillLetter 3s infinite both; }
+    .splash-loader .char:nth-child(1) { animation-delay: 0.0s; }
+    .splash-loader .char:nth-child(2) { animation-delay: 0.15s; }
+    .splash-loader .char:nth-child(3) { animation-delay: 0.3s; }
+    .splash-loader .char:nth-child(4) { animation-delay: 0.45s; }
+    .splash-loader .char:nth-child(5) { animation-delay: 0.6s; }
+    .splash-loader .char:nth-child(6) { animation-delay: 0.75s; }
     @keyframes fillLetter {
       0% { color: rgba(255, 255, 255, 0.15); }
-      15% { color: #ffffff; }
-      99% { color: #ffffff; }
+      15%, 85% { color: #ffffff; }
       100% { color: rgba(255, 255, 255, 0.15); }
     }
   </style>
   <div class="splash-loader">
-    <span class="char">Р</span>
-    <span class="char">У</span>
-    <span class="char">С</span>
-    <span class="char">И</span>
-    <span class="char">Ч</span>
-    <span class="char">Ъ</span>
+    <span class="char">Р</span><span class="char">У</span><span class="char">С</span><span class="char">И</span><span class="char">Ч</span><span class="char">Ъ</span>
   </div>
 </div>
 <div id="login_screen" class="login-screen" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #09090b; z-index: 10000; flex-direction: column; align-items: center; justify-content: center; font-family: var(--font-body);">
@@ -384,17 +395,44 @@
       <button onclick="showMain('contractors', this)">КОНТРАГЕНТЫ</button>
       <button onclick="showMain('service', this)">СЕРВИС</button>
     </div>
+
+    <!-- Вкладки для раздела ПРОИЗВОДСТВО -->
+    <div id="production-tabs" class="tabs" style="display: none;">
+      <button class="active" onclick="showTab('products', this)">Изделия</button>
+      <button onclick="showTab('batches', this)">Партии</button>
+      <button onclick="showTab('supplies', this)">Поставки</button>
+    </div>
+
+    <!-- Вкладки для раздела КОМПАНИЯ -->
+    <div id="company-tabs" class="tabs" style="display: none;">
+      <button class="active" onclick="showCompanyTab('calendar', this)">Календарь</button>
+      <button onclick="showCompanyTab('boards', this)">Доски</button>
+      <button onclick="showCompanyTab('employees', this)">Сотрудники</button>
+      <button onclick="showCompanyTab('chat', this)">Сообщения</button>
+      <button onclick="showCompanyTab('analytics', this)">Аналитика</button>
+    </div>
+
+    <!-- Вкладки для раздела КОНТРАГЕНТЫ -->
+    <div id="contractors-tabs" class="tabs" style="display: none;">
+      <!-- Контрагенты не имеют вкладок, оставляем пустым -->
+    </div>
+
+    <!-- Вкладки для раздела СЕРВИС -->
+    <div id="service-tabs" class="tabs" style="display: none;">
+      <button class="active" onclick="showTab('sku', this)">Склад материалов</button>
+      <button onclick="showTab('stock', this)">Склад готовой</button>
+      <button onclick="showTab('refs', this)">Справочники</button>
+      <button onclick="showTab('archive', this)">Архив списаний</button>
+      <button onclick="showServiceTab('backup', this)">Резервная копия</button>
+      <button onclick="showServiceTab('archive_chats', this)">Архив чатов</button>
+    </div>
   </div>
 
   <!-- ==========================================
        РАЗДЕЛ: ПРОИЗВОДСТВО
        ========================================== -->
   <div id="main-production" class="main-section">
-    <div class="tabs">
-      <button class="active" onclick="showTab('products', this)">Изделия</button>
-      <button onclick="showTab('batches', this)">Партии</button>
-      <button onclick="showTab('supplies', this)">Поставки</button>
-    </div>
+    <!-- Вкладки перенесены в верхнюю панель -->
 
     <div id="products" class="tab active">
       <details class="card" style="padding: 0; overflow: hidden;">
@@ -541,13 +579,7 @@
        РАЗДЕЛ: КОМПАНИЯ
        ========================================== -->
   <div id="main-company" class="main-section active">
-    <div class="tabs">
-      <button class="active" onclick="showCompanyTab('calendar', this)">Календарь</button>
-      <button onclick="showCompanyTab('boards', this)">Доски</button>
-      <button onclick="showCompanyTab('employees', this)">Сотрудники</button>
-      <button onclick="showCompanyTab('chat', this)">Сообщения</button>
-      <button onclick="showCompanyTab('analytics', this)">Аналитика</button>
-    </div>
+    <!-- Вкладки перенесены в верхнюю панель -->
 
     <div id="company-calendar" class="tab active">
       <details class="card" style="padding: 0; overflow: hidden;">
@@ -681,7 +713,7 @@
 
     <div id="company-analytics" class="tab">
       <div class="card">
-        <h3>Wildberries</h3>
+        <h3 style="color: #cb11ab; border-bottom-color: rgba(203, 17, 171, 0.3);">Wildberries</h3>
         <div class="tabs" style="background: transparent; padding: 0 0 16px 0;">
           <button class="active" onclick="showWbTab('stocks', this)">Остатки</button>
           <button onclick="showWbTab('seo', this)">SEO и Запросы</button>
@@ -692,8 +724,8 @@
         <div id="wb-stocks" class="tab active">
           <p class="hint">Сравнение остатков на Wildberries и на вашем складе</p>
           <div class="row" style="margin-bottom:16px;">
-            <button class="action" onclick="renderWbStocks()" style="width:auto; background: #8b5cf6; border-color: #8b5cf6; color: white; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);">🔄 Обновить все</button>
-            <button class="action" onclick="alert('Запустите python wb_api.py, чтобы обновить данные')" style="width:auto; background: #8b5cf6; border-color: #8b5cf6; color: white; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);">🔄 Синхронизировать с WB</button>
+            <button class="action" onclick="renderWbStocks()" style="width:auto; background: #cb11ab; border-color: #cb11ab; color: white; box-shadow: 0 4px 12px rgba(203, 17, 171, 0.3);">🔄 Обновить все</button>
+            <button class="action" onclick="alert('Запустите python wb_api.py, чтобы обновить данные')" style="width:auto; background: #cb11ab; border-color: #cb11ab; color: white; box-shadow: 0 4px 12px rgba(203, 17, 171, 0.3);">🔄 Синхронизировать с WB</button>
           </div>
           <div style="overflow-x:auto;">
             <table>
@@ -740,6 +772,7 @@
        РАЗДЕЛ: КОНТРАГЕНТЫ
        ========================================== -->
   <div id="main-contractors" class="main-section">
+    <!-- Вкладки перенесены в верхнюю панель -->
     <div id="contractors-categories-view">
       <div class="card">
         <h3>Категории контрагентов</h3>
@@ -811,14 +844,7 @@
        РАЗДЕЛ: СЕРВИС
        ========================================== -->
   <div id="main-service" class="main-section">
-    <div class="tabs">
-      <button class="active" onclick="showTab('sku', this)">Склад материалов</button>
-      <button onclick="showTab('stock', this)">Склад готовой</button>
-      <button onclick="showTab('refs', this)">Справочники</button>
-      <button onclick="showTab('archive', this)">Архив списаний</button>
-      <button onclick="showServiceTab('backup', this)">Резервная копия</button>
-      <button onclick="showServiceTab('archive_chats', this)">Архив чатов</button>
-    </div>
+    <!-- Вкладки перенесены в верхнюю панель -->
 
     <div id="sku" class="tab active">
       <div class="card master-hidden">
@@ -2091,12 +2117,15 @@ function showCompanyTab(id, btn) {
   const mainCompany = btn.closest('#main-company');
   if (!mainCompany) return;
   
-  // Скрываем все вкладки и кнопки только внутри раздела Компания (только прямые дети)
+  // Скрываем все вкладки внутри раздела Компания
   const tabs = mainCompany.querySelectorAll(":scope > .tab");
-  const tabButtons = mainCompany.querySelectorAll(":scope > .tabs > button");
-  
   tabs.forEach(t => t.classList.remove("active"));
-  tabButtons.forEach(b => b.classList.remove("active"));
+  
+  // Снимаем active с кнопок в верхней панели для раздела company
+  const companyTabs = document.getElementById('company-tabs');
+  if (companyTabs) {
+    companyTabs.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  }
   
   document.getElementById("company-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
@@ -2399,15 +2428,23 @@ function showMain(mainId, btn) {
   if (chatWindow) chatWindow.style.display = "none";
   _currentChatId = null;
   
-  // 3. Включаем нужный раздел
+  // 3. Скрываем все вкладки в верхней панели
+  document.querySelectorAll(".top-bar-wrapper .tabs").forEach(t => t.style.display = "none");
+  
+  // 4. Показываем нужные вкладки для активного раздела
+  const tabsId = mainId + "-tabs";
+  const activeTabs = document.getElementById(tabsId);
+  if (activeTabs) activeTabs.style.display = "flex";
+  
+  // 5. Включаем нужный раздел
   const section = document.getElementById("main-" + mainId);
   if (section) section.classList.add("active");
   
-  // 4. Подсвечиваем кнопку в главном меню
+  // 6. Подсвечиваем кнопку в главном меню
   document.querySelectorAll(".main-tabs button").forEach(b => b.classList.remove("active"));
   if (btn) btn.classList.add("active");
 
-  // 5. ХАК: Принудительно сбрасываем ВСЕ внутренние вкладки (только прямые дети!)
+  // 7. Сбрасываем внутренние вкладки
   document.querySelectorAll(".main-section").forEach(section => {
     const tabs = section.querySelectorAll(":scope > .tab");
     const tabButtons = section.querySelectorAll(":scope > .tabs > button");
@@ -2415,16 +2452,16 @@ function showMain(mainId, btn) {
     tabButtons.forEach(b => b.classList.remove("active"));
   });
 
-  // 6. Включаем правильную вкладку по умолчанию для каждого раздела
+  // 8. Включаем правильную вкладку по умолчанию
   if (mainId === "production") {
     const prodTab = document.getElementById("products");
-    const prodBtn = document.querySelector("#main-production .tabs button[onclick*='products']");
+    const prodBtn = document.querySelector("#production-tabs button[onclick*='products']");
     if (prodTab) prodTab.classList.add("active");
     if (prodBtn) prodBtn.classList.add("active");
   } 
   else if (mainId === "company") {
     const compTab = document.getElementById("company-calendar");
-    const compBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
+    const compBtn = document.querySelector("#company-tabs button[onclick*='calendar']");
     if (compTab) compTab.classList.add("active");
     if (compBtn) compBtn.classList.add("active");
     const chatListCard = document.querySelector("#company-chat > .card");
@@ -2432,7 +2469,7 @@ function showMain(mainId, btn) {
   }
   else if (mainId === "service") {
     const servTab = document.getElementById("sku");
-    const servBtn = document.querySelector("#main-service .tabs button[onclick*='sku']");
+    const servBtn = document.querySelector("#service-tabs button[onclick*='sku']");
     if (servTab) servTab.classList.add("active");
     if (servBtn) servBtn.classList.add("active");
   }
@@ -2450,12 +2487,15 @@ function showServiceTab(id, btn) {
   const mainService = btn.closest('#main-service');
   if (!mainService) return;
   
-  // Скрываем все вкладки и кнопки только внутри раздела Сервис (только прямые дети)
+  // Скрываем все вкладки внутри раздела Сервис
   const tabs = mainService.querySelectorAll(":scope > .tab");
-  const tabButtons = mainService.querySelectorAll(":scope > .tabs > button");
-  
   tabs.forEach(t => t.classList.remove("active"));
-  tabButtons.forEach(b => b.classList.remove("active"));
+  
+  // Снимаем active с кнопок в верхней панели для раздела service
+  const serviceTabs = document.getElementById('service-tabs');
+  if (serviceTabs) {
+    serviceTabs.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  }
   
   document.getElementById("service-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
@@ -2468,7 +2508,13 @@ function showTab(id, btn) {
 
   // Снимаем класс active со всех вкладок и кнопок внутри этого раздела
   activeMainSection.querySelectorAll(":scope > .tab").forEach(t => t.classList.remove("active"));
-  activeMainSection.querySelectorAll(":scope > .tabs > button").forEach(b => b.classList.remove("active"));
+  
+  // Снимаем active с кнопок в верхней панели для этого раздела
+  const mainId = activeMainSection.id.replace('main-', '');
+  const tabsContainer = document.getElementById(mainId + '-tabs');
+  if (tabsContainer) {
+    tabsContainer.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  }
 
   // Показываем нужную вкладку
   const targetTab = document.getElementById(id);
