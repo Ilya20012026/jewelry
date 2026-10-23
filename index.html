@@ -1663,12 +1663,21 @@ async function openTaskChat(linkedId, title) {
     save(); renderChats(); showToast("✅ Чат для задачи создан", "success");
   }
   
+  // 1. Переключаем главный раздел на "Компания"
   const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
   if (companyBtn) showMain("company", companyBtn);
 
-  const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
-  if (chatTabBtn) showCompanyTab('chat', chatTabBtn);
+  // 2. Находим кнопку "Сообщения" в верхней панели и нажимаем её
+  const companyTabs = document.getElementById('company-tabs');
+  if (companyTabs) {
+    const chatBtn = Array.from(companyTabs.querySelectorAll('button')).find(b => b.textContent.includes('Сообщения'));
+    if (chatBtn) {
+      // Вызываем showCompanyTab, чтобы правильно переключить вкладку
+      showCompanyTab('chat', chatBtn);
+    }
+  }
   
+  // 3. Открываем сам чат
   _currentChatId = chat.id;
   document.getElementById("chat_title").textContent = chat.title || "Без названия";
   document.querySelector("#company-chat > .card").style.display = "none";
@@ -1701,7 +1710,7 @@ function openChat(chatId) {
   // 2. Принудительно скрываем ВСЕ вкладки внутри раздела "Компания"
   document.querySelectorAll("#main-company > .tab").forEach(t => {
     t.classList.remove("active");
-    t.style.display = "none"; // <-- ЖЕСТКО СКРЫВАЕМ
+    t.style.display = "none";
   });
   
   // 3. Снимаем активность со всех кнопок в верхней панели (company-tabs)
@@ -1714,7 +1723,7 @@ function openChat(chatId) {
   const chatTab = document.getElementById("company-chat");
   if (chatTab) {
     chatTab.classList.add("active");
-    chatTab.style.display = "block"; // <-- ПРИНУДИТЕЛЬНО ПОКАЗЫВАЕМ
+    chatTab.style.display = "block";
   }
   
   // 5. Активируем кнопку "Сообщения" в верхней панели
@@ -2154,30 +2163,24 @@ setTimeout(() => { renderCalendar(); }, 150);
 // Функция удалена - больше не нужна с новой навигацией
 
 function showCompanyTab(id, btn) {
-  // Находим раздел Компания по ID
   const mainCompany = document.getElementById('main-company');
   if (!mainCompany) return;
-  
-  // Скрываем все вкладки внутри раздела Компания
-  const tabs = mainCompany.querySelectorAll(":scope > .tab");
-  tabs.forEach(t => t.classList.remove("active"));
-  
-  // Снимаем active с кнопок в верхней панели для раздела company
+
+  // Скрываем все вкладки
+  mainCompany.querySelectorAll(":scope > .tab").forEach(t => t.classList.remove("active"));
+
+  // Снимаем active с кнопок в верхней панели
   const companyTabs = document.getElementById('company-tabs');
   if (companyTabs) {
     companyTabs.querySelectorAll('button').forEach(b => b.classList.remove('active'));
   }
-  
+
+  // Показываем нужную вкладку
   document.getElementById("company-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
-  
-  if (id === "employees") {
-    renderEmployees();
-  }
 
-  if (id === "boards") {
-    renderBoards();
-  }
+  if (id === "employees") renderEmployees();
+  if (id === "boards") renderBoards();
   
   if (id === "chat") {
     renderChats();
@@ -2186,31 +2189,10 @@ function showCompanyTab(id, btn) {
       document.querySelector("#company-chat > .card").style.display = "block";
     }
   } else if (id === "analytics") {
-    // При открытии аналитики показываем первую вкладку Wildberries
-    const wbTabBtn = document.querySelector('#company-analytics .tabs button.active');
-    if (wbTabBtn && wbTabBtn.onclick) {
-      // Безопасно извлекаем ID вкладки из обработчика onclick
-      const match = wbTabBtn.onclick.toString().match(/'([^']+)'/);
-      if (match && match[1]) {
-        showWbTab(match[1], wbTabBtn);
-      } else {
-        // Если не удалось распарсить, показываем stocks по умолчанию
-        showWbTab('stocks', wbTabBtn);
-      }
-    } else {
-      // Если нет активной кнопки, показываем stocks по умолчанию
-      const stocksBtn = document.querySelector('#company-analytics .tabs button[onclick*="stocks"]');
-      if (stocksBtn) showWbTab('stocks', stocksBtn);
-      else {
-        // Если даже кнопки stocks нет, просто активируем первую вкладку
-        const firstTab = document.querySelector('#company-analytics .tabs button:first-child');
-        if (firstTab) {
-          const match = firstTab.onclick.toString().match(/'([^']+)'/);
-          if (match && match[1]) {
-            showWbTab(match[1], firstTab);
-          }
-        }
-      }
+    // Показываем вкладку "Остатки" внутри аналитики
+    const wbStocksBtn = document.querySelector('#company-analytics .tabs button[onclick*="stocks"]');
+    if (wbStocksBtn) {
+      showWbTab('stocks', wbStocksBtn);
     }
   } else {
     document.getElementById("chat_window").style.display = "none";
@@ -2547,22 +2529,22 @@ function showTab(id, btn) {
   const activeMainSection = document.querySelector('.main-section.active');
   if (!activeMainSection) return;
 
-  // Снимаем класс active со всех вкладок и кнопок внутри этого раздела
+  // 1. Скрываем все вкладки внутри активного раздела
   activeMainSection.querySelectorAll(":scope > .tab").forEach(t => t.classList.remove("active"));
-  
-  // Снимаем active с кнопок в верхней панели для этого раздела
+
+  // 2. Снимаем активность с кнопок в верхней панели для этого раздела
   const mainId = activeMainSection.id.replace('main-', '');
   const tabsContainer = document.getElementById(mainId + '-tabs');
   if (tabsContainer) {
     tabsContainer.querySelectorAll('button').forEach(b => b.classList.remove('active'));
   }
 
-  // Показываем нужную вкладку
+  // 3. Показываем нужную вкладку и активируем кнопку
   const targetTab = document.getElementById(id);
   if (targetTab) targetTab.classList.add("active");
   if (btn) btn.classList.add("active");
 
-  // Загрузка данных для специфичных вкладок
+  // 4. Загрузка данных (без изменений)
   if (id === "stock") renderStock();
   if (id === "supplies") {
     const respSelect = document.getElementById("sup_responsible");
@@ -4756,11 +4738,20 @@ function openSupplyChat(supplyId, title) {
     save(); renderChats();
   }
   
+  // 1. Переключаем главный раздел на "Компания"
   const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
   if (companyBtn) showMain("company", companyBtn);
-  const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
-  if (chatTabBtn) showCompanyTab('chat', chatTabBtn);
+
+  // 2. Находим кнопку "Сообщения" в верхней панели и нажимаем её
+  const companyTabs = document.getElementById('company-tabs');
+  if (companyTabs) {
+    const chatBtn = Array.from(companyTabs.querySelectorAll('button')).find(b => b.textContent.includes('Сообщения'));
+    if (chatBtn) {
+      showCompanyTab('chat', chatBtn);
+    }
+  }
   
+  // 3. Открываем сам чат
   _currentChatId = chat.id;
   document.getElementById("chat_title").textContent = chat.title || "Без названия";
   document.querySelector("#company-chat > .card").style.display = "none";
