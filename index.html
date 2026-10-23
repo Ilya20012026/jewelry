@@ -320,8 +320,17 @@
 
   .chat-message { padding: 12px 16px; margin-bottom: 10px; border-radius: var(--r-md); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); max-width: 80%; word-wrap: break-word; }
   .chat-message.own { background: var(--accent); color: #fff; margin-left: auto; border-color: var(--accent); }
-  .chat-message-header { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; margin-bottom: 6px; color: rgba(255,255,255,0.5); }
+  .chat-message-header { display: flex; align-items: center; gap: 8px; font-size: 11px; margin-bottom: 6px; color: rgba(255,255,255,0.5); }
+  .avatar { border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+  .avatar-initials { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; }
   .chat-message.own .chat-message-header { color: rgba(255,255,255,0.8); }
+  .notification-item { padding:12px; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer; }
+  .notification-item.unread { background:rgba(138, 28, 44, 0.1); border-left:3px solid var(--accent); }
+  .notification-item:hover { background:rgba(255,255,255,0.05); }
+  .notification-title { font-weight:600; font-size:13px; margin-bottom:4px; color:#fff; }
+  .notification-item.unread .notification-title { font-weight:700; }
+  .notification-text { font-size:12px; color:rgba(255,255,255,0.7); margin-bottom:4px; }
+  .notification-time { font-size:10px; color:rgba(255,255,255,0.4); }
   .chat-message-sender { font-weight: 600; }
   .chat-message-text { font-size: 13px; line-height: 1.5; }
 
@@ -402,11 +411,24 @@
     <header>
       <span>РУСИЧЪ</span>
       <span style="display:flex; align-items:center; gap:12px;">
+        <span id="current_user_avatar" style="margin-right:8px;"></span>
         <span id="current_user_name" style="font-family:var(--font-head); font-size:10px; color:rgba(255,255,255,0.5); letter-spacing:2px; text-transform:uppercase;"></span>
         <span id="cloud_dot" title="Облако: офлайн"></span>
+        <button id="notif_bell" onclick="toggleNotifications()" style="position:relative; background:none; border:none; cursor:pointer; color:#fff; font-size:20px; padding:6px;">
+          🔔
+          <span id="notif_badge" style="display:none; position:absolute; top:0; right:0; background:#c53030; color:#fff; font-size:10px; font-weight:700; border-radius:10px; padding:1px 5px; min-width:16px; text-align:center;">0</span>
+        </button>
         <button onclick="doLogout()" class="action danger" style="padding: 6px 12px; font-size: 10px; width:auto;">ВЫЙТИ</button>
       </span>
     </header>
+    <div id="notifications_panel" style="display:none; position:absolute; right:0; top:100%; width:380px; max-height:500px; overflow-y:auto; background:#16161a; border:1px solid var(--border-light); border-radius:var(--r-md); z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+      <div style="padding:16px; border-bottom:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
+        <h4 style="margin:0; color:#fff;">Уведомления</h4>
+        <button class="action" onclick="markAllNotificationsRead()" style="padding:4px 8px; font-size:11px;">Прочитать все</button>
+      </div>
+      <div id="notifications_list" style="padding:8px;"></div>
+      <div id="notifications_empty" style="padding:40px 20px; text-align:center; color:rgba(255,255,255,0.5);">Нет уведомлений</div>
+    </div>
 
     <div class="main-tabs">
       <button onclick="showMain('production', this)">ПРОИЗВОДСТВО</button>
@@ -683,12 +705,17 @@
           <input id="emp_note" placeholder="Комментарий" style="flex:1;">
           <button class="action" onclick="addEmployee()" style="width:auto;">Добавить</button>
         </div>
+        <div class="row" style="margin-top:12px;">
+          <label style="font-size:12px; color:#888; text-transform:uppercase;">Аватар</label>
+          <input type="file" id="emp_avatar" accept="image/*" style="margin-top:4px;" onchange="previewEmployeeAvatar(this)">
+          <div id="emp_avatar_preview" style="margin-top:8px;"></div>
+        </div>
       </div>
       <div class="card">
         <h3>Список сотрудников</h3>
         <div style="overflow-x:auto;">
           <table>
-            <thead><tr><th>ФИО</th><th>Роль</th><th>PIN</th><th>Телефон</th><th>Комментарий</th><th></th></tr></thead>
+            <thead><tr><th>Фото</th><th>ФИО</th><th>Роль</th><th>PIN</th><th>Телефон</th><th>Комментарий</th><th></th></tr></thead>
             <tbody id="employees_table"></tbody>
           </table>
         </div>
@@ -1138,6 +1165,11 @@
       <input id="edit_emp_name" type="text" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
     </div>
     <div style="margin-bottom:12px;">
+      <label style="font-size:12px; color:#888; text-transform:uppercase;">Аватар</label>
+      <input type="file" id="edit_emp_avatar" accept="image/*" style="margin-top:4px;" onchange="previewEditEmployeeAvatar(this)">
+      <div id="edit_emp_avatar_preview" style="margin-top:8px;"></div>
+    </div>
+    <div style="margin-bottom:12px;">
       <label style="font-size:12px; color:#888; text-transform:uppercase;">Роль</label>
       <select id="edit_emp_role" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
         <option value="master">Сотрудник</option>
@@ -1238,7 +1270,8 @@ const EMPTY_DATA = {
   batches: [], stock: [], archive: [],
   tasks: [], employees: [], groups: [],
   chats: [], messages: [], chat_participants: [],
-  boards: [], columns: [], board_tasks: []
+  boards: [], columns: [], board_tasks: [],
+  notifications: []
 };
 
 let data = JSON.parse(JSON.stringify(EMPTY_DATA));
@@ -1511,6 +1544,21 @@ function addTask() {
     updatedAt: new Date().toISOString(),
   };
   data.tasks.push(task);
+  
+  // Уведомление ответственному
+  if (task.responsible && task.responsible.trim() !== "") {
+    const responsibleEmp = (data.employees || []).find(e => e.name === task.responsible);
+    const currentUser = getCurrentUser();
+    if (responsibleEmp && currentUser && String(responsibleEmp.id) !== String(currentUser.id)) {
+      addNotification(
+        responsibleEmp.id,
+        'task_assigned',
+        'Новая задача назначена',
+        `Вас назначили ответственным в задаче "${task.title}" на ${task.date_start}`,
+        `task:${task.id}`
+      );
+    }
+  }
 
   ["task_title","task_date_start","task_date_end","task_note","task_qty"].forEach(id => {
     const el = document.getElementById(id);
@@ -1615,6 +1663,7 @@ function renderResponsibleSelect() {
 /* ЧАТ */
 let _currentChatId = null;
 let _pendingChatFile = null;
+let _notificationsPanelVisible = false;
 
 function renderChats() {
   const listEl = document.getElementById("chats_list");
@@ -1780,8 +1829,14 @@ function renderChatMessages(chatId) {
       if (isImage) fileHtml = `<div class="chat-message-file"><img src="${escapeHtml(m.file_url)}" onclick="window.open('${escapeHtml(m.file_url)}','_blank')" alt=""></div>`;
       else fileHtml = `<div class="chat-message-file">📎 <a href="${escapeHtml(m.file_url)}" target="_blank">${escapeHtml(m.file_name || "Файл")}</a></div>`;
     }
+    const senderEmp = (data.employees || []).find(emp => String(emp.id) === String(m.sender_id));
+    const avatarHtml = senderEmp ? getAvatarHtml(senderEmp, 24) : getAvatarHtml({id: m.sender_id, name: m.sender_name || "—"}, 24);
     return `<div class="chat-message ${isOwn ? 'own' : ''}">
-        <div class="chat-message-header"><span class="chat-message-sender">${escapeHtml(m.sender_name || "—")}</span><span class="chat-message-time">${timeStr}</span></div>
+        <div class="chat-message-header" style="display:flex; align-items:center; gap:8px;">
+          ${avatarHtml}
+          <span class="chat-message-sender">${escapeHtml(m.sender_name || "—")}</span>
+          <span class="chat-message-time">${timeStr}</span>
+        </div>
         ${m.text ? `<div class="chat-message-text">${escapeHtml(m.text)}</div>` : ""}${fileHtml}</div>`;
   }).join("");
   el.scrollTop = el.scrollHeight;
@@ -1798,6 +1853,34 @@ async function sendMessage() {
   if (!text && !_pendingChatFile) return;
   const msg = { id: "m_" + Date.now() + "_" + Math.floor(Math.random()*1000), chat_id: _currentChatId, sender_id: String(user.id), sender_name: user.name + (user.role === "admin" ? " (админ)" : ""), text: text || null, file_url: _pendingChatFile ? _pendingChatFile.url : null, file_name: _pendingChatFile ? _pendingChatFile.name : null, file_type: _pendingChatFile ? _pendingChatFile.type : null, created_at: new Date().toISOString(), updatedAt: new Date().toISOString() };
   data.messages = data.messages || []; data.messages.push(msg);
+  
+  // Проверяем упоминания @username
+  const mentionRegex = /@([^\s]+)/g;
+  let match;
+  const mentionedNames = new Set();
+  
+  while ((match = mentionRegex.exec(msg.text)) !== null) {
+    mentionedNames.add(match[1]);
+  }
+  
+  // Ищем сотрудников по упомянутым именам
+  const currentUser = getCurrentUser();
+  mentionedNames.forEach(name => {
+    const emp = (data.employees || []).find(e => 
+      e.name.toLowerCase().includes(name.toLowerCase())
+    );
+    if (emp && currentUser && String(emp.id) !== String(currentUser.id)) {
+      const chat = (data.chats || []).find(c => String(c.id) === String(msg.chat_id));
+      addNotification(
+        emp.id,
+        'chat_mention',
+        'Вас упомянули в чате',
+        `Вас упомянули в чате "${chat ? chat.title : 'Без названия'}": "${msg.text.substring(0, 100)}..."`,
+        `chat:${msg.chat_id}`
+      );
+    }
+  });
+  
   input.value = ""; 
   input.style.height = "auto";
   _pendingChatFile = null; document.getElementById("chat_file_status").textContent = "";
@@ -1829,7 +1912,15 @@ function renderChatParticipants(chatId) {
   const isSystemChat = chat && (chat.type === "announcements" || chat.type === "general");
   const participants = (data.chat_participants || []).filter(p => String(p.chat_id) === String(chatId)).map(p => { const emp = (data.employees || []).find(e => String(e.id) === String(p.employee_id)); return { ...p, name: emp ? emp.name : "Неизвестный" }; });
   if (participants.length === 0) listEl.innerHTML = `<span style="font-size:13px;color:#888;">пока никого</span>`;
-  else listEl.innerHTML = participants.map(p => `<span class="chat-participant-chip">${escapeHtml(p.name)} ${isAdmin ? `<button onclick="removeChatParticipant('${p.chat_id}', '${p.employee_id}')">×</button>` : ''}</span>`).join("");
+  else listEl.innerHTML = participants.map(p => {
+    const emp = (data.employees || []).find(e => String(e.id) === String(p.employee_id));
+    const avatarHtml = emp ? getAvatarHtml(emp, 24) : getAvatarHtml({id: p.employee_id, name: p.name}, 24);
+    return `<span class="chat-participant-chip" style="display:inline-flex;align-items:center;gap:4px;">
+      ${avatarHtml}
+      ${escapeHtml(p.name)} 
+      ${isAdmin ? `<button onclick="removeChatParticipant('${p.chat_id}', '${p.employee_id}')">×</button>` : ''}
+    </span>`;
+  }).join("");
 
   if (isAdmin && !isSystemChat) {
     const participantIds = new Set(participants.map(p => String(p.employee_id)));
@@ -1851,6 +1942,22 @@ async function addChatParticipant() {
   
   const newParticipant = { chat_id: chatId, employee_id: empId };
   data.chat_participants.push(newParticipant);
+  
+  // Уведомление новому участнику
+  const currentUser = getCurrentUser();
+  if (String(newParticipant.employee_id) !== String(currentUser.id)) {
+    const chat = (data.chats || []).find(c => String(c.id) === String(chatId));
+    const emp = (data.employees || []).find(e => String(e.id) === String(newParticipant.employee_id));
+    if (chat && emp) {
+      addNotification(
+        emp.id,
+        'chat_added',
+        'Вас добавили в чат',
+        `Вас добавили в чат "${chat.title}"`,
+        `chat:${chatId}`
+      );
+    }
+  }
   
   // Сохраняем локально
   save(); 
@@ -2165,7 +2272,228 @@ setTimeout(() => { renderCalendar(); }, 150);
   showToast("📅 Задача отправлена в календарь на " + dateVal, "success");
 }
 
-// Функция удалена - больше не нужна с новой навигацией
+// Система уведомлений
+function toggleNotifications() {
+  const panel = document.getElementById("notifications_panel");
+  if (!panel) return;
+  
+  if (_notificationsPanelVisible) {
+    panel.style.display = "none";
+    _notificationsPanelVisible = false;
+  } else {
+    panel.style.display = "block";
+    _notificationsPanelVisible = true;
+    renderNotifications();
+  }
+}
+
+function getUnreadCount() {
+  const user = getCurrentUser();
+  if (!user) return 0;
+  return (data.notifications || []).filter(n => String(n.user_id) === String(user.id) && !n.is_read).length;
+}
+
+function renderNotifications() {
+  const user = getCurrentUser();
+  if (!user) return;
+  
+  const listEl = document.getElementById("notifications_list");
+  const emptyEl = document.getElementById("notifications_empty");
+  const badgeEl = document.getElementById("notif_badge");
+  
+  if (!listEl || !emptyEl || !badgeEl) return;
+  
+  const notifications = (data.notifications || [])
+    .filter(n => String(n.user_id) === String(user.id))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  const unreadCount = getUnreadCount();
+  
+  // Обновляем бейдж
+  if (unreadCount > 0) {
+    badgeEl.textContent = unreadCount > 99 ? "99+" : unreadCount;
+    badgeEl.style.display = "block";
+  } else {
+    badgeEl.style.display = "none";
+  }
+  
+  // Рендерим список
+  if (notifications.length === 0) {
+    listEl.innerHTML = "";
+    emptyEl.style.display = "block";
+    return;
+  }
+  
+  emptyEl.style.display = "none";
+  listEl.innerHTML = notifications.map(n => {
+    const timeAgo = getTimeAgo(new Date(n.created_at));
+    return `
+      <div class="notification-item ${n.is_read ? '' : 'unread'}" onclick="handleNotificationClick('${n.id}')">
+        <div class="notification-title">${escapeHtml(n.title)}</div>
+        <div class="notification-text">${escapeHtml(n.text)}</div>
+        <div class="notification-time">${timeAgo}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function getTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return "только что";
+  if (diffMins < 60) return `${diffMins} мин назад`;
+  if (diffHours < 24) return `${diffHours} ч назад`;
+  if (diffDays < 7) return `${diffDays} дн назад`;
+  return date.toLocaleDateString("ru-RU");
+}
+
+async function addNotification(userId, type, title, text, link) {
+  const notification = {
+    id: uid(),
+    user_id: userId,
+    type: type,
+    title: title,
+    text: text,
+    link: link,
+    is_read: false,
+    created_at: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  
+  data.notifications = data.notifications || [];
+  data.notifications.push(notification);
+  
+  // Сохраняем локально
+  save();
+  
+  // Отправляем в Supabase
+  try {
+    const sb = await initCloud();
+    if (sb) {
+      await sb.from('notifications').upsert(notification);
+    }
+  } catch (e) {
+    console.error("Ошибка сохранения уведомления:", e);
+  }
+  
+  // Обновляем UI
+  renderNotifications();
+  
+  // Показываем toast для новых уведомлений (кроме текущего пользователя)
+  const currentUser = getCurrentUser();
+  if (currentUser && String(userId) === String(currentUser.id)) {
+    showToast("🔔 " + title, "info");
+  }
+}
+
+async function markNotificationRead(id) {
+  const notification = (data.notifications || []).find(n => String(n.id) === String(id));
+  if (!notification) return;
+  
+  notification.is_read = true;
+  notification.updatedAt = new Date().toISOString();
+  
+  save();
+  
+  try {
+    const sb = await initCloud();
+    if (sb) {
+      await sb.from('notifications').update({ is_read: true }).eq('id', id);
+    }
+  } catch (e) {
+    console.error("Ошибка обновления уведомления:", e);
+  }
+  
+  renderNotifications();
+}
+
+async function markAllNotificationsRead() {
+  const user = getCurrentUser();
+  if (!user) return;
+  
+  const userNotifications = (data.notifications || []).filter(n => String(n.user_id) === String(user.id) && !n.is_read);
+  
+  for (const notification of userNotifications) {
+    notification.is_read = true;
+    notification.updatedAt = new Date().toISOString();
+  }
+  
+  save();
+  
+  try {
+    const sb = await initCloud();
+    if (sb) {
+      await sb.from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+    }
+  } catch (e) {
+    console.error("Ошибка массового обновления уведомлений:", e);
+  }
+  
+  renderNotifications();
+}
+
+function handleNotificationClick(notifId) {
+  const notification = (data.notifications || []).find(n => String(n.id) === String(notifId));
+  if (!notification) return;
+  
+  // Помечаем прочитанным
+  markNotificationRead(notifId);
+  
+  // Обрабатываем ссылку
+  if (notification.link) {
+    const [type, id] = notification.link.split(':');
+    switch (type) {
+      case 'chat':
+        openChat(id);
+        break;
+      case 'task':
+        // Находим задачу и открываем календарь на её дате
+        const task = (data.tasks || []).find(t => String(t.id) === String(id));
+        if (task) {
+          showMain('company');
+          showCompanyTab('calendar');
+          selectDay(task.date_start);
+        }
+        break;
+      case 'batch':
+        showMain('production');
+        showTab('batches');
+        // TODO: скролл к партии
+        break;
+      case 'supply':
+        showMain('production');
+        showTab('supplies');
+        // TODO: скролл к поставке
+        break;
+      case 'calendar':
+        showMain('company');
+        showCompanyTab('calendar');
+        selectDay(id);
+        break;
+    }
+  }
+  
+  // Закрываем панель
+  toggleNotifications();
+}
+
+// Обработчики событий для уведомлений
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById("notifications_panel");
+  const bell = document.getElementById("notif_bell");
+  
+  if (panel && bell && !panel.contains(e.target) && !bell.contains(e.target)) {
+    panel.style.display = "none";
+    _notificationsPanelVisible = false;
+  }
+});
 
 function showCompanyTab(id, btn) {
   const mainCompany = document.getElementById('main-company');
@@ -2249,18 +2577,120 @@ function showWbTab(id, btn) {
   }
 }
 
-function addEmployee() {
+let _pendingEmployeeAvatar = null;
+
+async function uploadEmployeeAvatar(file) {
+  try {
+    const sb = await initCloud(); 
+    if (!sb) throw new Error("Нет клиента Supabase");
+    const ext = file.name.split('.').pop() || 'jpg';
+    const fileName = "avatars/" + Date.now() + "_" + Math.floor(Math.random()*1000) + "." + ext;
+    const { error } = await sb.storage.from('product-photos').upload(fileName, file);
+    if (error) throw error;
+    const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
+    return urlData.publicUrl;
+  } catch (e) { 
+    console.error("Ошибка загрузки аватара:", e); 
+    throw e;
+  }
+}
+
+function previewEmployeeAvatar(input) {
+  const file = input.files[0];
+  const preview = document.getElementById("emp_avatar_preview");
+  if (!file) {
+    preview.innerHTML = "";
+    _pendingEmployeeAvatar = null;
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    preview.innerHTML = `<img src="${e.target.result}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;">`;
+  };
+  reader.readAsDataURL(file);
+  _pendingEmployeeAvatar = file;
+}
+
+function previewEditEmployeeAvatar(input) {
+  const file = input.files[0];
+  const preview = document.getElementById("edit_emp_avatar_preview");
+  if (!file) {
+    preview.innerHTML = "";
+    _pendingEmployeeAvatar = null;
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    preview.innerHTML = `<img src="${e.target.result}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;">`;
+  };
+  reader.readAsDataURL(file);
+  _pendingEmployeeAvatar = file;
+}
+
+function getAvatarHtml(employee, size) {
+  if (employee.avatar_url) {
+    return `<img src="${escapeHtml(employee.avatar_url)}" class="avatar" style="width:${size}px;height:${size}px">`;
+  } else {
+    // Генерируем инициалы
+    const names = employee.name.split(' ');
+    let initials = '';
+    if (names.length > 0) initials += names[0][0];
+    if (names.length > 1) initials += names[1][0];
+    if (initials === '') initials = '?';
+    
+    // Генерируем цвет на основе id
+    let hash = 0;
+    for (let i = 0; i < String(employee.id).length; i++) {
+      hash = String(employee.id).charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = hash % 360;
+    const color = `hsl(${hue}, 70%, 45%)`;
+    
+    return `<span class="avatar avatar-initials" style="width:${size}px;height:${size}px;background-color:${color};font-size:${size*0.4}px">${initials}</span>`;
+  }
+}
+
+async function addEmployee() {
   const name = document.getElementById("emp_name").value.trim();
   if (!name) return alert("Введите ФИО сотрудника");
-  const role = document.getElementById("emp_role").value; const pin = document.getElementById("emp_pin").value.trim();
-  if (!pin) return alert("Введите PIN"); if (pin.length < 4) return alert("PIN должен быть не короче 4 символов");
+  const role = document.getElementById("emp_role").value; 
+  const pin = document.getElementById("emp_pin").value.trim();
+  if (!pin) return alert("Введите PIN"); 
+  if (pin.length < 4) return alert("PIN должен быть не короче 4 символов");
   const existing = (data.employees || []).find(e => e.pin && e.pin === pin);
   if (existing) return alert("Такой PIN уже используется сотрудником: " + existing.name);
+  
+  let avatar_url = null;
+  if (_pendingEmployeeAvatar) {
+    try {
+      avatar_url = await uploadEmployeeAvatar(_pendingEmployeeAvatar);
+    } catch (e) {
+      alert("Ошибка загрузки аватара: " + e.message);
+      return;
+    }
+  }
+  
   data.employees = data.employees || [];
-  data.employees.push({ id: uid(), name, role, pin, phone: document.getElementById("emp_phone").value.trim(), note: document.getElementById("emp_note").value.trim(), updatedAt: new Date().toISOString() });
-  ["emp_name","emp_phone","emp_note","emp_pin"].forEach(id => { document.getElementById(id).value = ""; });
+  data.employees.push({ 
+    id: uid(), 
+    name, 
+    role, 
+    pin, 
+    phone: document.getElementById("emp_phone").value.trim(), 
+    note: document.getElementById("emp_note").value.trim(), 
+    avatar_url,
+    updatedAt: new Date().toISOString() 
+  });
+  
+  ["emp_name","emp_phone","emp_note","emp_pin","emp_avatar"].forEach(id => { 
+    const el = document.getElementById(id);
+    if (el) el.value = ""; 
+  });
+  document.getElementById("emp_avatar_preview").innerHTML = "";
+  _pendingEmployeeAvatar = null;
   document.getElementById("emp_role").value = "master";
-  save(); renderEmployees();
+  save(); 
+  renderEmployees();
 }
 
 async function delEmployee(id) {
@@ -2293,7 +2723,7 @@ function closeEmployeeModal() {
   document.getElementById("employee_modal").style.display = "none";
 }
 
-function saveEmployeeFromModal() {
+async function saveEmployeeFromModal() {
   if (!_currentEditEmployeeId) return;
   const emp = (data.employees || []).find(e => String(e.id) === String(_currentEditEmployeeId));
   if (!emp) return;
@@ -2308,6 +2738,16 @@ function saveEmployeeFromModal() {
   const existing = (data.employees || []).find(e => e.pin && e.pin === pin && String(e.id) !== String(emp.id));
   if (existing) return alert("Такой PIN уже используется сотрудником: " + existing.name);
 
+  // Загрузка нового аватара, если есть
+  if (_pendingEmployeeAvatar) {
+    try {
+      emp.avatar_url = await uploadEmployeeAvatar(_pendingEmployeeAvatar);
+    } catch (e) {
+      alert("Ошибка загрузки аватара: " + e.message);
+      return;
+    }
+  }
+
   emp.name = name;
   emp.role = document.getElementById("edit_emp_role").value;
   emp.pin = pin;
@@ -2319,16 +2759,33 @@ function saveEmployeeFromModal() {
   renderEmployees();
   closeEmployeeModal();
   showToast("✅ Данные сотрудника обновлены", "success");
+  _pendingEmployeeAvatar = null;
 }
 
 function renderEmployees() {
-  const tbody = document.getElementById("employees_table"); if (!tbody) return;
+  const tbody = document.getElementById("employees_table"); 
+  if (!tbody) return;
   const list = data.employees || [];
-  if (list.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Пока нет сотрудников. Добавьте первого.</td></tr>`; return; }
+  if (list.length === 0) { 
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#888;padding:20px;">Пока нет сотрудников. Добавьте первого.</td></tr>`; 
+    return; 
+  }
   tbody.innerHTML = list.map(e => {
     const roleLabel = e.role === "admin" ? "Руководитель" : "Сотрудник";
     const roleClass = e.role === "admin" ? "badge-done" : "badge-active";
-   return `<tr><td>${escapeHtml(e.name)}</td><td><span class="badge ${roleClass}">${roleLabel}</span></td><td>${e.pin ? escapeHtml(e.pin) : "—"}</td><td>${escapeHtml(e.phone) || "—"}</td><td>${escapeHtml(e.note) || "—"}</td><td style="display:flex; gap:4px;"><button class="action" onclick="openEmployeeModal('${e.id}')" style="padding:5px 10px; font-size:12px;">✏️</button><button class="action danger" onclick="delEmployee('${e.id}')" style="padding:5px 10px; font-size:12px;">×</button></td></tr>`;
+    const avatarHtml = getAvatarHtml(e, 40);
+    return `<tr>
+      <td>${avatarHtml}</td>
+      <td>${escapeHtml(e.name)}</td>
+      <td><span class="badge ${roleClass}">${roleLabel}</span></td>
+      <td>${e.pin ? escapeHtml(e.pin) : "—"}</td>
+      <td>${escapeHtml(e.phone) || "—"}</td>
+      <td>${escapeHtml(e.note) || "—"}</td>
+      <td style="display:flex; gap:4px;">
+        <button class="action" onclick="openEmployeeModal('${e.id}')" style="padding:5px 10px; font-size:12px;">✏️</button>
+        <button class="action danger" onclick="delEmployee('${e.id}')" style="padding:5px 10px; font-size:12px;">×</button>
+      </td>
+    </tr>`;
   }).join("");
 }
 
@@ -2361,9 +2818,11 @@ async function doLogin() {
 }
 
 function showApp() {
-  document.getElementById("login_screen").style.display = "none"; document.getElementById("login_screen").classList.add("hidden");
+  document.getElementById("login_screen").style.display = "none"; 
+  document.getElementById("login_screen").classList.add("hidden");
   document.getElementById("app_main").style.display = "block";
-  const user = getCurrentUser(); applyRoleRestrictions(user);
+  const user = getCurrentUser(); 
+  applyRoleRestrictions(user);
   
   // Принудительно показываем календарь в разделе "Компания"
   const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
@@ -2372,8 +2831,14 @@ function showApp() {
   const calendarBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
   if (calendarBtn) showCompanyTab('calendar', calendarBtn);
   
-  const nameEl = document.getElementById("current_user_name"); if (nameEl && user) nameEl.textContent = user.name;
-  if (typeof renderAll === "function") renderAll(); if (typeof renderEmployees === "function") renderEmployees();
+  const nameEl = document.getElementById("current_user_name"); 
+  const avatarEl = document.getElementById("current_user_avatar");
+  if (nameEl && user) nameEl.textContent = user.name;
+  if (avatarEl && user) avatarEl.innerHTML = getAvatarHtml(user, 32);
+  
+  if (typeof renderAll === "function") renderAll(); 
+  if (typeof renderEmployees === "function") renderEmployees();
+  if (typeof renderNotifications === "function") renderNotifications();
 }
 
 function hideApp() {
@@ -3031,6 +3496,21 @@ function createBatch() {
     const batch = { ...commonBatch(), productId: item.productId, productName: item.productName, qty: item.qty, groupId }; 
     data.batches.push(batch); 
   });
+  
+  // Уведомление ответственному
+  if (group.responsible && group.responsible.trim() !== "") {
+    const responsibleEmp = (data.employees || []).find(e => e.name === group.responsible);
+    const currentUser = getCurrentUser();
+    if (responsibleEmp && currentUser && String(responsibleEmp.id) !== String(currentUser.id)) {
+      addNotification(
+        responsibleEmp.id,
+        'batch_assigned',
+        'Новое производственное задание',
+        `Вас назначили ответственным в задании "${group.title}"`,
+        `batch:${groupId}`
+      );
+    }
+  }
   
   showToast("Создано задание: " + items.length + " партий", "success");
 
@@ -3822,6 +4302,9 @@ async function initApp() {
       if (typeof _currentChatId !== 'undefined' && _currentChatId) { renderChatMessages(_currentChatId); renderChatParticipants(_currentChatId); }
       renderChats();
     }
+    if (table === 'notifications') {
+      renderNotifications();
+    }
     if (table === 'tasks') { renderCalendar(); if (typeof _calSelectedDay !== 'undefined' && _calSelectedDay) renderDayTasks(_calSelectedDay); }
     if (['batches', 'groups', 'employees'].includes(table)) { renderBatches(); renderBatchResponsibleSelect(); }
     if (['materials', 'products', 'cycles', 'opokas'].includes(table)) { renderMaterials(); renderProducts(); renderCycles(); renderOpokas(); renderAllMaterialSelects(); renderBatchProductSelect(); }
@@ -4492,6 +4975,21 @@ async function addSupply() {
     updatedAt: new Date().toISOString()
   };
   data.supplies.push(newSupply);
+  
+  // Уведомление ответственному
+  if (newSupply.responsible && newSupply.responsible.trim() !== "") {
+    const responsibleEmp = (data.employees || []).find(e => e.name === newSupply.responsible);
+    const currentUser = getCurrentUser();
+    if (responsibleEmp && currentUser && String(responsibleEmp.id) !== String(currentUser.id)) {
+      addNotification(
+        responsibleEmp.id,
+        'supply_assigned',
+        'Новая поставка',
+        `Вас назначили ответственным в поставке "${newSupply.title}"`,
+        `supply:${newSupply.id}`
+      );
+    }
+  }
 
   const calTask = {
     id: uid(), 
@@ -4979,6 +5477,7 @@ renderAll = function() {
   renderSupplies();
 };
 
+// Инициализация уведомлений при загрузке
 initApp();
 // Страховка от вечной загрузки
 setTimeout(() => {
