@@ -2370,14 +2370,9 @@ async function addNotification(userId, type, title, text, link) {
   // Сохраняем локально
   save();
   
-  // Отправляем в Supabase
-  try {
-    const sb = await initCloud();
-    if (sb) {
-      await sb.from('notifications').upsert(notification);
-    }
-  } catch (e) {
-    console.error("Ошибка сохранения уведомления:", e);
+  // Отправляем в Supabase (через общую синхронизацию)
+  if (typeof pushAll === 'function') {
+    pushAll(data).catch(e => console.warn("Синхронизация не удалась, повторим позже:", e));
   }
   
   // Обновляем UI

@@ -6,7 +6,7 @@
 const SUPABASE_URL = 'https://kjiybjmisztrwymkwwsg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_08SQ7121NYScNVQYffjjyg_mj-VWYv-';
 
-const TABLES = ['materials','products','cycles','opokas','batches','stock','archive','tasks','employees','groups','chats','messages','boards','columns','board_tasks','supplies'];
+const TABLES = ['materials','products','cycles','opokas','batches','stock','archive','tasks','employees','groups','chats','messages','boards','columns','board_tasks','supplies','notifications'];
 const SKIP_FIELDS = ['updated_at', 'updatedAt'];
 const TOMBSTONE_TTL_DAYS = 30;
 
@@ -240,10 +240,10 @@ async function initRealtime(onDataChanged) {
     return;
   }
 
-  const tablesToWatch = [
+    const tablesToWatch = [
     'materials', 'products', 'cycles', 'opokas',
     'batches', 'stock', 'archive', 'tasks',
-    'employees', 'groups', 'chats', 'messages', 'chat_participants'
+    'employees', 'groups', 'chats', 'messages', 'chat_participants', 'notifications'
   ];
 
   const channel = sb.channel('realtime-sync');
