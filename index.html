@@ -213,7 +213,6 @@
     min-height: 80px; padding: 10px; background: #fff; color: var(--ink);
     border-radius: var(--r-md); cursor: pointer; display: flex; flex-direction: column;
     transition: all 0.25s var(--bounce); border: 1px solid transparent;
-    position: relative; overflow: hidden;
   }
   .calendar-grid .day:hover:not(.empty) { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15); z-index: 10; }
   .calendar-grid .day:active:not(.empty) { transform: scale(0.92); }
@@ -249,6 +248,7 @@
     font-family: var(--font-head); 
     font-size: 14px; 
     font-weight: 600;
+    margin-bottom: 4px;
   }
   .calendar-grid .day .dots { 
     display: flex; 
@@ -2113,8 +2113,8 @@ setTimeout(() => { renderCalendar(); }, 150);
 // Функция удалена - больше не нужна с новой навигацией
 
 function showCompanyTab(id, btn) {
-  // Находим родительский раздел через кнопку
-  const mainCompany = btn.closest('#main-company');
+  // Находим раздел Компания по ID
+  const mainCompany = document.getElementById('main-company');
   if (!mainCompany) return;
   
   // Скрываем все вкладки внутри раздела Компания
@@ -2503,7 +2503,7 @@ function showServiceTab(id, btn) {
 }
 
 function showTab(id, btn) {
-  const activeMainSection = btn ? btn.closest('.main-section') : document.querySelector('.main-section.active');
+  const activeMainSection = document.querySelector('.main-section.active');
   if (!activeMainSection) return;
 
   // Снимаем класс active со всех вкладок и кнопок внутри этого раздела
