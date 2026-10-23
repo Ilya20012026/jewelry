@@ -244,19 +244,38 @@
   .calendar-grid .day.today.selected .day-number { color: #fff; }
 
   /* Убираем артефакты */
-  .calendar-grid .day .day-number {
-    font-family: var(--font-head); 
-    font-size: 14px; 
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
   .calendar-grid .day .dots { 
     display: flex; 
     gap: 4px; 
     flex-wrap: wrap; 
     margin-top: auto; 
-    background: transparent; 
-    border: none; 
+    background: transparent !important; 
+    border: none !important; 
+  }
+  
+  .calendar-grid .day .day-number { 
+    background: transparent !important; 
+    border: none !important; 
+    font-family: var(--font-head); 
+    font-size: 14px; 
+    font-weight: 600; 
+    color: var(--ink); /* Обычный цвет цифры */
+    margin-bottom: 4px; 
+  }
+
+  /* Принудительно делаем цифру белой в выбранном дне */
+  .calendar-grid .day.selected .day-number {
+    color: #ffffff !important;
+  }
+
+  /* Если день и сегодня, и выбран — цифра тоже белая */
+  .calendar-grid .day.today.selected .day-number {
+    color: #ffffff !important;
+  }
+
+  /* Скрываем любой лишний контент внутри ячейки дня (например, белый квадрат) */
+  .calendar-grid .day > *:not(.day-number):not(.dots) {
+    display: none !important; 
   }
 
   .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
@@ -1681,8 +1700,11 @@ function openChat(chatId) {
   
   const chatTabBtn = document.querySelector("#main-company .tabs button[onclick*='chat']");
   if (chatTabBtn) {
+    // Вручную скрываем ВСЕ вкладки в разделе Компания
     document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
     document.querySelectorAll("#main-company > .tabs button").forEach(b => b.classList.remove("active"));
+    
+    // Включаем только вкладку чата
     document.getElementById("company-chat").classList.add("active");
     chatTabBtn.classList.add("active");
   }
@@ -1703,6 +1725,7 @@ function closeChatWindow() {
   document.getElementById("chat_window").style.display = "none";
   document.querySelector("#company-chat > .card").style.display = "block";
   
+  // Если мы находимся в архиве чатов, не перерисовываем основной список
   const archivedChatsTab = document.getElementById("service-archive_chats");
   if (archivedChatsTab && archivedChatsTab.classList.contains("active")) {
     // Ничего не делаем
@@ -4666,11 +4689,11 @@ function renderSupplies() {
             ${s.pdfUrl ? `<a href="${escapeHtml(s.pdfUrl)}" target="_blank" style="font-size:12px; color:#2b6cb0;">📎 Скачать PDF</a>` : ''}
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button class="action" onclick="openSupplyChat('${s.id}', '${escapeHtml(s.title)}')">💬 Чат</button>
-            ${s.status === 'new' ? `<button class="action warn" onclick="markSupplyBox('${s.id}')">📦 Собрано</button>` : ''}
-            ${s.status === 'box' ? `<button class="action warn" onclick="markSupplySent('${s.id}')">🚚 Отправлено</button>` : ''}
-            ${s.status === 'sent' ? `<button class="action ok" onclick="finishSupply('${s.id}')">✔ Завершить</button>` : ''}
-            <button class="action danger master-hidden" onclick="deleteSupply('${s.id}')">× Удалить</button>
+            <button class="action" style="background: var(--accent); color: #fff; border: none;" onclick="openSupplyChat('${s.id}', '${escapeHtml(s.title)}')">💬 Чат</button>
+            ${s.status === 'new' ? `<button class="action warn" style="background: #b7791f; color: #fff; border: none;" onclick="markSupplyBox('${s.id}')">📦 Собрано</button>` : ''}
+            ${s.status === 'box' ? `<button class="action warn" style="background: #b7791f; color: #fff; border: none;" onclick="markSupplySent('${s.id}')">🚚 Отправлено</button>` : ''}
+            ${s.status === 'sent' ? `<button class="action ok" style="background: #2f855a; color: #fff; border: none;" onclick="finishSupply('${s.id}')">✔ Завершить</button>` : ''}
+            <button class="action danger master-hidden" style="background: #c53030; color: #fff; border: none;" onclick="deleteSupply('${s.id}')">× Удалить</button>
           </div>
         </div>
         <div style="margin-top:10px; display:flex; gap:12px; align-items:center;">
