@@ -1699,7 +1699,10 @@ function openChat(chatId) {
   if (companyBtn) showMain("company", companyBtn);
   
   // 2. Принудительно скрываем ВСЕ вкладки внутри раздела "Компания"
-  document.querySelectorAll("#main-company .tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll("#main-company > .tab").forEach(t => {
+    t.classList.remove("active");
+    t.style.display = "none"; // <-- ЖЕСТКО СКРЫВАЕМ
+  });
   
   // 3. Снимаем активность со всех кнопок в верхней панели (company-tabs)
   const companyTabs = document.getElementById('company-tabs');
@@ -1709,7 +1712,10 @@ function openChat(chatId) {
 
   // 4. Включаем только вкладку "Сообщения"
   const chatTab = document.getElementById("company-chat");
-  if (chatTab) chatTab.classList.add("active");
+  if (chatTab) {
+    chatTab.classList.add("active");
+    chatTab.style.display = "block"; // <-- ПРИНУДИТЕЛЬНО ПОКАЗЫВАЕМ
+  }
   
   // 5. Активируем кнопку "Сообщения" в верхней панели
   if (companyTabs) {
