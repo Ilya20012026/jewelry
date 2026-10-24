@@ -3119,10 +3119,14 @@ function showServiceTab(id, btn) {
   document.getElementById("service-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
   
+  // ВАЖНО: Вызовы рендера для каждой вкладки
   if (id === "archive_chats") renderArchivedChats();
+  if (id === "backup") { 
+    // Вкладка резервной копии, рендер не нужен 
+  }
   if (id === "shift_settings") {
     renderShiftSettings();
-    // Заполняем селект сотрудников
+    // Заполняем селект сотрудников для истории
     const empSelect = document.getElementById("shift_filter_emp");
     if (empSelect) {
       empSelect.innerHTML = '<option value="">Все сотрудники</option>' + 
@@ -5182,9 +5186,14 @@ setInterval(() => {
   const st = data.settings[0] || { lunch_start: "13:00", lunch_end: "13:45", work_end: "16:40" };
   const today = now.toISOString().slice(0,10);
 
-  // Обед
-  if (currentTime === st.lunch_start) {
-    showToast("🍲 Сейчас обед (с " + st.lunch_start + " до " + st.lunch_end + "). Отдохните!", "info");
+  // Обед (проверяем, что время внутри диапазона и уведомление еще не показывали)
+  if (currentTime >= st.lunch_start && currentTime < st.lunch_end) {
+    const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
+    if (myShift && !myShift.lunch_notified) {
+      showToast("🍲 Сейчас обед (с " + st.lunch_start + " до " + st.lunch_end + "). Отдохните!", "info");
+      myShift.lunch_notified = true;
+      save();
+    }
   }
 
   // Конец дня
