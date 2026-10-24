@@ -797,25 +797,33 @@
         </div>
         
         <div id="wb-seo" class="tab">
-          <h4>SEO-Рентген (Сырые данные из WB)</h4>
-          <p class="hint">Данные по воронке и карточкам. Нажмите на товар, чтобы увидеть детали и спросить Энигму.</p>
-          <div class="row" style="margin-bottom:12px;">
-            <button class="action" onclick="renderSeoDashboard()">🔄 Обновить данные</button>
-            <input type="date" id="seo-date-filter" onchange="renderSeoDashboard()" style="width: auto; margin-left: auto;">
+          <h4>SEO-Рентген (Аналитика WB)</h4>
+          <p class="hint">Данные по воронке и карточкам. Выберите период для анализа.</p>
+      
+          <div class="row" style="margin-bottom:16px; align-items:center;">
+            <button class="action" onclick="renderSeoDashboard()" style="width:auto;">🔄 Обновить данные</button>
+            <div style="display:flex; align-items:center; gap:8px; margin-left:16px;">
+              <label style="font-size:12px; color:rgba(255,255,255,0.6);">С:</label>
+              <input type="date" id="seo_date_from" onchange="renderSeoDashboard()" style="width:auto; padding:8px;">
+              <label style="font-size:12px; color:rgba(255,255,255,0.6);">По:</label>
+              <input type="date" id="seo_date_to" onchange="renderSeoDashboard()" style="width:auto; padding:8px;">
+            </div>
           </div>
+
           <div style="display:flex; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
             <div style="flex:1; min-width:300px; background:#16161a; padding:16px; border-radius:12px;">
-              <canvas id="chart_funnel"></canvas>
+              <canvas id="chart_funnel" style="max-height:250px;"></canvas>
             </div>
             <div style="flex:1; min-width:300px; background:#16161a; padding:16px; border-radius:12px;">
-              <canvas id="chart_stocks"></canvas>
+              <canvas id="chart_stocks" style="max-height:250px;"></canvas>
             </div>
           </div>
+
           <div style="overflow-x:auto;">
             <table>
               <thead>
                 <tr>
-                  <th>Артикул</th><th>Название</th><th>Переходы</th><th>В корзину</th><th>Заказы</th><th>Выкупы</th><th>Дата</th><th>Действие</th>
+                  <th>Артикул</th><th>Название</th><th>Дата</th><th>Переходы</th><th>В корзину</th><th>Заказы</th><th>Выкупы</th><th>Действие</th>
                 </tr>
               </thead>
               <tbody id="seo-dashboard-table"></tbody>
@@ -4536,11 +4544,118 @@ function updateWbStock(productName) {
   renderWbStocks();
 }
 
-function loadWbSeo() {
-  const content = document.getElementById('wb-seo-content');
-  if (content) {
-    content.innerHTML = '<p style="color:#888;text-align:center;">SEO аналитика будет доступна в ближайшем обновлении</p>';
+let chartFunnel = null;
+let chartStocks = null;
+
+async function renderSeoDashboard() {
+  const table = document.getElementById('seo-dashboard-table');
+  if (!table) return;
+  
+  table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Загрузка данных...</td></tr>';
+  
+  try {
+    const sb = await initCloud();
+    if (!sb) throw new Error("Нет подключения к облаку");
+    
+    const fromDate = document.getElementById('seo_date_from').value;
+    const toDate = document.getElementById('seo_date_to').value;
+    
+    let queryFunnel = sb.from('wb_funnel').select('*').order('date', { ascending: true });
+    let queryStocks = sb.from('wb_stocks').select('*').order('date', { ascending: true });
+    
+    if (fromDate) queryFunnel = queryFunnel.gte('date', fromDate);
+    if (toDate) queryFunnel = queryFunnel.lte('date', toDate);
+    if (fromDate) queryStocks = queryStocks.gte('date', fromDate);
+    if (toDate) queryStocks = queryStocks.lte('date', toDate);
+    
+    const [{ data: funnel, error: fErr }, { data: stocks, error: sErr }, { data: cards, error: cErr }] = await Promise.all([
+      queryFunnel.execute(), 
+      queryStocks.execute(), 
+      sb.from('wb_cards').select('nm_id, title, vendor_code').execute()
+    ]);
+    
+    if (fErr || sErr || cErr) throw new Error((fErr||sErr||cErr).message);
+    
+    const cardMap = {};
+    (cards || []).forEach(c => { cardMap[String(c.nm_id)] = c; });
+
+    const rows = (funnel || []).map(item => {
+      const card = cardMap[String(item.nm_id)];
+      const title = card ? card.title : 'Без названия';
+      const article = card ? card.vendor_code : item.nm_id;
+      return `<tr>
+        <td>${escapeHtml(article)}</td>
+        <td>${escapeHtml(title)}</td>
+        <td>${item.date || '—'}</td>
+        <td>${item.open_count || 0}</td>
+        <td>${item.cart_count || 0}</td>
+        <td>${item.order_count || 0}</td>
+        <td>${item.buyout_count || 0}</td>
+        <td><button class="action" onclick="openSeoCardDetails('${item.nm_id}', '${escapeHtml(title)}')" style="padding:4px 8px; font-size:12px;">🔍 Открыть</button></td>
+      </tr>`;
+    }).join('');
+    
+    table.innerHTML = rows || '<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных за выбранный период</td></tr>';
+
+    const dates = [...new Set((funnel || []).map(x => x.date))].filter(Boolean).sort();
+    
+    const ordersByDate = dates.map(d => (funnel || []).filter(x => x.date === d).reduce((sum, x) => sum + (x.order_count || 0), 0));
+    const buyoutsByDate = dates.map(d => (funnel || []).filter(x => x.date === d).reduce((sum, x) => sum + (x.buyout_count || 0), 0));
+    
+    if (chartFunnel) chartFunnel.destroy();
+    const ctxFunnel = document.getElementById('chart_funnel');
+    if (ctxFunnel && dates.length > 0) {
+      chartFunnel = new Chart(ctxFunnel, {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [
+            { label: 'Заказы', data: ordersByDate, borderColor: '#60a5fa', tension: 0.3 },
+            { label: 'Выкупы', data: buyoutsByDate, borderColor: '#4ade80', tension: 0.3 }
+          ]
+        },
+        options: { 
+          responsive: true, 
+          plugins: { legend: { labels: { color: '#fff' } } }, 
+          scales: { 
+            x: { ticks: { color: '#888' } }, 
+            y: { ticks: { color: '#888' } } 
+          } 
+        }
+      });
+    }
+
+    const stocksByDate = dates.map(d => (stocks || []).filter(x => x.date === d).reduce((sum, x) => sum + (x.fbs_quantity || 0) + (x.fbo_quantity || 0), 0));
+    
+    if (chartStocks) chartStocks.destroy();
+    const ctxStocks = document.getElementById('chart_stocks');
+    if (ctxStocks && dates.length > 0) {
+      chartStocks = new Chart(ctxStocks, {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [{ label: 'Остаток (FBS+FBO)', data: stocksByDate, borderColor: '#fbbf24', tension: 0.3 }]
+        },
+        options: { 
+          responsive: true, 
+          plugins: { legend: { labels: { color: '#fff' } } }, 
+          scales: { 
+            x: { ticks: { color: '#888' } }, 
+            y: { ticks: { color: '#888' } } 
+          } 
+        }
+      });
+    }
+    
+  } catch (error) {
+    console.error('Ошибка SEO:', error);
+    table.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:20px;color:#f87171;">Ошибка: ${escapeHtml(error.message)}</td></tr>`;
   }
+}
+
+function loadWbSeo() {
+  // Теперь вызываем renderSeoDashboard вместо заглушки
+  renderSeoDashboard();
 }
 
 function loadWbPrices() {
