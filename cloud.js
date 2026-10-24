@@ -181,7 +181,7 @@ async function pullAll() {
 
   const remote = {};
   for (const table of TABLES) {
-    const { data, error } = await sb.from(table).select('*');
+    const { data, error } = await sb.from(table).select('*').then(res => res, err => ({ data: [], error: err }));
         if (error) {
       console.error(`❌ pull ${table}:`, error.message);
       remote[table] = [];
