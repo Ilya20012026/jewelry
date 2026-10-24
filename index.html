@@ -2970,7 +2970,7 @@ function showApp() {
     const st = data.settings[0] || { lunch_start: "13:00", lunch_end: "13:45" };
     const today = now.toISOString().slice(0,10);
 
-    if (currentTime >= st.lunch_start && currentTime < st.lunch_end) {
+       if (currentTime >= st.lunch_start && currentTime < st.lunch_end) {
       const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
       if (myShift && !myShift.lunch_notified) {
         showToast("🍲 Сейчас обед (с " + st.lunch_start + " до " + st.lunch_end + "). Отдохните!", "info");
@@ -2979,6 +2979,7 @@ function showApp() {
       }
     }
   }, 1500);
+} // <-- ВОТ ЭТА СКОБКА ЗАКРЫВАЕТ ФУНКЦИЮ showApp
 
 function hideApp() {
   document.getElementById("login_screen").style.display = "flex";
