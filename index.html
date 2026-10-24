@@ -5535,7 +5535,7 @@ async function renderSeoDashboard() {
           combinedData[item.nm_id] = {
             ...combinedData[item.nm_id],
             openCount: item.open_count,
-            addToCartCount: item.add_to_cart_count,
+            addToCartCount: item.cart_count, // <-- ИСПРАВЛЕНО ЗДЕСЬ!
             orderCount: item.order_count,
             buyoutCount: item.buyout_count
           };
