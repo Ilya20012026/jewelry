@@ -1618,6 +1618,25 @@ function toggleTaskDone(id, dateStr = null) {
       else { chat.archived = false; }
       chat.updatedAt = new Date().toISOString();
     }
+    
+    // НОВОЕ: Уведомление руководителям о выполнении задачи
+    if (t.done) {
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        const admins = (data.employees || []).filter(e => e.role === 'admin');
+        admins.forEach(admin => {
+          if (String(admin.id) !== String(currentUser.id)) {
+            addNotification(
+              admin.id,
+              'task_completed',
+              'Задача выполнена',
+              `${currentUser.name} выполнил(а) задачу "${t.title || 'Без названия'}"`,
+              `task:${t.id}`
+            );
+          }
+        });
+      }
+    }
   }
   
   save(); renderCalendar();
@@ -3740,6 +3759,35 @@ function completeStageN(bid, stageNum) {
     b.stage = stageNum + 1; 
   }
   
+  // НОВОЕ: Уведомление руководителям о завершении этапа
+  const currentUser = getCurrentUser();
+  if (currentUser && currentUser.role !== 'admin') { 
+    const admins = (data.employees || []).filter(e => e.role === 'admin');
+    const stageNames = {5:"Обработка", 6:"Гальваника", 7:"Чернение", 8:"Упаковка"};
+    
+    admins.forEach(admin => {
+      if (String(admin.id) !== String(currentUser.id)) {
+        if (b.finished) {
+          addNotification(
+            admin.id,
+            'batch_completed',
+            'Партия завершена',
+            `${currentUser.name} завершил(а) партию #${b.id} (${b.productName} × ${b.qty} шт)`,
+            `batch:${b.groupId || b.id}`
+          );
+        } else {
+          addNotification(
+            admin.id,
+            'stage_completed',
+            'Этап производства завершен',
+            `${currentUser.name} завершил(а) этап "${stageNames[stageNum] || 'Производство'}" в партии #${b.id} (${b.productName})`,
+            `batch:${b.groupId || b.id}`
+          );
+        }
+      }
+    });
+  }
+
   save(); 
   renderBatches(); 
   if (b.finished) renderStock();
