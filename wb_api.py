@@ -39,6 +39,7 @@ def fetch_funnel(nm_ids):
             
             supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
             rows = []
+            current_date = datetime.now().strftime('%Y-%m-%d')
             for item in products:
                 product_info = item.get("product", {})
                 stats = item.get("statistic", {}).get("selected", {})
@@ -49,11 +50,12 @@ def fetch_funnel(nm_ids):
                     "open_count": stats.get("openCount", 0),
                     "cart_count": stats.get("cartCount", 0),
                     "order_count": stats.get("orderCount", 0),
-                    "buyout_count": stats.get("buyoutCount", 0)
+                    "buyout_count": stats.get("buyoutCount", 0),
+                    "date": current_date
                 })
             
             if rows:
-                supabase.table("wb_funnel").upsert(rows).execute()
+                supabase.table("wb_funnel").insert(rows).execute()
                 print(f"✅ Воронка сохранена в Supabase: {len(rows)} записей!")
         else:
             print(f"❌ Ошибка воронки: {response.status_code} - {response.text}")
@@ -104,6 +106,7 @@ def save_to_supabase(nm_ids, fbs_stocks, fbo_stocks):
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
         rows = []
+        current_date = datetime.now().strftime('%Y-%m-%d')
         for nm_id in nm_ids:
             fbs_data = fbs_stocks.get(str(nm_id), {"qty": 0})
             fbo_data = fbo_stocks.get(str(nm_id), {"qty": 0})
@@ -112,10 +115,11 @@ def save_to_supabase(nm_ids, fbs_stocks, fbo_stocks):
                 "nm_id": str(nm_id),
                 "fbs_quantity": int(fbs_data.get("qty", 0)),
                 "fbo_quantity": int(fbo_data.get("qty", 0)),
-                "updated_at": datetime.now().isoformat()
+                "updated_at": datetime.now().isoformat(),
+                "date": current_date
             })
         if rows:
-            supabase.table("wb_stocks").upsert(rows).execute()
+            supabase.table("wb_stocks").insert(rows).execute()
             print(f"✅ Остатки сохранены! Строк: {len(rows)}")
     except Exception as e:
         print(f"❌ Ошибка Supabase: {e}")

@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Ювелирка">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
@@ -800,12 +801,21 @@
           <p class="hint">Данные по воронке и карточкам. Нажмите на товар, чтобы увидеть детали и спросить Энигму.</p>
           <div class="row" style="margin-bottom:12px;">
             <button class="action" onclick="renderSeoDashboard()">🔄 Обновить данные</button>
+            <input type="date" id="seo-date-filter" onchange="renderSeoDashboard()" style="width: auto; margin-left: auto;">
+          </div>
+          <div style="display:flex; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:300px; background:#16161a; padding:16px; border-radius:12px;">
+              <canvas id="chart_funnel"></canvas>
+            </div>
+            <div style="flex:1; min-width:300px; background:#16161a; padding:16px; border-radius:12px;">
+              <canvas id="chart_stocks"></canvas>
+            </div>
           </div>
           <div style="overflow-x:auto;">
             <table>
               <thead>
                 <tr>
-                  <th>Артикул</th><th>Название</th><th>Переходы</th><th>В корзину</th><th>Заказы</th><th>Выкупы</th><th>Действие</th>
+                  <th>Артикул</th><th>Название</th><th>Переходы</th><th>В корзину</th><th>Заказы</th><th>Выкупы</th><th>Дата</th><th>Действие</th>
                 </tr>
               </thead>
               <tbody id="seo-dashboard-table"></tbody>
@@ -5487,83 +5497,216 @@ async function renderSeoDashboard() {
   const table = document.getElementById('seo-dashboard-table');
   if (!table) return;
   
-  table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Загрузка данных...</td></tr>';
+  table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Загрузка данных...</td></tr>';
   
   try {
     const sb = await initCloud();
     if (!sb) {
-      table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#f87171;">Ошибка подключения к облаку</td></tr>';
+      table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#f87171;">Ошибка подключения к облаку</td></tr>';
       return;
     }
     
-    // Получаем данные из обеих таблиц
-    const [{ data: cards, error: cardsError }, { data: funnel, error: funnelError }] = await Promise.all([
-      sb.from('wb_cards').select('*'),
-      sb.from('wb_funnel').select('*')
+    // Получаем данные из таблиц с сортировкой по дате
+    const [{ data: funnelData, error: funnelError }, { data: stocksData, error: stocksError }] = await Promise.all([
+      sb.from('wb_funnel').select('*').order('date', { ascending: true }),
+      sb.from('wb_stocks').select('*').order('date', { ascending: true })
     ]);
     
-    if (cardsError || funnelError) {
-      throw new Error(cardsError?.message || funnelError?.message);
+    if (funnelError || stocksError) {
+      throw new Error(funnelError?.message || stocksError?.message);
     }
     
-    if ((!cards || cards.length === 0) && (!funnel || funnel.length === 0)) {
-      table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных. Запустите wb_api.py</td></tr>';
-      return;
+    // Получаем фильтр даты
+    const dateFilter = document.getElementById('seo-date-filter').value;
+    
+    // Группируем данные воронки по датам
+    const funnelByDate = {};
+    if (funnelData) {
+      funnelData.forEach(item => {
+        const date = item.date;
+        if (dateFilter && date !== dateFilter) return;
+        
+        if (!funnelByDate[date]) {
+          funnelByDate[date] = {
+            orderCount: 0,
+            buyoutCount: 0
+          };
+        }
+        funnelByDate[date].orderCount += item.order_count || 0;
+        funnelByDate[date].buyoutCount += item.buyout_count || 0;
+      });
     }
     
-    // Объединяем данные по nm_id
+    // Группируем данные остатков по датам
+    const stocksByDate = {};
+    if (stocksData) {
+      stocksData.forEach(item => {
+        const date = item.date;
+        if (dateFilter && date !== dateFilter) return;
+        
+        if (!stocksByDate[date]) {
+          stocksByDate[date] = {
+            totalStocks: 0
+          };
+        }
+        stocksByDate[date].totalStocks += (item.fbs_quantity || 0) + (item.fbo_quantity || 0);
+      });
+    }
+    
+    // Уничтожаем старые графики если они существуют
+    const funnelChartCanvas = document.getElementById('chart_funnel');
+    const stocksChartCanvas = document.getElementById('chart_stocks');
+    
+    if (window.funnelChartInstance) {
+      window.funnelChartInstance.destroy();
+    }
+    if (window.stocksChartInstance) {
+      window.stocksChartInstance.destroy();
+    }
+    
+    // Создаем график для воронки
+    const funnelDates = Object.keys(funnelByDate).sort();
+    const orderCounts = funnelDates.map(date => funnelByDate[date].orderCount);
+    const buyoutCounts = funnelDates.map(date => funnelByDate[date].buyoutCount);
+    
+    window.funnelChartInstance = new Chart(funnelChartCanvas, {
+      type: 'line',
+      data: {
+        labels: funnelDates,
+        datasets: [
+          {
+            label: 'Заказы',
+            data: orderCounts,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1
+          },
+          {
+            label: 'Выкупы',
+            data: buyoutCounts,
+            borderColor: 'rgb(255, 99, 132)',
+            tension: 0.1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Воронка продаж по дням',
+            color: '#fff'
+          },
+          legend: {
+            labels: {
+              color: '#fff'
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#fff' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          },
+          y: {
+            ticks: { color: '#fff' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          }
+        }
+      }
+    });
+    
+    // Создаем график для остатков
+    const stocksDates = Object.keys(stocksByDate).sort();
+    const totalStocks = stocksDates.map(date => stocksByDate[date].totalStocks);
+    
+    window.stocksChartInstance = new Chart(stocksChartCanvas, {
+      type: 'line',
+      data: {
+        labels: stocksDates,
+        datasets: [{
+          label: 'Суммарный остаток (FBS + FBO)',
+          data: totalStocks,
+          borderColor: 'rgb(54, 162, 235)',
+          tension: 0.1
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: 'Остатки товаров по дням',
+            color: '#fff'
+          },
+          legend: {
+            labels: {
+              color: '#fff'
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#fff' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          },
+          y: {
+            ticks: { color: '#fff' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          }
+        }
+      }
+    });
+    
+    // Обновляем таблицу с товарами (фильтруем по дате если выбрана)
+    let filteredFunnelData = funnelData || [];
+    let filteredStocksData = stocksData || [];
+    
+    if (dateFilter) {
+      filteredFunnelData = filteredFunnelData.filter(item => item.date === dateFilter);
+      filteredStocksData = filteredStocksData.filter(item => item.date === dateFilter);
+    }
+    
+    // Объединяем данные для таблицы
     const combinedData = {};
     
-    // Добавляем данные карточек
-    if (cards) {
-      cards.forEach(card => {
-        if (card.nm_id) {
-          combinedData[card.nm_id] = {
-            ...combinedData[card.nm_id],
-            ...card,
-            vendorCode: card.vendor_code,
-            title: card.title
-          };
-        }
-      });
-    }
+    filteredFunnelData.forEach(item => {
+      const nmId = item.nm_id;
+      if (!combinedData[nmId]) {
+        combinedData[nmId] = { ...item };
+      } else {
+        // Суммируем показатели если есть дубликаты (по одному nm_id в один день)
+        combinedData[nmId].open_count = (combinedData[nmId].open_count || 0) + (item.open_count || 0);
+        combinedData[nmId].cart_count = (combinedData[nmId].cart_count || 0) + (item.cart_count || 0);
+        combinedData[nmId].order_count = (combinedData[nmId].order_count || 0) + (item.order_count || 0);
+        combinedData[nmId].buyout_count = (combinedData[nmId].buyout_count || 0) + (item.buyout_count || 0);
+      }
+      combinedData[nmId].date = item.date;
+    });
     
-    // Добавляем данные воронки
-    if (funnel) {
-      funnel.forEach(item => {
-        if (item.nm_id && combinedData[item.nm_id]) {
-          combinedData[item.nm_id] = {
-            ...combinedData[item.nm_id],
-            openCount: item.open_count,
-            addToCartCount: item.cart_count, // <-- ИСПРАВЛЕНО ЗДЕСЬ!
-            orderCount: item.order_count,
-            buyoutCount: item.buyout_count
-          };
-        }
-      });
-    }
+    // Добавляем названия товаров из wb_cards если нужно
+    // Пока используем только данные из воронки
     
-    // Рендерим таблицу
-    const rows = Object.values(combinedData).filter(item => item.nm_id).map(item => `
+    const rows = Object.values(combinedData).map(item => `
       <tr>
-        <td>${escapeHtml(item.vendorCode || '—')}</td>
-        <td>${escapeHtml(item.title || 'Без названия')}</td>
-        <td>${item.openCount || 0}</td>
-        <td>${item.addToCartCount || 0}</td>
-        <td>${item.orderCount || 0}</td>
-        <td>${item.buyoutCount || 0}</td>
+        <td>${escapeHtml(item.nm_id || '—')}</td>
+        <td>Товар ${escapeHtml(item.nm_id || '')}</td>
+        <td>${item.open_count || 0}</td>
+        <td>${item.cart_count || 0}</td>
+        <td>${item.order_count || 0}</td>
+        <td>${item.buyout_count || 0}</td>
+        <td>${escapeHtml(item.date || '—')}</td>
         <td>
-          <button class="action" onclick="openSeoCardDetails('${item.nm_id}', '${escapeHtml(item.title || '')}')" 
+          <button class="action" onclick="openSeoCardDetails('${item.nm_id}', 'Товар ${item.nm_id}')" 
                   style="padding:4px 8px; font-size:12px;">🔍 Открыть</button>
         </td>
       </tr>
     `).join('');
     
-    table.innerHTML = rows || '<tr><td colspan="7" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных для отображения</td></tr>';
+    table.innerHTML = rows || '<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных для отображения</td></tr>';
     
   } catch (error) {
     console.error('Ошибка загрузки SEO данных:', error);
-    table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#f87171;">Ошибка загрузки: ' + escapeHtml(error.message) + '</td></tr>';
+    table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#f87171;">Ошибка загрузки данных: ' + escapeHtml(error.message) + '</td></tr>';
   }
 }
 
