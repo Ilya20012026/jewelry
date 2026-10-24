@@ -796,12 +796,21 @@
         </div>
         
         <div id="wb-seo" class="tab">
-          <p class="hint">Аналитика поисковых запросов и позиций товаров</p>
-          <div class="row">
-            <input id="wb-seo-query" placeholder="Поисковый запрос" style="flex:1;">
-            <button class="action" onclick="loadSeoData()" style="width:auto;">Загрузить данные</button>
+          <h4>SEO-Рентген (Сырые данные из WB)</h4>
+          <p class="hint">Данные по воронке и карточкам. Нажмите на товар, чтобы увидеть детали и спросить Энигму.</p>
+          <div class="row" style="margin-bottom:12px;">
+            <button class="action" onclick="renderSeoDashboard()">🔄 Обновить данные</button>
           </div>
-          <div id="wb-seo-content"></div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Артикул</th><th>Название</th><th>Переходы</th><th>В корзину</th><th>Заказы</th><th>Выкупы</th><th>Действие</th>
+                </tr>
+              </thead>
+              <tbody id="seo-dashboard-table"></tbody>
+            </table>
+          </div>
         </div>
         
         <div id="wb-prices" class="tab">
@@ -1397,6 +1406,20 @@
       У вас обеденный перерыв. Отдохните и возвращайтесь к работе!
     </p>
     <button class="action ok" onclick="endLunch()" style="width:100%; padding: 16px; font-size: 14px; letter-spacing: 1px;">Вернуться к работе</button>
+  </div>
+</div>
+
+<!-- Модалка деталей SEO карточки -->
+<div id="seo_card_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:25000; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#16161a; color:#fff; width:100%; max-width:800px; max-height:90vh; overflow-y:auto; border-radius:12px; border:1px solid var(--border-light); padding:24px; position:relative;">
+    <button onclick="closeSeoCardModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:24px; color:#fff; cursor:pointer;">×</button>
+    <h3 id="seo_card_title" style="margin-top:0; margin-right:30px;">Детали карточки</h3>
+    <div id="seo_card_content">
+      <!-- Контент будет заполнен динамически -->
+    </div>
+    <div style="margin-top:20px; text-align:center;">
+      <button class="action" onclick="askEnigma()" style="padding:12px 24px; font-size:16px;">🤖 Спросить Энигму</button>
+    </div>
   </div>
 </div>
 
@@ -5453,6 +5476,155 @@ function renderShiftsHistory() {
       <span style="color:${s.status === 'closed' ? '#4ade80' : '#fbbf24'};">${s.status === 'closed' ? 'Закрыта' : 'Активна'}</span>
     </div>
   `).join("") || "<p>Нет смен.</p>";
+}
+
+/* ============================================================
+   SEO-РЕНТГЕН: Система анализа данных Wildberries
+   ============================================================ */
+
+// Функция для рендеринга дашборда SEO данных
+async function renderSeoDashboard() {
+  const table = document.getElementById('seo-dashboard-table');
+  if (!table) return;
+  
+  table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Загрузка данных...</td></tr>';
+  
+  try {
+    const sb = await initCloud();
+    if (!sb) {
+      table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#f87171;">Ошибка подключения к облаку</td></tr>';
+      return;
+    }
+    
+    // Получаем данные из обеих таблиц
+    const [{ data: cards, error: cardsError }, { data: funnel, error: funnelError }] = await Promise.all([
+      sb.from('wb_cards').select('*'),
+      sb.from('wb_funnel').select('*')
+    ]);
+    
+    if (cardsError || funnelError) {
+      throw new Error(cardsError?.message || funnelError?.message);
+    }
+    
+    if ((!cards || cards.length === 0) && (!funnel || funnel.length === 0)) {
+      table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных. Запустите wb_api.py</td></tr>';
+      return;
+    }
+    
+    // Объединяем данные по nm_id
+    const combinedData = {};
+    
+    // Добавляем данные карточек
+    if (cards) {
+      cards.forEach(card => {
+        if (card.nm_id) {
+          combinedData[card.nm_id] = {
+            ...combinedData[card.nm_id],
+            ...card,
+            vendorCode: card.vendor_code,
+            title: card.title
+          };
+        }
+      });
+    }
+    
+    // Добавляем данные воронки
+    if (funnel) {
+      funnel.forEach(item => {
+        if (item.nm_id && combinedData[item.nm_id]) {
+          combinedData[item.nm_id] = {
+            ...combinedData[item.nm_id],
+            openCount: item.open_count,
+            addToCartCount: item.add_to_cart_count,
+            orderCount: item.order_count,
+            buyoutCount: item.buyout_count
+          };
+        }
+      });
+    }
+    
+    // Рендерим таблицу
+    const rows = Object.values(combinedData).filter(item => item.nm_id).map(item => `
+      <tr>
+        <td>${escapeHtml(item.vendorCode || '—')}</td>
+        <td>${escapeHtml(item.title || 'Без названия')}</td>
+        <td>${item.openCount || 0}</td>
+        <td>${item.addToCartCount || 0}</td>
+        <td>${item.orderCount || 0}</td>
+        <td>${item.buyoutCount || 0}</td>
+        <td>
+          <button class="action" onclick="openSeoCardDetails('${item.nm_id}', '${escapeHtml(item.title || '')}')" 
+                  style="padding:4px 8px; font-size:12px;">🔍 Открыть</button>
+        </td>
+      </tr>
+    `).join('');
+    
+    table.innerHTML = rows || '<tr><td colspan="7" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных для отображения</td></tr>';
+    
+  } catch (error) {
+    console.error('Ошибка загрузки SEO данных:', error);
+    table.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#f87171;">Ошибка загрузки: ' + escapeHtml(error.message) + '</td></tr>';
+  }
+}
+
+// Функция для открытия деталей карточки
+async function openSeoCardDetails(nmId, title) {
+  try {
+    const sb = await initCloud();
+    if (!sb) {
+      alert('Ошибка подключения к Supabase');
+      return;
+    }
+    
+    const { data: card, error } = await sb
+      .from('wb_cards')
+      .select('*')
+      .eq('nm_id', nmId)
+      .single();
+    
+    if (error) throw error;
+    
+    // Заполняем модальное окно
+    document.getElementById('seo_card_title').textContent = title || 'Детали карточки';
+    
+    const content = document.getElementById('seo_card_content');
+    content.innerHTML = `
+      <div style="line-height:1.6;">
+        <div><strong>Артикул продавца:</strong> ${escapeHtml(card.vendor_code || '—')}</div>
+        <div><strong>Название:</strong> ${escapeHtml(card.title || '—')}</div>
+        <div><strong>Описание:</strong> ${escapeHtml(card.description || '—')}</div>
+        <div><strong>Категория:</strong> ${escapeHtml(card.subject_name || '—')}</div>
+        <div><strong>Количество фото:</strong> ${card.photos || 0}</div>
+        <div><strong>Видео:</strong> ${card.video ? 'Есть' : 'Нет'}</div>
+        ${card.characteristics ? `
+          <div style="margin-top:12px;">
+            <strong>Характеристики:</strong>
+            <pre style="background:rgba(255,255,255,0.05); padding:12px; border-radius:4px; overflow-x:auto; font-size:12px; margin-top:4px;">
+              ${escapeHtml(JSON.stringify(JSON.parse(card.characteristics), null, 2))}
+            </pre>
+          </div>
+        ` : ''}
+      </div>
+    `;
+    
+    // Показываем модальное окно
+    document.getElementById('seo_card_modal').style.display = 'flex';
+    
+  } catch (error) {
+    console.error('Ошибка загрузки деталей карточки:', error);
+    alert('Ошибка загрузки деталей: ' + error.message);
+  }
+}
+
+// Функция для закрытия модального окна
+function closeSeoCardModal() {
+  document.getElementById('seo_card_modal').style.display = 'none';
+}
+
+// Функция для запроса к Энигме (заглушка)
+function askEnigma() {
+  alert('Отправка в Энигму... Эта функция будет реализована в ближайшем обновлении');
+  // В будущем здесь будет интеграция с DeepSeek API
 }
 
 /* ============================================================
