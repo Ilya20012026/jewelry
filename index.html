@@ -470,6 +470,7 @@
       <button onclick="showTab('archive', this)">Архив списаний</button>
       <button onclick="showServiceTab('backup', this)">Резервная копия</button>
       <button onclick="showServiceTab('archive_chats', this)">Архив чатов</button>
+      <button onclick="showServiceTab('shift_settings', this)">Настройки смен</button>
     </div>
   </div>
 
@@ -1067,6 +1068,37 @@
         <div id="sync_status" style="margin-top:12px; font-size:14px; color:rgba(255,255,255,0.6);"></div>
       </div>
     </div>
+
+    <div id="service-shift_settings" class="tab">
+      <div class="card master-hidden">
+        <h3>Настройки рабочего времени</h3>
+        <div class="row">
+          <div><label style="font-size:12px;color:#888;">Начало работы</label><input type="time" id="set_work_start" class="form-control"></div>
+          <div><label style="font-size:12px;color:#888;">Начало обеда</label><input type="time" id="set_lunch_start" class="form-control"></div>
+          <div><label style="font-size:12px;color:#888;">Конец обеда</label><input type="time" id="set_lunch_end" class="form-control"></div>
+          <div><label style="font-size:12px;color:#888;">Конец работы</label><input type="time" id="set_work_end" class="form-control"></div>
+          <button class="action" onclick="saveShiftSettings()" style="margin-top: 20px;">Сохранить</button>
+        </div>
+      </div>
+      
+      <div class="card master-hidden">
+        <h3>Чек-лист при закрытии смены</h3>
+        <div class="row">
+          <input id="new_checklist_item" placeholder="Новый пункт (например: Помыть стол)" style="flex:1;">
+          <button class="action" onclick="addChecklistItem()">+ Добавить</button>
+        </div>
+        <div id="checklist_admin_list" style="margin-top:16px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>История смен</h3>
+        <div class="row">
+          <input type="date" id="shift_filter_date" onchange="renderShiftsHistory()">
+          <select id="shift_filter_emp" onchange="renderShiftsHistory()"><option value="">Все сотрудники</option></select>
+        </div>
+        <div id="shifts_history_list"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1264,6 +1296,33 @@
   </div>
 </div>
 
+<!-- Модалка начала смены -->
+<div id="shift_start_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:20000; align-items:center; justify-content:center;">
+  <div style="background:#16161a; color:#fff; width:100%; max-width:500px; padding:24px; border-radius:12px; border:1px solid var(--border-light);">
+    <h2 id="shift_greeting" style="margin-top:0; color:#fff;"></h2>
+    <p id="shift_status_text" style="color:rgba(255,255,255,0.7);"></p>
+    <h4 style="color:#fff; margin-top:20px;">Ваши задачи на сегодня:</h4>
+    <div id="shift_tasks_list" style="max-height:200px; overflow-y:auto; margin-bottom:20px;"></div>
+    <button class="action ok" onclick="startWorkDay()" style="width:100%;">Начать рабочий день</button>
+  </div>
+</div>
+
+<!-- Модалка закрытия смены -->
+<div id="shift_end_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:20000; align-items:center; justify-content:center;">
+  <div style="background:#16161a; color:#fff; width:100%; max-width:600px; padding:24px; border-radius:12px; border:1px solid var(--border-light); max-height:90vh; overflow-y:auto;">
+    <h2 style="margin-top:0; color:#fff;">Рабочий день заканчивается!</h2>
+    <p style="color:rgba(255,255,255,0.7);">Проверьте свой прогресс и отметьте выполненные задачи.</p>
+    
+    <h4 style="color:#fff;">Отчет по задачам:</h4>
+    <div id="shift_end_tasks" style="margin-bottom:20px;"></div>
+
+    <h4 style="color:#fff;">Чек-лист уборки:</h4>
+    <div id="shift_end_checklist" style="margin-bottom:20px;"></div>
+
+    <button class="action ok" onclick="closeWorkDay()" style="width:100%;">Закрыть смену</button>
+  </div>
+</div>
+
 <script src="db.js"></script>
 <script src="cloud.js"></script>
 <script src="autosync.js"></script>
@@ -1275,7 +1334,9 @@ const EMPTY_DATA = {
   tasks: [], employees: [], groups: [],
   chats: [], messages: [], chat_participants: [],
   boards: [], columns: [], board_tasks: [],
-  notifications: []
+  notifications: [],
+  settings: [{ id: "main", work_start: "09:30", lunch_start: "13:00", lunch_end: "13:45", work_end: "16:40", checklist: ["Помыть стол", "Убрать инструменты"] }],
+  shifts: []
 };
 
 let data = JSON.parse(JSON.stringify(EMPTY_DATA));
@@ -2896,6 +2957,9 @@ function showApp() {
   if (typeof renderAll === "function") renderAll(); 
   if (typeof renderEmployees === "function") renderEmployees();
   if (typeof renderNotifications === "function") renderNotifications();
+  
+  // Проверка начала смены
+  setTimeout(checkShiftStart, 1000);
 }
 
 function hideApp() {
@@ -3054,7 +3118,18 @@ function showServiceTab(id, btn) {
   
   document.getElementById("service-" + id).classList.add("active");
   if (btn) btn.classList.add("active");
+  
   if (id === "archive_chats") renderArchivedChats();
+  if (id === "shift_settings") {
+    renderShiftSettings();
+    // Заполняем селект сотрудников
+    const empSelect = document.getElementById("shift_filter_emp");
+    if (empSelect) {
+      empSelect.innerHTML = '<option value="">Все сотрудники</option>' + 
+        (data.employees || []).map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join("");
+    }
+    renderShiftsHistory();
+  }
 }
 
 function showTab(id, btn) {
@@ -4420,6 +4495,7 @@ async function initApp() {
       await runAutosync(() => data, (d) => { data = d; renderAll(); });
       checkSession();
     } else { checkSession(); }
+    checkShiftStart();
   }, 1000);
 
   setInterval(() => { checkScheduledTasks(); }, 60000);
@@ -4987,6 +5063,200 @@ renderAll = function() {
         renderContractors();
     }
 };
+
+// --- СИСТЕМА СМЕН ---
+
+// 1. Сохранение настроек
+async function saveShiftSettings() {
+  const st = data.settings[0] || { id: "main" };
+  st.work_start = document.getElementById("set_work_start").value;
+  st.lunch_start = document.getElementById("set_lunch_start").value;
+  st.lunch_end = document.getElementById("set_lunch_end").value;
+  st.work_end = document.getElementById("set_work_end").value;
+  st.updatedAt = new Date().toISOString();
+  data.settings = [st];
+  save();
+  showToast("✅ Настройки сохранены", "success");
+}
+
+// 2. Рендер чек-листа для админа
+function renderShiftSettings() {
+  const st = data.settings[0] || {};
+  document.getElementById("set_work_start").value = st.work_start || "09:30";
+  document.getElementById("set_lunch_start").value = st.lunch_start || "13:00";
+  document.getElementById("set_lunch_end").value = st.lunch_end || "13:45";
+  document.getElementById("set_work_end").value = st.work_end || "16:40";
+  
+  const list = document.getElementById("checklist_admin_list");
+  list.innerHTML = (st.checklist || []).map((item, i) => `
+    <div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #333;">
+      <span>${escapeHtml(item)}</span>
+      <button class="action danger" onclick="delChecklistItem(${i})" style="padding:2px 6px; font-size:10px;">×</button>
+    </div>
+  `).join("");
+}
+
+function addChecklistItem() {
+  const val = document.getElementById("new_checklist_item").value.trim();
+  if (!val) return;
+  const st = data.settings[0] || { id: "main", checklist: [] };
+  if (!st.checklist) st.checklist = [];
+  st.checklist.push(val);
+  data.settings = [st];
+  document.getElementById("new_checklist_item").value = "";
+  save(); renderShiftSettings();
+}
+
+function delChecklistItem(index) {
+  const st = data.settings[0];
+  st.checklist.splice(index, 1);
+  save(); renderShiftSettings();
+}
+
+// 3. Логика приветствия (вызывается при входе)
+function checkShiftStart() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const today = new Date().toISOString().slice(0,10);
+  
+  // Проверяем, не начинали ли уже смену сегодня
+  const existingShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today);
+  if (existingShift) return;
+
+  const st = data.settings[0] || { work_start: "09:30" };
+  const now = new Date();
+  const currentTime = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+  
+  let statusText = "";
+  if (currentTime > st.work_start) {
+    const [h1, m1] = currentTime.split(':').map(Number);
+    const [h2, m2] = st.work_start.split(':').map(Number);
+    const diff = (h1 * 60 + m1) - (h2 * 60 + m2);
+    statusText = `Вы опоздали на ${diff} минут.`;
+  } else {
+    statusText = `Вы успели вовремя!`;
+  }
+
+  // Выводим задачи на сегодня
+  const myTasks = (data.tasks || []).filter(t => t.responsible === user.name && t.date_start === today);
+  document.getElementById("shift_tasks_list").innerHTML = myTasks.map(t => `
+    <div style="padding:8px; border-bottom:1px solid #333;">
+      <b>${escapeHtml(t.title)}</b> ${t.done ? '✅' : '⏳'}
+    </div>
+  `).join("") || "<p>Задач на сегодня нет.</p>";
+
+  document.getElementById("shift_greeting").textContent = `Здравствуйте, ${user.name}!`;
+  document.getElementById("shift_status_text").textContent = statusText;
+  document.getElementById("shift_start_modal").style.display = "flex";
+}
+
+function startWorkDay() {
+  const user = getCurrentUser();
+  const today = new Date().toISOString().slice(0,10);
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+  
+  data.shifts = data.shifts || [];
+  data.shifts.push({
+    id: uid(),
+    employee_id: user.id,
+    employee_name: user.name,
+    date: today,
+    start_time: timeStr,
+    status: "active",
+    updatedAt: new Date().toISOString()
+  });
+  
+  save();
+  document.getElementById("shift_start_modal").style.display = "none";
+  showToast("🚀 Рабочий день начат!", "success");
+}
+
+// 4. Логика напоминаний (Обед и Конец дня)
+setInterval(() => {
+  const user = getCurrentUser();
+  if (!user) return;
+  
+  const now = new Date();
+  const currentTime = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+  const st = data.settings[0] || { lunch_start: "13:00", lunch_end: "13:45", work_end: "16:40" };
+  const today = now.toISOString().slice(0,10);
+
+  // Обед
+  if (currentTime === st.lunch_start) {
+    showToast("🍲 Сейчас обед (с " + st.lunch_start + " до " + st.lunch_end + "). Отдохните!", "info");
+  }
+
+  // Конец дня
+  if (currentTime >= st.work_end) {
+    const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
+    if (myShift) {
+      // Показываем окно закрытия
+      const modal = document.getElementById("shift_end_modal");
+      if (modal.style.display !== "flex") {
+        renderShiftEndModal(myShift);
+        modal.style.display = "flex";
+      }
+    }
+  }
+}, 60000); // Проверка каждую минуту
+
+// 5. Окно закрытия смены
+function renderShiftEndModal(shift) {
+  const today = new Date().toISOString().slice(0,10);
+  const myTasks = (data.tasks || []).filter(t => t.responsible === shift.employee_name && t.date_start === today);
+  
+  document.getElementById("shift_end_tasks").innerHTML = myTasks.map(t => `
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+      <input type="checkbox" id="end_task_${t.id}" ${t.done ? 'checked disabled' : ''}>
+      <label for="end_task_${t.id}">${escapeHtml(t.title)}</label>
+    </div>
+  `).join("") || "<p>Задач не было.</p>";
+
+  const st = data.settings[0] || { checklist: [] };
+  document.getElementById("shift_end_checklist").innerHTML = (st.checklist || []).map((item, i) => `
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+      <input type="checkbox" id="end_chk_${i}">
+      <label for="end_chk_${i}">${escapeHtml(item)}</label>
+    </div>
+  `).join("");
+}
+
+function closeWorkDay() {
+  const user = getCurrentUser();
+  const today = new Date().toISOString().slice(0,10);
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+  
+  const shift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
+  if (!shift) return;
+
+  shift.end_time = timeStr;
+  shift.status = "closed";
+  shift.updatedAt = new Date().toISOString();
+  
+  save();
+  document.getElementById("shift_end_modal").style.display = "none";
+  showToast("✅ Смена закрыта! Хорошего вечера.", "success");
+}
+
+// 6. История смен для админа
+function renderShiftsHistory() {
+  const dateFilter = document.getElementById("shift_filter_date").value;
+  const empFilter = document.getElementById("shift_filter_emp").value;
+  
+  let shifts = data.shifts || [];
+  if (dateFilter) shifts = shifts.filter(s => s.date === dateFilter);
+  if (empFilter) shifts = shifts.filter(s => String(s.employee_id) === String(empFilter));
+  
+  const list = document.getElementById("shifts_history_list");
+  list.innerHTML = shifts.map(s => `
+    <div class="card" style="margin-bottom:8px; background:#222;">
+      <b>${escapeHtml(s.employee_name)}</b> — ${s.date} (${s.start_time} - ${s.end_time || '...'})
+      <span style="color:${s.status === 'closed' ? '#4ade80' : '#fbbf24'};">${s.status === 'closed' ? 'Закрыта' : 'Активна'}</span>
+    </div>
+  `).join("") || "<p>Нет смен.</p>";
+}
 
 /* ============================================================
    СИСТЕМА ПОСТАВОК
