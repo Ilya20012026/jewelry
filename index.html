@@ -2958,9 +2958,27 @@ function showApp() {
   if (typeof renderEmployees === "function") renderEmployees();
   if (typeof renderNotifications === "function") renderNotifications();
   
-  // Проверка начала смены
+   // Проверка начала смены
   setTimeout(checkShiftStart, 1000);
-}
+  
+  // НОВОЕ: Проверка обеда сразу при входе
+  setTimeout(() => {
+    const user = getCurrentUser();
+    if (!user) return;
+    const now = new Date();
+    const currentTime = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+    const st = data.settings[0] || { lunch_start: "13:00", lunch_end: "13:45" };
+    const today = now.toISOString().slice(0,10);
+
+    if (currentTime >= st.lunch_start && currentTime < st.lunch_end) {
+      const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
+      if (myShift && !myShift.lunch_notified) {
+        showToast("🍲 Сейчас обед (с " + st.lunch_start + " до " + st.lunch_end + "). Отдохните!", "info");
+        myShift.lunch_notified = true;
+        save();
+      }
+    }
+  }, 1500);
 
 function hideApp() {
   document.getElementById("login_screen").style.display = "flex";
@@ -3102,37 +3120,39 @@ function showMain(mainId, btn) {
 }
 
 function showServiceTab(id, btn) {
-  // Находим родительский раздел через кнопку
-  const mainService = btn.closest('#main-service');
+  const mainService = document.getElementById('main-service');
   if (!mainService) return;
   
-  // Скрываем все вкладки внутри раздела Сервис
+  // Скрываем все вкладки внутри Сервиса
   const tabs = mainService.querySelectorAll(":scope > .tab");
   tabs.forEach(t => t.classList.remove("active"));
   
-  // Снимаем active с кнопок в верхней панели для раздела service
+  // Снимаем активность с кнопок
   const serviceTabs = document.getElementById('service-tabs');
   if (serviceTabs) {
     serviceTabs.querySelectorAll('button').forEach(b => b.classList.remove('active'));
   }
   
-  document.getElementById("service-" + id).classList.add("active");
+  // Показываем нужную вкладку
+  const targetTab = document.getElementById("service-" + id);
+  if (targetTab) targetTab.classList.add("active");
   if (btn) btn.classList.add("active");
+
+  // Вызываем рендеры
+  if (id === "archive_chats" && typeof renderArchivedChats === 'function') renderArchivedChats();
   
-  // ВАЖНО: Вызовы рендера для каждой вкладки
-  if (id === "archive_chats") renderArchivedChats();
-  if (id === "backup") { 
-    // Вкладка резервной копии, рендер не нужен 
-  }
   if (id === "shift_settings") {
-    renderShiftSettings();
-    // Заполняем селект сотрудников для истории
-    const empSelect = document.getElementById("shift_filter_emp");
-    if (empSelect) {
-      empSelect.innerHTML = '<option value="">Все сотрудники</option>' + 
-        (data.employees || []).map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join("");
+    try {
+      if (typeof renderShiftSettings === 'function') renderShiftSettings();
+      const empSelect = document.getElementById("shift_filter_emp");
+      if (empSelect && data.employees) {
+        empSelect.innerHTML = '<option value="">Все сотрудники</option>' + 
+          data.employees.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join("");
+      }
+      if (typeof renderShiftsHistory === 'function') renderShiftsHistory();
+    } catch (e) {
+      console.warn("Ошибка при открытии настроек смен:", e);
     }
-    renderShiftsHistory();
   }
 }
 
