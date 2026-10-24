@@ -799,7 +799,7 @@
         <div id="wb-seo" class="tab">
           <h4>SEO-Рентген (Аналитика WB)</h4>
           <p class="hint">Данные по воронке и карточкам. Выберите период для анализа.</p>
-      
+          
           <div class="row" style="margin-bottom:16px; align-items:center;">
             <button class="action" onclick="renderSeoDashboard()" style="width:auto;">🔄 Обновить данные</button>
             <div style="display:flex; align-items:center; gap:8px; margin-left:16px;">
@@ -4481,8 +4481,17 @@ async function renderWbStocks() {
       return;
     }
     
+    // Группировка по nm_id - оставляем только последнюю запись
+    const uniqueStocks = {};
+    (wbStocks || []).forEach(item => {
+      if (!uniqueStocks[item.nm_id] || new Date(item.date) > new Date(uniqueStocks[item.nm_id].date)) {
+        uniqueStocks[item.nm_id] = item;
+      }
+    });
+    const stocksToRender = Object.values(uniqueStocks);
+    
     let html = '';
-    wbStocks.forEach(wbItem => {
+    stocksToRender.forEach(wbItem => {
       let stockItem = null;
       let productName = wbItem.title || `Товар WB: ${wbItem.nm_id}`;
       let article = wbItem.article || '—';
