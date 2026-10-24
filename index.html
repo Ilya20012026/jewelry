@@ -1323,6 +1323,28 @@
   </div>
 </div>
 
+<!-- Модалка обеда (блокирующая) -->
+<div id="lunch_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:25000; align-items:center; justify-content:center;">
+  <div style="background:#16161a; color:#fff; width:100%; max-width:450px; padding:32px; border-radius:16px; border:1px solid var(--border-light); text-align:center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+    <h2 style="margin-top:0; color:#fff; font-size: 28px;">🍲 Время обеда</h2>
+    <p style="color:rgba(255,255,255,0.8); font-size: 16px; line-height: 1.5; margin-bottom: 24px;">
+      У вас обеденный перерыв. Отдохните и возвращайтесь к работе!
+    </p>
+    <button class="action ok" onclick="endLunch()" style="width:100%; padding: 16px; font-size: 14px; letter-spacing: 1px;">Вернуться к работе</button>
+  </div>
+</div>
+
+<!-- Модалка конца дня (Дела на день) -->
+<div id="end_day_modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:25000; align-items:center; justify-content:center;">
+  <div style="background:#16161a; color:#fff; width:100%; max-width:500px; padding:32px; border-radius:16px; border:1px solid var(--border-light); text-align:center; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+    <h2 style="margin-top:0; color:#fff; font-size: 28px;">🌙 Дела на день</h2>
+    <p style="color:rgba(255,255,255,0.8); font-size: 16px; line-height: 1.5; margin-bottom: 24px;">
+      Рабочий день подходит к концу. Пожалуйста, проверьте свои задачи и отметьте выполненные дела.
+    </p>
+    <button class="action ok" onclick="acknowledgeEndDay()" style="width:100%; padding: 16px; font-size: 14px; letter-spacing: 1px;">Понятно</button>
+  </div>
+</div>
+
 <script src="db.js"></script>
 <script src="cloud.js"></script>
 <script src="autosync.js"></script>
@@ -5197,7 +5219,7 @@ function startWorkDay() {
   showToast("🚀 Рабочий день начат!", "success");
 }
 
-// 4. Логика напоминаний (Обед и Конец дня)
+// 4. Логика напоминаний (Обед и Конец дня) - НОВАЯ БЛОКИРУЮЩАЯ СИСТЕМА
 setInterval(() => {
   const user = getCurrentUser();
   if (!user) return;
@@ -5207,29 +5229,30 @@ setInterval(() => {
   const st = data.settings[0] || { lunch_start: "13:00", lunch_end: "13:45", work_end: "16:40" };
   const today = now.toISOString().slice(0,10);
 
-  // Обед (проверяем, что время внутри диапазона и уведомление еще не показывали)
+  // --- ОБЕД ---
   if (currentTime >= st.lunch_start && currentTime < st.lunch_end) {
     const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
-    if (myShift && !myShift.lunch_notified) {
-      showToast("🍲 Сейчас обед (с " + st.lunch_start + " до " + st.lunch_end + "). Отдохните!", "info");
-      myShift.lunch_notified = true;
-      save();
-    }
-  }
-
-  // Конец дня
-  if (currentTime >= st.work_end) {
-    const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
-    if (myShift) {
-      // Показываем окно закрытия
-      const modal = document.getElementById("shift_end_modal");
-      if (modal.style.display !== "flex") {
-        renderShiftEndModal(myShift);
-        modal.style.display = "flex";
+    if (myShift && !myShift.lunch_done) {
+      const lunchModal = document.getElementById("lunch_modal");
+      if (lunchModal && lunchModal.style.display !== "flex") {
+        lunchModal.style.display = "flex";
+        showToast("🍲 Начался обеденный перерыв", "info");
       }
     }
   }
-}, 60000); // Проверка каждую минуту
+
+  // --- КОНЕЦ ДНЯ ---
+  if (currentTime >= st.work_end) {
+    const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
+    if (myShift && !myShift.end_day_done) {
+      const endModal = document.getElementById("end_day_modal");
+      if (endModal && endModal.style.display !== "flex") {
+        endModal.style.display = "flex";
+        showToast("🌙 Рабочий день заканчивается", "info");
+      }
+    }
+  }
+}, 30000); // Проверка каждые 30 секунд
 
 // 5. Окно закрытия смены
 function renderShiftEndModal(shift) {
@@ -5898,6 +5921,45 @@ setTimeout(() => {
     login.style.display = "flex";
   }
 }, 1500);
+
+// Функция для кнопки "Вернуться к работе"
+function endLunch() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const today = new Date().toISOString().slice(0,10);
+  const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
+  
+  if (myShift) {
+    myShift.lunch_done = true;
+    myShift.lunch_end_time = new Date().toLocaleTimeString("ru-RU", { hour: '2-digit', minute: '2-digit' });
+    save();
+  }
+  document.getElementById("lunch_modal").style.display = "none";
+}
+
+// Функция для кнопки "Понятно" (конец дня)
+function acknowledgeEndDay() {
+  const user = getCurrentUser();
+  if (!user) return;
+  const today = new Date().toISOString().slice(0,10);
+  const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
+  
+  if (myShift) {
+    myShift.end_day_done = true;
+    myShift.end_day_ack_time = new Date().toLocaleTimeString("ru-RU", { hour: '2-digit', minute: '2-digit' });
+    save();
+  }
+  document.getElementById("end_day_modal").style.display = "none";
+  
+  // Автоматически открываем окно закрытия смены
+  if (typeof renderShiftEndModal === 'function') {
+     const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
+     if (myShift) {
+         renderShiftEndModal(myShift);
+         document.getElementById("shift_end_modal").style.display = "flex";
+     }
+  }
+}
 </script>
 <script>
   if ('serviceWorker' in navigator) {
