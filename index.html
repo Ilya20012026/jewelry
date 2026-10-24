@@ -1639,6 +1639,11 @@ function toggleTaskDone(id, dateStr = null) {
     }
   }
   
+  // Принудительно отправляем изменения в облако, чтобы автосинхронизация не затёрла статус
+  if (typeof pushAll === 'function') {
+    pushAll(data).catch(e => console.warn("Синхронизация отложена:", e.message));
+  }
+  
   save(); renderCalendar();
   if (_calSelectedDay) renderDayTasks(_calSelectedDay);
 }
@@ -3786,6 +3791,11 @@ function completeStageN(bid, stageNum) {
         }
       }
     });
+  }
+
+  // Принудительная отправка в облако
+  if (typeof pushAll === 'function') {
+    pushAll(data).catch(e => console.warn("Синхронизация отложена:", e.message));
   }
 
   save(); 
