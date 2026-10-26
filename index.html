@@ -4473,69 +4473,70 @@ async function renderWbStocks() {
       return;
     }
     
-    const { data: wbStocks, error } = await sb.from('wb_stocks').select('*');
-    if (error) throw error;
+    // Запрашиваем ОСТАТКИ и КАРТОЧКИ параллельно
+    const [stocksRes, cardsRes] = await Promise.all([
+      sb.from('wb_stocks').select('*').order('date', { ascending: false }),
+      sb.from('wb_cards').select('nm_id, title, vendor_code')
+    ]);
+
+    if (stocksRes.error) throw stocksRes.error;
+    if (cardsRes.error) throw cardsRes.error;
+
+    const wbStocks = stocksRes.data || [];
+    const cards = cardsRes.data || [];
     
-    if (!wbStocks || wbStocks.length === 0) {
+    if (wbStocks.length === 0) {
       table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных о товарах на Wildberries</td></tr>';
       return;
     }
+
+    // Создаем карту карточек: nm_id -> { title, vendor_code }
+    const cardMap = {};
+    cards.forEach(c => { cardMap[String(c.nm_id)] = c; });
     
     // Группировка по nm_id - оставляем только последнюю запись
     const uniqueStocks = {};
-    (wbStocks || []).forEach(item => {
-      if (!uniqueStocks[item.nm_id] || new Date(item.date) > new Date(uniqueStocks[item.nm_id].date)) {
-        uniqueStocks[item.nm_id] = item;
-      }
+    wbStocks.forEach(item => {
+      const key = String(item.nm_id);
+      const cur = uniqueStocks[key];
+      if (!cur || (item.date || '') > (cur.date || '')) uniqueStocks[key] = item;
     });
-    const stocksToRender = Object.values(uniqueStocks);
-    
+
     let html = '';
-    stocksToRender.forEach(wbItem => {
+    Object.values(uniqueStocks).forEach(wbItem => {
+      const card = cardMap[String(wbItem.nm_id)];
+      
+      // БЕРЕМ НАЗВАНИЕ И АРТИКУЛ ИЗ КАРТОЧКИ
+      const title = card?.title || null;
+      const article = card?.vendor_code || wbItem.article || '—'; 
+      const displayName = title || `Товар WB: ${wbItem.nm_id}`;
+
       let stockItem = null;
-      let productName = wbItem.title || wbItem.nm_id;
-      let article = wbItem.article || '—';
-      
-      // Попробуем получить название из wb_cards, если оно есть
-      if (wbItem.nm_id) {
-        // В реальности здесь должен быть запрос к таблице wb_cards
-        // Но так как у нас нет доступа к данным wb_cards в этом контексте,
-        // оставим текущую логику с article
-      }
-      
       if (article !== '—') {
-        stockItem = (data.stock || []).find(item => 
-          item.productName && article && 
-          item.productName.toLowerCase().includes(article.toLowerCase())
+        // Ищем на нашем складе по артикулу
+        const product = (data.products || []).find(p => 
+          p.article && String(p.article).toLowerCase() === String(article).toLowerCase()
         );
-        if (!stockItem) {
-          const product = (data.products || []).find(p => 
-            p.article && article && 
-            p.article.toLowerCase() === article.toLowerCase()
-          );
-          if (product) {
-            stockItem = (data.stock || []).find(item => 
-              item.productName === product.name
-            );
-          }
+        if (product) {
+          stockItem = (data.stock || []).find(item => item.productName === product.name);
         }
       }
-      
+
       const fbsQty = wbItem.fbs_quantity || 0;
       const fboQty = wbItem.fbo_quantity || 0;
       const wbTotal = fbsQty + fboQty;
       const myStockQty = stockItem ? stockItem.remaining : 0;
       const cost = stockItem ? stockItem.costPerUnit : 0;
-      
+
       let status = '', statusColor = '';
       if (!stockItem) { status = '❓ Нет в РУСИЧЪ'; statusColor = 'color: #60a5fa;'; }
       else if (wbTotal > myStockQty) { status = '⚠️ Меньше на складе'; statusColor = 'color: #f87171;'; }
       else if (wbTotal < myStockQty) { status = '⚠️ Больше на складе'; statusColor = 'color: #fbbf24;'; }
       else { status = '✅ ОК'; statusColor = 'color: #4ade80;'; }
-      
+
       html += `
         <tr>
-          <td>${escapeHtml(productName)}</td>
+          <td>${escapeHtml(displayName)}</td>
           <td>${escapeHtml(article)}</td>
           <td>${fbsQty}</td>
           <td>${fboQty}</td>
