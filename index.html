@@ -4563,8 +4563,6 @@ function updateWbStock(productName) {
 let chartFunnel = null;
 let chartStocks = null;
 
-let chartFunnel = null;
-let chartStocks = null;
 
 function _toDateStr(d) {
   const y = d.getFullYear();
@@ -5642,6 +5640,7 @@ function renderShiftsHistory() {
 // Функция для рендеринга дашборда SEO данных
 
 // Функция для открытия деталей карточки
+
 async function openSeoCardDetails(nmId, title) {
   try {
     const sb = await initCloud();
@@ -5662,6 +5661,22 @@ async function openSeoCardDetails(nmId, title) {
     document.getElementById('seo_card_title').textContent = title || 'Детали карточки';
     
     const content = document.getElementById('seo_card_content');
+    
+    let characteristicsHtml = '';
+    if (card.characteristics) {
+      try {
+        const parsed = typeof card.characteristics === 'string' ? JSON.parse(card.characteristics) : card.characteristics;
+        characteristicsHtml = `
+          <div style="margin-top:12px;">
+            <strong>Характеристики:</strong>
+            <pre style="background:rgba(255,255,255,0.05); padding:12px; border-radius:4px; overflow-x:auto; font-size:12px; margin-top:4px;">
+              ${escapeHtml(JSON.stringify(parsed, null, 2))}
+            </pre>
+          </div>
+        `;
+      } catch(e) {}
+    }
+
     content.innerHTML = `
       <div style="line-height:1.6;">
         <div><strong>Артикул продавца:</strong> ${escapeHtml(card.vendor_code || '—')}</div>
@@ -5670,14 +5685,7 @@ async function openSeoCardDetails(nmId, title) {
         <div><strong>Категория:</strong> ${escapeHtml(card.subject_name || '—')}</div>
         <div><strong>Количество фото:</strong> ${card.photos || 0}</div>
         <div><strong>Видео:</strong> ${card.video ? 'Есть' : 'Нет'}</div>
-        ${card.characteristics ? `
-          <div style="margin-top:12px;">
-            <strong>Характеристики:</strong>
-            <pre style="background:rgba(255,255,255,0.05); padding:12px; border-radius:4px; overflow-x:auto; font-size:12px; margin-top:4px;">
-              ${escapeHtml(JSON.stringify(JSON.parse(card.characteristics), null, 2))}
-            </pre>
-          </div>
-        ` : ''}
+        ${characteristicsHtml}
       </div>
     `;
     
@@ -5689,6 +5697,7 @@ async function openSeoCardDetails(nmId, title) {
     alert('Ошибка загрузки деталей: ' + error.message);
   }
 }
+
 
 // Функция для закрытия модального окна
 function closeSeoCardModal() {
