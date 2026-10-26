@@ -797,39 +797,39 @@
         </div>
         
         <div id="wb-seo" class="tab">
-          <h4>SEO-Рентген (Аналитика WB)</h4>
-          <p class="hint">Данные по воронке и карточкам. Выберите период для анализа.</p>
-          
-          <div class="row" style="margin-bottom:16px; align-items:center;">
-            <button class="action" onclick="renderSeoDashboard()" style="width:auto;">🔄 Обновить данные</button>
-            <div style="display:flex; align-items:center; gap:8px; margin-left:16px;">
-              <label style="font-size:12px; color:rgba(255,255,255,0.6);">С:</label>
-              <input type="date" id="seo_date_from" onchange="renderSeoDashboard()" style="width:auto; padding:8px;">
-              <label style="font-size:12px; color:rgba(255,255,255,0.6);">По:</label>
-              <input type="date" id="seo_date_to" onchange="renderSeoDashboard()" style="width:auto; padding:8px;">
-            </div>
-          </div>
+  <h4>SEO-Рентген (Аналитика WB)</h4>
+  <p class="hint">Данные по воронке и карточкам. Выберите период для анализа.</p>
+  
+  <div class="row" style="margin-bottom:16px; align-items:center;">
+    <button class="action" onclick="renderSeoDashboard()" style="width:auto;">🔄 Обновить данные</button>
+    <div style="display:flex; align-items:center; gap:8px; margin-left:16px;">
+      <label style="font-size:12px; color:rgba(255,255,255,0.6);">С:</label>
+      <input type="date" id="seo_date_from" onchange="renderSeoDashboard()" style="width:auto; padding:8px;">
+      <label style="font-size:12px; color:rgba(255,255,255,0.6);">По:</label>
+      <input type="date" id="seo_date_to" onchange="renderSeoDashboard()" style="width:auto; padding:8px;">
+    </div>
+  </div>
 
-          <div style="display:flex; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
-            <div style="flex:1; min-width:300px; background:#16161a; padding:16px; border-radius:12px;">
-              <canvas id="chart_funnel" style="max-height:250px;"></canvas>
-            </div>
-            <div style="flex:1; min-width:300px; background:#16161a; padding:16px; border-radius:12px;">
-              <canvas id="chart_stocks" style="max-height:250px;"></canvas>
-            </div>
-          </div>
+  <div style="display:flex; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
+    <div style="flex:1; min-width:300px; background:#16161a; padding:16px; border-radius:12px;">
+      <canvas id="chart_funnel" style="max-height:250px;"></canvas>
+    </div>
+    <div style="flex:1; min-width:300px; background:#16161a; padding:16px; border-radius:12px;">
+      <canvas id="chart_stocks" style="max-height:250px;"></canvas>
+    </div>
+  </div>
 
-          <div style="overflow-x:auto;">
-            <table>
-              <thead>
-                <tr>
-                  <th>Артикул</th><th>Название</th><th>Дата</th><th>Переходы</th><th>В корзину</th><th>Заказы</th><th>Выкупы</th><th>Действие</th>
-                </tr>
-              </thead>
-              <tbody id="seo-dashboard-table"></tbody>
-            </table>
-          </div>
-        </div>
+  <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Артикул</th><th>Название</th><th>Дата</th><th>Переходы</th><th>В корзину</th><th>Заказы</th><th>Выкупы</th><th>Действие</th>
+        </tr>
+      </thead>
+      <tbody id="seo-dashboard-table"></tbody>
+    </table>
+  </div>
+</div>
         
         <div id="wb-prices" class="tab">
           <p class="hint">Мониторинг цен и акционных предложений</p>
@@ -4493,7 +4493,7 @@ async function renderWbStocks() {
     let html = '';
     stocksToRender.forEach(wbItem => {
       let stockItem = null;
-      let productName = wbItem.title || `Товар WB: ${wbItem.nm_id}`;
+      let productName = wbItem.title || wbItem.nm_id;
       let article = wbItem.article || '—';
       
       // Попробуем получить название из wb_cards, если оно есть
