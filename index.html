@@ -4613,10 +4613,21 @@ async function renderSeoDashboard() {
     cards.forEach(c => { cardMap[String(c.nm_id)] = c; });
 
     // ---- ТАБЛИЦА ----
-    if (funnel.length === 0) {
+        // --- УДАЛЯЕМ ДУБЛИКАТЫ ПО ДАТЕ И АРТИКУЛУ ---
+    const uniqueFunnel = [];
+    const seen = new Set();
+    funnel.forEach(item => {
+      const key = item.date + '_' + item.nm_id;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueFunnel.push(item);
+      }
+    });
+
+    if (uniqueFunnel.length === 0) {
       table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных за выбранный период</td></tr>';
     } else {
-      const sorted = [...funnel].sort((a, b) => {
+      const sorted = [...uniqueFunnel].sort((a, b) => {
         if (a.date !== b.date) return (b.date || '').localeCompare(a.date || '');
         return String(a.nm_id).localeCompare(String(b.nm_id));
       });
@@ -4642,10 +4653,10 @@ async function renderSeoDashboard() {
       }).join('');
     }
 
-    // ---- ГРАФИКИ ----
-    const dates = [...new Set(funnel.map(x => x.date).filter(Boolean))].sort();
-    const ordersByDate  = dates.map(d => funnel.filter(x => x.date === d).reduce((s, x) => s + (+x.order_count || 0), 0));
-    const buyoutsByDate = dates.map(d => funnel.filter(x => x.date === d).reduce((s, x) => s + (+x.buyout_count || 0), 0));
+       // ---- ГРАФИКИ ----
+    const dates = [...new Set(uniqueFunnel.map(x => x.date).filter(Boolean))].sort();
+    const ordersByDate  = dates.map(d => uniqueFunnel.filter(x => x.date === d).reduce((s, x) => s + (+x.order_count || 0), 0));
+    const buyoutsByDate = dates.map(d => uniqueFunnel.filter(x => x.date === d).reduce((s, x) => s + (+x.buyout_count || 0), 0));
 
     if (chartFunnel) { chartFunnel.destroy(); chartFunnel = null; }
     const ctxFunnel = document.getElementById('chart_funnel');
