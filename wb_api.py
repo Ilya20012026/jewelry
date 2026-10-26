@@ -47,6 +47,7 @@ def fetch_funnel(nm_ids):
                     
                 rows.append({
                     "nm_id": str(product_info.get("nmId")),
+                    "view_count": stats.get("viewCount", 0),
                     "open_count": stats.get("openCount", 0),
                     "cart_count": stats.get("cartCount", 0),
                     "order_count": stats.get("orderCount", 0),
