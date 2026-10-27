@@ -183,7 +183,7 @@ async function pullAll() {
   for (const table of TABLES) {
     const { data, error } = await sb.from(table).select('*').then(res => res, err => ({ data: [], error: err }));
         if (error) {
-      console.error(`❌ pull ${table}:`, error.message);
+      console.warn(`⚠️ Таблица ${table}: ${error.message}`);
       remote[table] = [];
       continue;
     }
@@ -240,7 +240,8 @@ async function initRealtime(onDataChanged) {
     return;
   }
 
-    const tablesToWatch = [
+  let realtimeTimer = null;
+  const tablesToWatch = [
     'materials', 'products', 'cycles', 'opokas',
     'batches', 'stock', 'archive', 'tasks',
     'employees', 'groups', 'chats', 'messages', 'chat_participants', 'notifications'
@@ -254,9 +255,13 @@ async function initRealtime(onDataChanged) {
       { event: '*', schema: 'public', table: table },
       (payload) => {
         console.log(`Realtime [${table}]:`, payload.eventType, payload);
-        if (typeof onDataChanged === 'function') {
-          onDataChanged(table, payload);
-        }
+        if (realtimeTimer) clearTimeout(realtimeTimer);
+        realtimeTimer = setTimeout(() => {
+          if (typeof onDataChanged === 'function') {
+            onDataChanged(table, payload);
+          }
+          realtimeTimer = null;
+        }, 2000);
       }
     );
   });
@@ -268,5 +273,6 @@ async function initRealtime(onDataChanged) {
     }
   });
 
+  window._realtimeChannel = channel;
   return channel;
 }
