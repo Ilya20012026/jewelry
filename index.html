@@ -1488,9 +1488,15 @@ let writeOffStockId = null;
 
 function load() { return EMPTY_DATA; }
 
-function save() {
+function save(immediate = false) {
   saveData(data).catch(err => console.error("Ошибка сохранения:", err));
-  if (window.__scheduleAutosync) { window.__scheduleAutosync(); }
+  if (immediate) {
+    if (typeof pushAll === 'function') {
+      pushAll(data).catch(e => console.warn("Мгновенная синхронизация отложена:", e.message));
+    }
+  } else {
+    if (window.__scheduleAutosync) { window.__scheduleAutosync(); }
+  }
 }
 function uid() { return Date.now() + Math.floor(Math.random()*1000); }
 
@@ -1775,7 +1781,7 @@ function addTask() {
   });
   document.getElementById("task_repeat").value = "none";
 
-  save(); renderCalendar();
+  save(true); renderCalendar();
   if (_calSelectedDay === dateStart) renderDayTasks(dateStart);
   showToast("✅ План добавлен", "success");
 }
@@ -1783,7 +1789,7 @@ function addTask() {
 function delTask(id) {
   if (!confirm("Удалить план?")) return;
   markDeleted(data, "tasks", id);
-  save(); renderCalendar();
+  save(true); renderCalendar();
   if (_calSelectedDay) renderDayTasks(_calSelectedDay);
 }
 
@@ -1849,7 +1855,7 @@ function toggleTaskDone(id, dateStr = null) {
     pushAll(data).catch(e => console.warn("Синхронизация отложена:", e.message));
   }
   
-  save(); renderCalendar();
+  save(true); renderCalendar();
   if (_calSelectedDay) renderDayTasks(_calSelectedDay);
 }
 
@@ -1880,7 +1886,7 @@ function checkScheduledTasks() {
     created++;
   }
   if (created > 0) {
-    save(); renderBatches();
+    save(true); renderBatches();
     if (_calSelectedDay) renderDayTasks(_calSelectedDay);
     showToast(`📦 Создано партий по плану: ${created}`, "success");
   }
@@ -2919,7 +2925,7 @@ async function addEmployee() {
   document.getElementById("emp_avatar_preview").innerHTML = "";
   _pendingEmployeeAvatar = null;
   document.getElementById("emp_role").value = "master";
-  save(); 
+  save(true); 
   renderEmployees();
 }
 
@@ -2928,7 +2934,7 @@ async function delEmployee(id) {
   
   // 1. Стираем из локальной памяти
   data.employees = (data.employees || []).filter(e => String(e.id) !== String(id));
-  save();
+  save(true);
   renderEmployees();
   
   // 2. Отправляем запрос на жесткое удаление в базу
@@ -3017,7 +3023,7 @@ async function saveEmployeeFromModal() {
   emp.note = document.getElementById("edit_emp_note").value.trim();
   emp.updatedAt = new Date().toISOString();
 
-  save();
+  save(true);
   renderEmployees();
   closeEmployeeModal();
   showToast("✅ Данные сотрудника обновлены", "success");
@@ -3134,6 +3140,10 @@ function hideApp() {
 
 function doLogout() {
   if (!confirm("Выйти из приложения?")) return;
+  if (window._realtimeChannel) {
+    window._realtimeChannel.unsubscribe();
+    window._realtimeChannel = null;
+  }
   clearAuthSession();
   document.getElementById("login_name").value = "";
   document.getElementById("login_pin").value = "";
@@ -3142,6 +3152,15 @@ function doLogout() {
 }
 
 function checkSession() {
+  const session = getAuthSession();
+  if (session && session.id) {
+    const empExists = (data.employees || []).some(e => String(e.id) === String(session.id));
+    if (!empExists && data.employees.length > 0) {
+      clearAuthSession();
+      console.warn("Сессия удалённого сотрудника сброшена.");
+    }
+  }
+
   let user = getCurrentUser();
   if (!user) {
     const session = getAuthSession();
@@ -3157,13 +3176,6 @@ function checkSession() {
   
   if (user) {
     showApp();
-    // Дополнительно вызываем отображение календаря
-    setTimeout(() => {
-      const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
-      if (companyBtn) showMain("company", companyBtn);
-      const calendarBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
-      if (calendarBtn) showCompanyTab('calendar', calendarBtn);
-    }, 100);
   } else {
     hideApp();
   }
@@ -4804,104 +4816,110 @@ function generateWbReport() {
 
 /* ---------- СТАРТ ПРИЛОЖЕНИЯ ---------- */
 async function initApp() {
-  let loaded = await migrateFromLocalStorage();
-  if (!loaded) loaded = await loadData();
-  data = loaded || JSON.parse(JSON.stringify(EMPTY_DATA));
-  ensureDeletedStruct(data);
-  stampUpdatedAt(data);
-  renderAll();
-  
-  (async () => {
-    try {
-      const sb = await initCloud();
-      if (sb) {
-        const { data: remoteChats } = await sb.from('chats').select('*');
-        const { data: remoteParts } = await sb.from('chat_participants').select('*');
-        const { data: remoteCategories } = await sb.from('contractor_categories').select('*');
-        const { data: remoteContractors } = await sb.from('contractors').select('*');
-        
-        if (remoteChats) data.chats = remoteChats;
-        if (remoteParts) data.chat_participants = remoteParts;
-        if (remoteCategories) data.contractor_categories = remoteCategories;
-        if (remoteContractors) data.contractors = remoteContractors;
-        
+  try {
+    let loaded = await migrateFromLocalStorage();
+    if (!loaded) loaded = await loadData();
+    data = loaded || JSON.parse(JSON.stringify(EMPTY_DATA));
+    ensureDeletedStruct(data);
+    stampUpdatedAt(data);
+    renderAll();
+    
+    (async () => {
+      try {
+        const sb = await initCloud();
+        if (sb) {
+          const { data: remoteChats } = await sb.from('chats').select('*');
+          const { data: remoteParts } = await sb.from('chat_participants').select('*');
+          const { data: remoteCategories } = await sb.from('contractor_categories').select('*');
+          const { data: remoteContractors } = await sb.from('contractors').select('*');
+          
+          if (remoteChats) data.chats = remoteChats;
+          if (remoteParts) data.chat_participants = remoteParts;
+          if (remoteCategories) data.contractor_categories = remoteCategories;
+          if (remoteContractors) data.contractors = remoteContractors;
+          
+          renderChats();
+        }
+      } catch(e) { console.error("Ошибка загрузки данных:", e); }
+    })();
+
+    renderEmployees();
+    checkScheduledTasks();
+    renderResponsibleSelect();
+    renderCalendar();
+    onTaskTypeChange();
+
+    window.__scheduleAutosync = () => scheduleAutosync(() => data, (d) => { data = d; });
+    setCloudIndicator(navigator.onLine ? 'online' : 'offline');
+
+    initRealtime((table, payload) => {
+      console.log(`Realtime-событие для таблицы ${table}`);
+      if (payload && payload.new && payload.new.id) {
+        if (!data[table]) data[table] = [];
+        const idx = data[table].findIndex(x => String(x.id) === String(payload.new.id));
+        if (idx >= 0) data[table][idx] = payload.new;
+        else if (payload.eventType === 'INSERT') data[table].push(payload.new);
+        else if (payload.eventType === 'DELETE') data[table] = data[table].filter(x => String(x.id) !== String(payload.old.id));
+      }
+      if (table === 'messages' || table === 'chat_participants') {
+        if (typeof _currentChatId !== 'undefined' && _currentChatId) { renderChatMessages(_currentChatId); renderChatParticipants(_currentChatId); }
         renderChats();
       }
-    } catch(e) { console.error("Ошибка загрузки данных:", e); }
-  })();
-
-  renderEmployees();
-  checkScheduledTasks();
-  renderResponsibleSelect();
-  renderCalendar();
-  onTaskTypeChange();
-
-  window.__scheduleAutosync = () => scheduleAutosync(() => data, (d) => { data = d; });
-  setCloudIndicator(navigator.onLine ? 'online' : 'offline');
-
-  initRealtime((table, payload) => {
-    console.log(`Realtime-событие для таблицы ${table}`);
-    if (payload && payload.new && payload.new.id) {
-      if (!data[table]) data[table] = [];
-      const idx = data[table].findIndex(x => String(x.id) === String(payload.new.id));
-      if (idx >= 0) data[table][idx] = payload.new;
-      else if (payload.eventType === 'INSERT') data[table].push(payload.new);
-      else if (payload.eventType === 'DELETE') data[table] = data[table].filter(x => String(x.id) !== String(payload.old.id));
-    }
-    if (table === 'messages' || table === 'chat_participants') {
-      if (typeof _currentChatId !== 'undefined' && _currentChatId) { renderChatMessages(_currentChatId); renderChatParticipants(_currentChatId); }
-      renderChats();
-    }
-        if (table === 'notifications') {
-      renderNotifications();
-      
-      // Показываем всплывашку, если пришло новое уведомление для нас
-      if (payload.eventType === 'INSERT' && payload.new) {
-        const currentUser = getCurrentUser();
-        if (currentUser && String(payload.new.user_id) === String(currentUser.id)) {
-          showToast("🔔 " + (payload.new.title || "Новое уведомление"), "info");
+          if (table === 'notifications') {
+        renderNotifications();
+        
+        // Показываем всплывашку, если пришло новое уведомление для нас
+        if (payload.eventType === 'INSERT' && payload.new) {
+          const currentUser = getCurrentUser();
+          if (currentUser && String(payload.new.user_id) === String(currentUser.id)) {
+            showToast("🔔 " + (payload.new.title || "Новое уведомление"), "info");
+          }
         }
       }
-    }
-    if (table === 'tasks') { renderCalendar(); if (typeof _calSelectedDay !== 'undefined' && _calSelectedDay) renderDayTasks(_calSelectedDay); }
-    if (['batches', 'groups', 'employees'].includes(table)) { renderBatches(); renderBatchResponsibleSelect(); }
-    if (['materials', 'products', 'cycles', 'opokas'].includes(table)) { renderMaterials(); renderProducts(); renderCycles(); renderOpokas(); renderAllMaterialSelects(); renderBatchProductSelect(); }
-    if (['contractor_categories', 'contractors'].includes(table)) { 
-        if (typeof renderCategories === 'function') renderCategories(); 
-        if (typeof renderContractors === 'function') renderContractors();
-        if (typeof loadCategoriesToSelects === 'function') loadCategoriesToSelects();
-    }
-    if (table === 'stock' || table === 'archive') { renderStock(); renderArchive(); }
-  });
+      if (table === 'tasks') { renderCalendar(); if (typeof _calSelectedDay !== 'undefined' && _calSelectedDay) renderDayTasks(_calSelectedDay); }
+      if (['batches', 'groups', 'employees'].includes(table)) { renderBatches(); renderBatchResponsibleSelect(); }
+      if (['materials', 'products', 'cycles', 'opokas'].includes(table)) { renderMaterials(); renderProducts(); renderCycles(); renderOpokas(); renderAllMaterialSelects(); renderBatchProductSelect(); }
+      if (['contractor_categories', 'contractors'].includes(table)) { 
+          if (typeof renderCategories === 'function') renderCategories(); 
+          if (typeof renderContractors === 'function') renderContractors();
+          if (typeof loadCategoriesToSelects === 'function') loadCategoriesToSelects();
+      }
+      if (table === 'stock' || table === 'archive') { renderStock(); renderArchive(); }
+    });
 
-  setTimeout(async () => {
-    if (navigator.onLine) {
-      await runAutosync(() => data, (d) => { data = d; renderAll(); });
+    setTimeout(async () => {
+      if (navigator.onLine) {
+        await runAutosync(() => data, (d) => { data = d; renderAll(); });
+      }
       checkSession();
-    } else { checkSession(); }
-    checkShiftStart();
-  }, 1000);
+      checkShiftStart();
+    }, 1000);
 
-  setInterval(() => { checkScheduledTasks(); }, 60000);
+    setInterval(() => { checkScheduledTasks(); }, 60000);
 
-  setInterval(async () => {
-    if (typeof _currentChatId !== 'undefined' && _currentChatId && navigator.onLine) {
-      try {
-        const sb = await initCloud(); if (!sb) return;
-        const { data: latestMessages, error } = await sb.from('messages').select('*').eq('chat_id', _currentChatId).order('created_at', { ascending: false }).limit(50);
-        if (!error && latestMessages) {
-          latestMessages.reverse(); let hasNew = false;
-          latestMessages.forEach(msg => {
-            const exists = (data.messages || []).find(m => String(m.id) === String(msg.id));
-            if (!exists) { data.messages.push(msg); hasNew = true; }
-          });
-          if (hasNew) { renderChatMessages(_currentChatId); renderChats(); setTimeout(() => { renderChatMessages(_currentChatId); }, 100); }
-        }
-      } catch (e) { console.error('❌ Ошибка таймера чата:', e); }
-    }
-  }, 1500);
+    setInterval(async () => {
+      if (typeof _currentChatId !== 'undefined' && _currentChatId && navigator.onLine) {
+        try {
+          const sb = await initCloud(); if (!sb) return;
+          const { data: latestMessages, error } = await sb.from('messages').select('*').eq('chat_id', _currentChatId).order('created_at', { ascending: false }).limit(50);
+          if (!error && latestMessages) {
+            latestMessages.reverse(); let hasNew = false;
+            latestMessages.forEach(msg => {
+              const exists = (data.messages || []).find(m => String(m.id) === String(msg.id));
+              if (!exists) { data.messages.push(msg); hasNew = true; }
+            });
+            if (hasNew) { renderChatMessages(_currentChatId); renderChats(); setTimeout(() => { renderChatMessages(_currentChatId); }, 100); }
+          }
+        } catch (e) { console.error('❌ Ошибка таймера чата:', e); }
+      }
+    }, 1500);
 
-  console.log("✅ Приложение запущено.");
+    console.log("✅ Приложение запущено.");
+  } catch (e) {
+    console.error("Критическая ошибка инициализации:", e);
+    showToast("⚠️ Ошибка облака, работаем локально", "warn");
+    checkSession();
+  }
 }
 
 /* ============================================================
@@ -6200,7 +6218,7 @@ async function markSupplyBox(id) {
       s.photoBox = urlData.publicUrl;
       s.status = 'box';
       s.updatedAt = new Date().toISOString();
-      save(); renderSupplies();
+      save(true); renderSupplies();
       showToast("✅ Коробка собрана", "success");
     } catch (err) { console.error(err); showToast("❌ Ошибка", "error"); }
   };
@@ -6227,7 +6245,7 @@ async function markSupplySent(id) {
         s.photoSent = urlData.publicUrl;
         s.status = 'sent';
         s.updatedAt = new Date().toISOString();
-        save(); renderSupplies();
+        save(true); renderSupplies();
         showToast("✅ Посылка отправлена с фото", "success");
       } catch (err) { console.error(err); showToast("❌ Ошибка", "error"); }
     };

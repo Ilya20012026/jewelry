@@ -43,6 +43,7 @@ def fetch_funnel(nm_ids):
             for item in products:
                 product_info = item.get("product", {})
                 stats = item.get("statistic", {}).get("selected", {})
+                print("DEBUG_STATS:", stats)
                 if not product_info or not stats: continue
                     
                 rows.append({
@@ -56,7 +57,7 @@ def fetch_funnel(nm_ids):
                 })
             
             if rows:
-                supabase.table("wb_funnel").insert(rows).execute()
+                supabase.table("wb_funnel").upsert(rows, on_conflict="nm_id,date").execute()
                 print(f"✅ Воронка сохранена в Supabase: {len(rows)} записей!")
         else:
             print(f"❌ Ошибка воронки: {response.status_code} - {response.text}")
