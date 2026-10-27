@@ -609,8 +609,6 @@
           <div class="row" style="margin-top:16px;">
             <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
             <button class="action" onclick="document.getElementById('sup_pdf').click()" style="width:auto;">📎 PDF (штрихкоды)</button>
-            <input type="file" id="sup_photo_file" accept="image/*" multiple style="display:none" onchange="uploadSupplyPhotos(this)">
-            <button class="action" onclick="document.getElementById('sup_photo_file').click()" style="width:auto;">📷 Фото</button>
             <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
             <div id="sup_pdf_status" style="font-size:13px; color:rgba(255,255,255,0.5);"></div>
           </div>
@@ -1859,7 +1857,7 @@ function toggleTaskDone(id, dateStr = null) {
   if (typeof pushAll === 'function') {
     pushAll(data).catch(e => console.warn("Синхронизация отложена:", e.message));
   }
-  
+    
   save(true); renderCalendar();
   if (_calSelectedDay) renderDayTasks(_calSelectedDay);
 }
@@ -3141,6 +3139,9 @@ function showApp() {
   setTimeout(() => {
     const user = getCurrentUser();
     if (!user) return;
+    // Проверяем, включен ли контроль смены для сотрудника
+    if (user.shift_settings?.enabled === false) return;
+    
     const now = new Date();
     const currentTime = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
     const st = data.settings[0] || { lunch_start: "13:00", lunch_end: "13:45" };
@@ -5770,7 +5771,7 @@ function checkShiftStart() {
   const today = new Date().toISOString().slice(0,10);
   
   // Проверяем, не начинали ли уже смену сегодня
-  const existingShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today);
+  const existingShift = (data.shifts || []).find(s => String(s.employee_id) === String(user.id) && s.date === today);
   if (existingShift) return;
 
   const ss = user.shift_settings || {};
@@ -5846,7 +5847,7 @@ setInterval(() => {
   const today = now.toISOString().slice(0,10);
 
   // Проверяем, что смена открыта
-  const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
+  const myShift = (data.shifts || []).find(s => String(s.employee_id) === String(user.id) && s.date === today && s.status === "active");
   if (!myShift) return; // Если смена не открыта, не показываем напоминания
 
   // --- ОБЕД ---
@@ -6107,7 +6108,7 @@ async function addSupply() {
     items: items,
     pdfUrl: _pendingSupplyPdf ? _pendingSupplyPdf.url : null,
     pdfName: _pendingSupplyPdf ? _pendingSupplyPdf.name : null,
-    photos: _pendingSupplyPhotos || [],
+    photos: [],
     photoBox: null, 
     photoSent: null, 
     note: '',
@@ -6346,8 +6347,6 @@ function renderSupplies() {
         </div>
         <div style="margin-top:10px; display:flex; gap:12px; align-items:center;">
           ${(s.photos || []).map(url => `<img src="${url}" style="height:60px; border-radius:4px; margin-right:4px; cursor:pointer;" onclick="window.open('${url}','_blank')">`).join('')}
-          ${s.photoBox ? `<div style="text-align:center;"><img src="${escapeHtml(s.photoBox)}" style="height:60px; border-radius:4px;"><div style="font-size:10px; color:#888;">Фото коробки</div></div>` : ''}
-          ${s.photoSent ? `<div style="text-align:center;"><img src="${escapeHtml(s.photoSent)}" style="height:60px; border-radius:4px;"><div style="font-size:10px; color:#888;">Фото отправки</div></div>` : ''}
         </div>
       </div>`;
     }).join("");
@@ -6414,23 +6413,39 @@ async function markSupplyBox(id) {
   if (!s) return;
   
   const fileInput = document.createElement("input");
-  fileInput.type = "file"; fileInput.accept = "image/*";
+  fileInput.type = "file"; 
+  fileInput.accept = "image/*";
+  fileInput.multiple = true;
   fileInput.onchange = async (e) => {
-    const file = e.target.files[0]; if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    
     showToast("⏳ Загрузка фото...", "info");
+    const newPhotos = [];
+    
     try {
-      const sb = await initCloud(); if (!sb) throw new Error("Нет клиента");
-      const ext = file.name.split('.').pop() || 'jpg';
-      const fileName = `box_${id}_${Date.now()}.${ext}`;
-      const { error } = await sb.storage.from('product-photos').upload(fileName, file);
-      if (error) throw error;
-      const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
-      s.photoBox = urlData.publicUrl;
+      const sb = await initCloud(); 
+      if (!sb) throw new Error("Нет клиента");
+      
+      for (const file of files) {
+        const ext = file.name.split('.').pop() || 'jpg';
+        const fileName = `supply_${id}_${Date.now()}_${Math.random().toString(36).substr(2,5)}.${ext}`;
+        const { error } = await sb.storage.from('product-photos').upload(fileName, file);
+        if (error) throw error;
+        const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
+        newPhotos.push(urlData.publicUrl);
+      }
+      
+      s.photos = (s.photos || []).concat(newPhotos);
       s.status = 'box';
       s.updatedAt = new Date().toISOString();
-      save(true); renderSupplies();
-      showToast("✅ Коробка собрана", "success");
-    } catch (err) { console.error(err); showToast("❌ Ошибка", "error"); }
+      save(true); 
+      renderSupplies();
+      showToast(`✅ Коробка собрана, добавлено ${newPhotos.length} фото`, "success");
+    } catch (err) { 
+      console.error(err); 
+      showToast("❌ Ошибка загрузки фото", "error"); 
+    }
   };
   fileInput.click();
 }
@@ -6441,29 +6456,46 @@ async function markSupplySent(id) {
   
   if (confirm("Отправить посылку? Хотите прикрепить фото отправления?")) {
     const fileInput = document.createElement("input");
-    fileInput.type = "file"; fileInput.accept = "image/*";
+    fileInput.type = "file"; 
+    fileInput.accept = "image/*";
+    fileInput.multiple = true;
     fileInput.onchange = async (e) => {
-      const file = e.target.files[0]; if (!file) return;
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+      
       showToast("⏳ Загрузка фото...", "info");
+      const newPhotos = [];
+      
       try {
-        const sb = await initCloud(); if (!sb) throw new Error("Нет клиента");
-        const ext = file.name.split('.').pop() || 'jpg';
-        const fileName = `sent_${id}_${Date.now()}.${ext}`;
-        const { error } = await sb.storage.from('product-photos').upload(fileName, file);
-        if (error) throw error;
-        const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
-        s.photoSent = urlData.publicUrl;
+        const sb = await initCloud(); 
+        if (!sb) throw new Error("Нет клиента");
+        
+        for (const file of files) {
+          const ext = file.name.split('.').pop() || 'jpg';
+          const fileName = `supply_${id}_${Date.now()}_${Math.random().toString(36).substr(2,5)}.${ext}`;
+          const { error } = await sb.storage.from('product-photos').upload(fileName, file);
+          if (error) throw error;
+          const { data: urlData } = sb.storage.from('product-photos').getPublicUrl(fileName);
+          newPhotos.push(urlData.publicUrl);
+        }
+        
+        s.photos = (s.photos || []).concat(newPhotos);
         s.status = 'sent';
         s.updatedAt = new Date().toISOString();
-        save(true); renderSupplies();
-        showToast("✅ Посылка отправлена с фото", "success");
-      } catch (err) { console.error(err); showToast("❌ Ошибка", "error"); }
+        save(true); 
+        renderSupplies();
+        showToast(`✅ Посылка отправлена, добавлено ${newPhotos.length} фото`, "success");
+      } catch (err) { 
+        console.error(err); 
+        showToast("❌ Ошибка загрузки фото", "error"); 
+      }
     };
     fileInput.click();
   } else {
     s.status = 'sent';
     s.updatedAt = new Date().toISOString();
-    save(); renderSupplies();
+    save(); 
+    renderSupplies();
     showToast("✅ Посылка отправлена без фото", "success");
   }
 }
@@ -6505,20 +6537,7 @@ function openArchivedSupply(supplyId) {
     </div>
   ` : "";
 
-  const photosHtml = `
-    ${s.photoBox ? `
-      <div style="margin-top:12px;">
-        <strong>Фото коробки:</strong><br>
-        <img src="${escapeHtml(s.photoBox)}" style="max-height:200px; border-radius:4px; margin-top:4px;">
-      </div>
-    ` : ""}
-    ${s.photoSent ? `
-      <div style="margin-top:12px;">
-        <strong>Фото отправки:</strong><br>
-        <img src="${escapeHtml(s.photoSent)}" style="max-height:200px; border-radius:4px; margin-top:4px;">
-      </div>
-    ` : ""}
-  `;
+  const photosHtml = "";
 
   document.getElementById("archived_supply_title").textContent = s.title;
   document.getElementById("archived_supply_content").innerHTML = `

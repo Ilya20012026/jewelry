@@ -72,7 +72,7 @@ async function safeUpsert(sb, table, rows) {
     if (!error) return { ok: true };
     
     // Если ошибка "Could not find the 'xxx' column"
-    const match = error.message.match(/Could not find the '([^']+)' column/);
+    const match = error.message.match(/Could not find the '([^']+)' column/i);
     if (match) {
       const badColumn = match[1];
       console.warn(`⚠️ В таблице ${table} нет колонки '${badColumn}'. Удаляем её из запроса...`);
