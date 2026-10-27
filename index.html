@@ -2612,8 +2612,8 @@ async function addNotification(userId, type, title, text, link) {
   data.notifications = data.notifications || [];
   data.notifications.push(notification);
   
-   // Сохраняем локально
-  save();
+  // Сохраняем локально и синхронизируем
+  save(true);
 
    // Отправляем в Supabase асинхронно, не блокируя интерфейс
   setTimeout(() => {
@@ -3087,7 +3087,7 @@ function getCurrentUser() {
   
   if (!data.employees || !Array.isArray(data.employees) || data.employees.length === 0) return session;
   const emp = data.employees.find(e => String(e.id) === String(session.id));
-  if (!emp) return session; return emp;
+  return emp || session;
 }
 function isAdmin() { const user = getCurrentUser(); return user && user.role === "admin"; }
 
@@ -3234,13 +3234,15 @@ function applyRoleRestrictions(user) {
     }
    
     const activeCompanyTab = document.querySelector("#main-company .tab.active");
-    if (activeCompanyTab && activeCompanyTab.id === "company-employees") {
-      const calBtn = document.querySelector("#company-tabs button[onclick*='calendar']");
-      if (calBtn) showCompanyTab("calendar", calBtn);
-    }
-    if (activeCompanyTab && activeCompanyTab.id === "company-boards") {
-      const calBtn = document.querySelector("#company-tabs button[onclick*='calendar']");
-      if (calBtn) showCompanyTab("calendar", calBtn);
+    if (activeCompanyTab) {
+      if (activeCompanyTab.id === "company-employees") {
+        const calBtn = document.querySelector("#company-tabs button[onclick*='calendar']");
+        if (calBtn) showCompanyTab("calendar", calBtn);
+      }
+      if (activeCompanyTab.id === "company-boards") {
+        const calBtn = document.querySelector("#company-tabs button[onclick*='calendar']");
+        if (calBtn) showCompanyTab("calendar", calBtn);
+      }
     }
   }
 }
@@ -4780,193 +4782,6 @@ function _toDateStr(d) {
   return `${y}-${m}-${day}`;
 }
 
-async function renderSeoDashboard() {
-  const table = document.getElementById('seo-dashboard-table');
-  const filterSelect = document.getElementById('seo_filter_product');
-  if (!table) return;
-  
-  table.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Загрузка данных...</td></tr>';
-  
-  try {
-    const sb = await initCloud();
-    if (!sb) throw new Error("Нет подключения к облаку");
-    
-    const fromEl = document.getElementById('seo_date_from');
-    const toEl = document.getElementById('seo_date_to');
-    
-    const today = new Date();
-    const weekAgo = new Date(Date.now() - 6 * 86400000);
-    let fromDate = fromEl?.value || _toDateStr(weekAgo);
-    let toDate = toEl?.value || _toDateStr(today);
-
-    if (fromEl && !fromEl.value) fromEl.value = fromDate;
-    if (toEl && !toEl.value) toEl.value = toDate;
-
-    const qFunnel = sb.from('wb_funnel').select('*').gte('date', fromDate).lte('date', toDate).order('date', { ascending: true });
-    const qCards  = sb.from('wb_cards').select('nm_id, title, vendor_code');
-
-    const [funnelRes, cardsRes] = await Promise.all([qFunnel, qCards]);
-
-    if (funnelRes.error) throw new Error('wb_funnel: ' + funnelRes.error.message);
-    if (cardsRes.error)  throw new Error('wb_cards: '  + cardsRes.error.message);
-
-    const funnel = funnelRes.data || [];
-    const cards  = cardsRes.data  || [];
-
-    const cardMap = {};
-    cards.forEach(c => { cardMap[String(c.nm_id)] = c; });
-
-    // Удаляем дубликаты
-    const uniqueFunnel = [];
-    const seen = new Set();
-    funnel.forEach(item => {
-      const key = item.date + '_' + item.nm_id;
-      if (!seen.has(key)) {
-        seen.add(key);
-        uniqueFunnel.push(item);
-      }
-    });
-
-    // --- ЗАПОЛНЯЕМ ВЫПАДАЮЩИЙ СПИСОК ТОВАРОВ ---
-    if (filterSelect) {
-      const currentVal = filterSelect.value;
-      const uniqueProducts = {};
-      uniqueFunnel.forEach(item => {
-        const card = cardMap[String(item.nm_id)];
-        if (!uniqueProducts[item.nm_id]) {
-          uniqueProducts[item.nm_id] = card?.title || item.nm_id;
-        }
-      });
-      
-      filterSelect.innerHTML = '<option value="all">— Все товары (общая сумма) —</option>' + 
-        Object.entries(uniqueProducts).map(([id, name]) => 
-          `<option value="${id}">${escapeHtml(name)}</option>`
-        ).join('');
-      
-      if (currentVal && (currentVal === 'all' || uniqueProducts[currentVal])) {
-        filterSelect.value = currentVal;
-      }
-    }
-
-    // --- РЕНДЕР ТАБЛИЦЫ ---
-    if (uniqueFunnel.length === 0) {
-      table.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных за выбранный период</td></tr>';
-    } else {
-      const sorted = [...uniqueFunnel].sort((a, b) => {
-        if (a.date !== b.date) return (b.date || '').localeCompare(a.date || '');
-        return String(a.nm_id).localeCompare(String(b.nm_id));
-      });
-
-      table.innerHTML = sorted.map(item => {
-        const card = cardMap[String(item.nm_id)];
-        const title = card?.title || 'Название не найдено';
-        const article = card?.vendor_code || item.nm_id || '—'; 
-        const safeTitle = escapeHtml(title);
-
-        const open = item.open_count || 0;
-        const view = item.view_count || 0;
-        const cart = item.cart_count || 0;
-        const order = item.order_count || 0;
-        const buyout = item.buyout_count || 0;
-
-        const ctr = view > 0 ? ((open / view) * 100).toFixed(1) : 0;
-        const convCart = open > 0 ? ((cart / open) * 100).toFixed(1) : 0;
-        const convBuyout = order > 0 ? ((buyout / order) * 100).toFixed(1) : 0;
-
-        return `<tr>
-          <td>${escapeHtml(String(article))}</td>
-          <td>${safeTitle}</td>
-          <td>${escapeHtml(item.date || '—')}</td>
-          <td>${view}</td>
-          <td>${open}</td>
-          <td style="color: #60a5fa; font-weight: 600;">${ctr}%</td>
-          <td>${cart}</td>
-          <td style="color: #fbbf24; font-weight: 600;">${convCart}%</td>
-          <td>${order}</td>
-          <td>${buyout}</td>
-          <td style="color: #4ade80; font-weight: 600;">${convBuyout}%</td>
-          <td><button class="action" onclick="openSeoCardDetails('${item.nm_id}', '${safeTitle.replace(/'/g, "\\'")}')" style="padding:4px 8px; font-size:12px;">🔍</button></td>
-        </tr>`;
-      }).join('');
-    }
-
-    // --- ПОСТРОЕНИЕ ГРАФИКА С ФИЛЬТРОМ И ЗАПОЛНЕНИЕМ НУЛЕЙ ---
-    const selectedNmId = filterSelect?.value || 'all';
-    
-    let chartData = uniqueFunnel;
-    if (selectedNmId !== 'all') {
-      chartData = uniqueFunnel.filter(x => String(x.nm_id) === String(selectedNmId));
-    }
-    
-    // 1. Генерируем ПОЛНЫЙ список дат за период (от fromDate до toDate)
-    const allDates = [];
-    let d = new Date(fromDate);
-    const end = new Date(toDate);
-    while (d <= end) {
-      allDates.push(_toDateStr(d));
-      d.setDate(d.getDate() + 1);
-    }
-    
-    // 2. Для каждой даты считаем сумму (если нет данных — будет 0)
-    const getSum = (field) => allDates.map(dateStr => {
-      return chartData
-        .filter(x => x.date === dateStr)
-        .reduce((s, x) => s + (+x[field] || 0), 0);
-    });
-    
-    const views = getSum('view_count');
-    const opens = getSum('open_count');
-    const carts = getSum('cart_count');
-    const orders = getSum('order_count');
-    const buyouts = getSum('buyout_count');
-
-    if (chartFunnel) { chartFunnel.destroy(); chartFunnel = null; }
-    const ctxFunnel = document.getElementById('chart_funnel');
-    
-    if (ctxFunnel && allDates.length > 0) {
-      chartFunnel = new Chart(ctxFunnel, {
-        type: 'line',
-        data: {
-          labels: allDates,
-          datasets: [
-            { label: 'Показы', data: views, borderColor: '#a78bfa', backgroundColor: 'rgba(167, 139, 250, 0.1)', tension: 0.3, fill: true },
-            { label: 'Клики', data: opens, borderColor: '#60a5fa', tension: 0.3, fill: false },
-            { label: 'В корзину', data: carts, borderColor: '#fbbf24', tension: 0.3, fill: false },
-            { label: 'Заказы', data: orders, borderColor: '#f97316', tension: 0.3, fill: false },
-            { label: 'Выкупы', data: buyouts, borderColor: '#4ade80', tension: 0.3, fill: false }
-          ]
-        },
-        options: { 
-          responsive: true, 
-          interaction: { mode: 'index', intersect: false },
-          plugins: { 
-            legend: { labels: { color: '#fff' } },
-            tooltip: { 
-              mode: 'index', 
-              intersect: false,
-              callbacks: {
-                label: function(context) {
-                  let label = context.dataset.label || '';
-                  if (label) label += ': ';
-                  if (context.parsed.y !== null) label += context.parsed.y;
-                  return label;
-                }
-              }
-            }
-          }, 
-          scales: { 
-            x: { ticks: { color: '#888' } }, 
-            y: { ticks: { color: '#888' }, beginAtZero: true } 
-          } 
-        }
-      });
-    }
-    
-  } catch (error) {
-    console.error('Ошибка SEO:', error);
-    table.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:20px;color:#f87171;">Ошибка: ${escapeHtml(error.message)}</td></tr>`;
-  }
-}
 
 function loadWbSeo() {
   // Теперь вызываем renderSeoDashboard вместо заглушки

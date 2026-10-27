@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jewelry-v3';
+const CACHE_NAME = 'jewelry-v4';
 const FILES_TO_CACHE = [
   './',
   './index.html',

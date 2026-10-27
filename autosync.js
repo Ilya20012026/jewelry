@@ -166,13 +166,16 @@ async function runAutosync(dataGetter, dataSetter) {
     // 5) Merge основных данных
     let merged = mergeByUpdatedAt(local, pullRes.data);
 
-// 6) Применяем tombstones — удаляем всё, что помечено
-merged = applyTombstones(merged, delPull.data);
+    // 6) Применяем tombstones — удаляем всё, что помечено
+    merged = applyTombstones(merged, delPull.data);
 
-// ЗАЩИТА ОТ ВЫЛЕТОВ: если облако вернуло 0 сотрудников, не затираем локальных
-if (merged.employees && merged.employees.length === 0 && local.employees && local.employees.length > 0) {
-  merged.employees = local.employees;
-}
+    // 7) Обновляем updatedAt у локальных данных
+    merged = stampUpdatedAt(merged);
+
+    // ЗАЩИТА ОТ ВЫЛЕТОВ: если облако вернуло 0 сотрудников, не затираем локальных
+    if (merged.employees && merged.employees.length === 0 && local.employees && local.employees.length > 0) {
+      merged.employees = local.employees;
+    }
 
     // ЖЕСТКАЯ ЗАЩИТА: если в скачанных данных нет сотрудников, а локально они есть — возвращаем локальных
     if (merged.employees && merged.employees.length === 0 && local.employees && local.employees.length > 0) {
@@ -184,7 +187,7 @@ if (merged.employees && merged.employees.length === 0 && local.employees && loca
       merged.chats = local.chats;
     }
 
-dataSetter(merged);
+    dataSetter(merged);
     
     try { await saveData(merged); } catch (e) { console.warn("Autosync: saveData упал, но не критично:", e); }
 

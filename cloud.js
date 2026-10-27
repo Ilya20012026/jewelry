@@ -240,7 +240,6 @@ async function initRealtime(onDataChanged) {
     return;
   }
 
-  let realtimeTimer = null;
   const tablesToWatch = [
     'materials', 'products', 'cycles', 'opokas',
     'batches', 'stock', 'archive', 'tasks',
@@ -255,13 +254,9 @@ async function initRealtime(onDataChanged) {
       { event: '*', schema: 'public', table: table },
       (payload) => {
         console.log(`Realtime [${table}]:`, payload.eventType, payload);
-        if (realtimeTimer) clearTimeout(realtimeTimer);
-        realtimeTimer = setTimeout(() => {
-          if (typeof onDataChanged === 'function') {
-            onDataChanged(table, payload);
-          }
-          realtimeTimer = null;
-        }, 2000);
+        if (typeof onDataChanged === 'function') {
+          onDataChanged(table, payload);
+        }
       }
     );
   });
