@@ -365,6 +365,9 @@
     #task_modal > div, #product_modal > div, #employee_modal > div, #contractor_modal > div, #archived_supply_modal > div {
       width: 100% !important; max-width: 100% !important; height: 100% !important; max-height: 100% !important; border-radius: 0 !important; padding: 16px !important;
     }
+
+    /* Скрыть доски на мобильных для сотрудников */
+    .is-master #company-tabs button[onclick*='boards'] { display: none !important; }
   }
 </style>
    
@@ -606,6 +609,8 @@
           <div class="row" style="margin-top:16px;">
             <input type="file" id="sup_pdf" accept=".pdf" style="display:none" onchange="uploadSupplyPDF(this)">
             <button class="action" onclick="document.getElementById('sup_pdf').click()" style="width:auto;">📎 PDF (штрихкоды)</button>
+            <input type="file" id="sup_photo_file" accept="image/*" multiple style="display:none" onchange="uploadSupplyPhotos(this)">
+            <button class="action" onclick="document.getElementById('sup_photo_file').click()" style="width:auto;">📷 Фото</button>
             <button class="action ok" onclick="addSupply()">+ СОЗДАТЬ</button>
             <div id="sup_pdf_status" style="font-size:13px; color:rgba(255,255,255,0.5);"></div>
           </div>
@@ -2591,6 +2596,9 @@ function getTimeAgo(date) {
 }
 
 async function addNotification(userId, type, title, text, link) {
+  // Проверка на пустой userId
+  if (!userId) return;
+  
   const notification = {
     id: uid(),
     user_id: userId,
@@ -2732,6 +2740,12 @@ document.addEventListener('click', function(e) {
 });
 
 function showCompanyTab(id, btn) {
+  // Защита от прямого вызова для досок
+  if (id === 'boards' && getCurrentUser()?.role !== 'admin') {
+    showToast('Доступ к доскам только для руководителя', 'error');
+    return;
+  }
+
   const mainCompany = document.getElementById('main-company');
   if (!mainCompany) return;
 
@@ -2932,26 +2946,28 @@ async function addEmployee() {
 async function delEmployee(id) {
   if (!confirm("Удалить сотрудника навсегда? (Он исчезнет из базы)")) return;
   
-  // 1. Стираем из локальной памяти
-  data.employees = (data.employees || []).filter(e => String(e.id) !== String(id));
-  save(true);
-  renderEmployees();
+  // 1. Помечаем удаленным в локальных данных
+  markDeleted(data, "employees", id);
   
-  // 2. Отправляем запрос на жесткое удаление в базу
+  // 2. Стираем из локальной памяти
+  data.employees = (data.employees || []).filter(e => String(e.id) !== String(id));
+  
+  // 3. Отправляем запрос на жесткое удаление в базу
   try {
     const sb = await initCloud();
     if (sb) {
-      const { error } = await sb.from('employees').delete().eq('id', id);
-      if (error) {
-        console.error("Ошибка удаления:", error);
-        alert("Не удалось удалить из облака: " + error.message);
-      } else {
-        showToast("Сотрудник успешно удален", "success");
-      }
+      await sb.from('employees').delete().eq('id', id);
+      // Также удаляем из таблицы deleted, чтобы не висел мусор
+      await sb.from('deleted').delete().eq('table_name', 'employees').eq('id', id);
+      showToast("Сотрудник успешно удален", "success");
     }
   } catch (e) {
-    console.error("Сбой:", e);
+    console.error("Ошибка удаления:", e);
+    alert("Не удалось удалить из облака: " + e.message);
   }
+  
+  save(true);
+  renderEmployees();
 }
 
 let _currentEditEmployeeId = null;
@@ -3063,6 +3079,14 @@ function setAuthSession(emp) { localStorage.setItem(AUTH_KEY, JSON.stringify({ i
 function clearAuthSession() { localStorage.removeItem(AUTH_KEY); }
 function getCurrentUser() {
   const session = getAuthSession(); if (!session) return null;
+  
+  // Проверка на удаленного сотрудника
+  const isDeleted = (data.deleted?.employees || []).includes(String(session.id));
+  if (isDeleted) {
+    clearAuthSession();
+    return null;
+  }
+  
   if (!data.employees || !Array.isArray(data.employees) || data.employees.length === 0) return session;
   const emp = data.employees.find(e => String(e.id) === String(session.id));
   if (!emp) return session; return emp;
@@ -3082,6 +3106,14 @@ async function doLogin() {
   }
   errEl.textContent = ""; errEl.style.color = "";
   if (!emp) { errEl.textContent = "Неверные ФИО или PIN"; return; }
+  
+  // Проверка на удаленного сотрудника
+  const isDeleted = (data.deleted?.employees || []).includes(String(emp.id));
+  if (isDeleted) {
+    errEl.textContent = "Этот сотрудник был удалён. Вход запрещён.";
+    return;
+  }
+  
   setAuthSession(emp); showApp();
 }
 
@@ -3092,12 +3124,6 @@ function showApp() {
   const user = getCurrentUser(); 
   applyRoleRestrictions(user);
   
-  // Принудительно показываем календарь в разделе "Компания"
-  const companyBtn = document.querySelector(".main-tabs button[onclick*='company']");
-  if (companyBtn) showMain("company", companyBtn);
-  
-  const calendarBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
-  if (calendarBtn) showCompanyTab('calendar', calendarBtn);
   
   const nameEl = document.getElementById("current_user_name"); 
   const avatarEl = document.getElementById("current_user_avatar");
@@ -3120,13 +3146,14 @@ function showApp() {
     const st = data.settings[0] || { lunch_start: "13:00", lunch_end: "13:45" };
     const today = now.toISOString().slice(0,10);
 
-       if (currentTime >= st.lunch_start && currentTime < st.lunch_end) {
-      const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
-      if (myShift && !myShift.lunch_notified) {
-        showToast("🍲 Сейчас обед (с " + st.lunch_start + " до " + st.lunch_end + "). Отдохните!", "info");
-        myShift.lunch_notified = true;
-        save();
-      }
+    // Показываем уведомление об обеде ТОЛЬКО при открытой смене
+    const myShift = (data.shifts || []).find(s => String(s.employee_id) === String(user.id) && s.date === today && s.status === "active");
+    if (!myShift) return;
+
+    if (currentTime >= st.lunch_start && currentTime < st.lunch_end && !myShift.lunch_notified) {
+      showToast("🍲 Сейчас обед (с " + st.lunch_start + " до " + st.lunch_end + "). Отдохните!", "info");
+      myShift.lunch_notified = true;
+      save();
     }
   }, 1500);
 } // <-- ВОТ ЭТА СКОБКА ЗАКРЫВАЕТ ФУНКЦИЮ showApp
@@ -3192,10 +3219,10 @@ function applyRoleRestrictions(user) {
   if (serviceBtn) serviceBtn.style.display = isMaster ? "none" : "";
     const archiveBtn = document.querySelector("#main-service .tabs button[onclick*='archive']");
   if (archiveBtn) archiveBtn.style.display = isMaster ? "none" : "";
-  const empBtn = document.querySelector("#main-company .tabs button[onclick*='employees']");
+  const empBtn = document.querySelector("#company-tabs button[onclick*='employees']");
   if (empBtn) empBtn.style.display = isMaster ? "none" : "";
 
-  const boardsBtn = document.querySelector("#main-company .tabs button[onclick*='boards']");
+  const boardsBtn = document.querySelector("#company-tabs button[onclick*='boards']");
   if (boardsBtn) boardsBtn.style.display = isMaster ? "none" : "";
 
   if (isMaster) {
@@ -3207,7 +3234,11 @@ function applyRoleRestrictions(user) {
    
     const activeCompanyTab = document.querySelector("#main-company .tab.active");
     if (activeCompanyTab && activeCompanyTab.id === "company-employees") {
-      const calBtn = document.querySelector("#main-company .tabs button[onclick*='calendar']");
+      const calBtn = document.querySelector("#company-tabs button[onclick*='calendar']");
+      if (calBtn) showCompanyTab("calendar", calBtn);
+    }
+    if (activeCompanyTab && activeCompanyTab.id === "company-boards") {
+      const calBtn = document.querySelector("#company-tabs button[onclick*='calendar']");
       if (calBtn) showCompanyTab("calendar", calBtn);
     }
   }
@@ -3364,6 +3395,19 @@ function escapeHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 }
 
+function sortByArticle(a, b) {
+  const artA = String(a.article || a.vendor_code || a.productName || "").toUpperCase();
+  const artB = String(b.article || b.vendor_code || b.productName || "").toUpperCase();
+  // Если оба начинаются с буквы и цифры (К-001, П-002)
+  if (artA && artB && artA !== artB) {
+    return artA.localeCompare(artB, undefined, { numeric: true, sensitivity: 'base' });
+  }
+  // Иначе по алфавиту названия
+  const nameA = String(a.name || a.title || a.productName || "").toUpperCase();
+  const nameB = String(b.name || b.title || b.productName || "").toUpperCase();
+  return nameA.localeCompare(nameB);
+}
+
 /* Склад материалов */
 
 function addMaterial() {
@@ -3431,7 +3475,8 @@ function topUp(id) {
 }
 
 function renderMaterials() {
-  document.getElementById("m_table").innerHTML = data.materials.map(m => {
+  const sortedMaterials = [...data.materials].sort(sortByArticle);
+  document.getElementById("m_table").innerHTML = sortedMaterials.map(m => {
     const isInfinite = m.infinite === true;
     const stockDisplay = isInfinite ? "∞" : fmt(m.stock, 3);
     const typeDisplay = m.type === 'metal' ? 'Металл' : 
@@ -3603,7 +3648,8 @@ function renderProducts() {
     (p.article && p.article.toLowerCase().includes(query))
   );
 
-  document.getElementById("p_table").innerHTML = filtered.map(p => `
+  const sortedProducts = [...filtered].sort(sortByArticle);
+  document.getElementById("p_table").innerHTML = sortedProducts.map(p => `
     <tr>
       <td>${p.photo ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "—"}</td>
       <td>${escapeHtml(p.article) || "—"}</td>
@@ -3957,30 +4003,77 @@ function completeStageN(bid, stageNum) {
   const p = data.products.find(x => String(x.id) === String(b.productId));
   if (!p) return alert("Изделие удалено. Удалите партию и создайте заново.");
   
-  let matId, qtyPerUnit;
-  if (stageNum === 5) { matId = p.matProc; qtyPerUnit = p.normProc; }
-  if (stageNum === 6) { matId = p.matGalv; qtyPerUnit = p.normGalv; }
-  if (stageNum === 7) { matId = p.matBlk; qtyPerUnit = p.normBlk; }
-  if (stageNum === 8) { matId = p.matPack; qtyPerUnit = p.normPack; }
+  const currentUser = getCurrentUser();
   
-  const qty = qtyPerUnit * b.qty;
-  const cost = matId ? writeOffMaterial(matId, qty, true) : 0; 
-  if (cost === null) return;
-  
-  if (stageNum >= 5 && stageNum <= 8) {
+  // Обработка этапа 5 (Обработка) - переходим на 5.5 (КК)
+  if (stageNum === 5) {
+    let matId = p.matProc;
+    let qtyPerUnit = p.normProc;
+    const qty = qtyPerUnit * b.qty;
+    const cost = matId ? writeOffMaterial(matId, qty, true) : 0; 
+    if (cost === null) return;
+    
     b.stageCosts[stageNum] = cost;
     b.stages[stageNum].done = true;
-    b.stage = stageNum + 1;
-  } else if (stageNum === 8) {
+    b.stage = 5.5; // Переход к контролю качества после обработки
+  }
+  // Контроль качества после обработки (этап 5.5)
+  else if (stageNum === 5.5) {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return alert("Только Руководитель может подтвердить контроль качества!");
+    }
+    b.stage = 6; // Переход к гальванике
+  }
+  // Этап 6 (Гальваника)
+  else if (stageNum === 6) {
+    let matId = p.matGalv;
+    let qtyPerUnit = p.normGalv;
+    const qty = qtyPerUnit * b.qty;
+    const cost = matId ? writeOffMaterial(matId, qty, true) : 0; 
+    if (cost === null) return;
+    
+    b.stageCosts[stageNum] = cost;
+    b.stages[stageNum].done = true;
+    b.stage = 7; // Переход к чернению
+  }
+  // Этап 7 (Чернение) - переходим на 7.5 (КК)
+  else if (stageNum === 7) {
+    let matId = p.matBlk;
+    let qtyPerUnit = p.normBlk;
+    const qty = qtyPerUnit * b.qty;
+    const cost = matId ? writeOffMaterial(matId, qty, true) : 0; 
+    if (cost === null) return;
+    
+    b.stageCosts[stageNum] = cost;
+    b.stages[stageNum].done = true;
+    b.stage = 7.5; // Переход к контролю качества после чернения
+  }
+  // Контроль качества после чернения (этап 7.5)
+  else if (stageNum === 7.5) {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return alert("Только Руководитель может подтвердить контроль качества!");
+    }
+    b.stage = 8; // Переход к упаковке
+  }
+  // Этап 8 (Упаковка) - завершение партии
+  else if (stageNum === 8) {
+    let matId = p.matPack;
+    let qtyPerUnit = p.normPack;
+    const qty = qtyPerUnit * b.qty;
+    const cost = matId ? writeOffMaterial(matId, qty, true) : 0; 
+    if (cost === null) return;
+    
+    b.stageCosts[stageNum] = cost;
+    b.stages[stageNum].done = true;
     b.stage = 9; 
     b.finished = true; 
-    b.finishedAt = new Date().toLocaleString(); // <-- ДОБАВИЛИ ДАТУ
+    b.finishedAt = new Date().toLocaleString();
     b.totalCost = Object.values(b.stageCosts).reduce((s,x) => s+x, 0);
-          const existingStock = data.stock.find(s => s.productName === p.name);
-    const newCostPerUnit = +(b.totalCost / b.qty).toFixed(2); // Округляем себестоимость 1 шт
+    
+    const existingStock = data.stock.find(s => s.productName === p.name);
+    const newCostPerUnit = +(b.totalCost / b.qty).toFixed(2);
 
     if (existingStock) {
-      // Пересчитываем средневзвешенную себестоимость
       const totalOldValue = existingStock.remaining * existingStock.costPerUnit;
       const totalNewValue = b.qty * newCostPerUnit;
       const newTotalQty = existingStock.remaining + b.qty;
@@ -4017,15 +4110,14 @@ function completeStageN(bid, stageNum) {
         }
       }
     }
-  } else { 
-    b.stage = stageNum + 1; 
+  } else {
+    return alert("Неизвестный этап: " + stageNum);
   }
   
-  // НОВОЕ: Уведомление руководителям о завершении этапа
-  const currentUser = getCurrentUser();
+  // Уведомление руководителям о завершении этапа
   if (currentUser && currentUser.role !== 'admin') { 
     const admins = (data.employees || []).filter(e => e.role === 'admin');
-    const stageNames = {5:"Обработка", 6:"Гальваника", 7:"Чернение", 8:"Упаковка"};
+    const stageNames = {5:"Обработка", 5.5:"КК после обработки", 6:"Гальваника", 7:"Чернение", 7.5:"КК после чернения", 8:"Упаковка"};
     
     admins.forEach(admin => {
       if (String(admin.id) !== String(currentUser.id)) {
@@ -4086,12 +4178,21 @@ function renderBatchCard(b) {
   const s = b.stages; const st = b.stage;
   const photoHtml = p.photo ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "";
 
-  // ПРОГРЕСС-БАР
+  // ПРОГРЕСС-БАР (оставляем 8 основных шагов, но учитываем виртуальные этапы)
   let progressHtml = '<div class="progress-track">';
   for (let i = 1; i <= 8; i++) {
     let cls = "progress-step";
-    if (s[i] && s[i].done) cls += " done";
-    else if (st === i) cls += " current";
+    // Для этапов 5 и 7 учитываем виртуальные этапы контроля качества
+    if (i === 5) {
+      if (s[5] && s[5].done) cls += " done";
+      else if (st === 5 || st === 5.5) cls += " current";
+    } else if (i === 7) {
+      if (s[7] && s[7].done) cls += " done";
+      else if (st === 7 || st === 7.5) cls += " current";
+    } else {
+      if (s[i] && s[i].done) cls += " done";
+      else if (st === i) cls += " current";
+    }
     progressHtml += `<div class="${cls}">${i}</div>`;
   }
   progressHtml += '</div>';
@@ -4174,15 +4275,70 @@ function renderBatchCard(b) {
     html += `<div class="stage done"><div class="stage-title">4. Литьё <span class="badge badge-done">завершён</span></div><div class="stage-info">Использовано: ${fmt(s[4].metalUsed,3)} г, возврат: ${fmt(s[4].metalReturned,3)} г — ${fmt(b.stageCosts[4])} ₽</div></div>`;
   }
 
-  const stageNames = {5:"Обработка", 6:"Гальваника", 7:"Чернение", 8:"Упаковка"};
-  for (let n = 5; n <= 8; n++) {
-    if (s[n-1].done && !s[n].done) {
-      html += `<div class="stage ${st===n?'active':''}"><div class="stage-title">${n}. ${stageNames[n]} ${st===n?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Норма расхода применится автоматически.</div>`;
-      if (st === n) html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, ${n})">Этап завершён</button></div>`;
-      html += `</div>`;
-    } else if (s[n].done) {
-      html += `<div class="stage done"><div class="stage-title">${n}. ${stageNames[n]} <span class="badge badge-done">завершён</span></div><div class="stage-info">Стоимость: ${fmt(b.stageCosts[n])} ₽</div></div>`;
+  // Этап 5: Обработка
+  if (s[4].done && !s[5].done) {
+    html += `<div class="stage ${st===5?'active':''}"><div class="stage-title">5. Обработка ${st===5?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Норма расхода применится автоматически.</div>`;
+    if (st === 5) html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, 5)">Этап завершён</button></div>`;
+    html += `</div>`;
+  } else if (s[5].done) {
+    html += `<div class="stage done"><div class="stage-title">5. Обработка <span class="badge badge-done">завершён</span></div><div class="stage-info">Стоимость: ${fmt(b.stageCosts[5])} ₽</div></div>`;
+  }
+
+  // Этап 5.1: Контроль качества после обработки
+  if (s[5].done && st >= 5.5) {
+    const isActive = st === 5.5;
+    html += `<div class="stage ${isActive?'active':''}"><div class="stage-title">5.1. Контроль качества после обработки ${isActive?'<span class="badge badge-active">активен</span>':''}</div>`;
+    if (isActive) {
+      const currentUser = getCurrentUser();
+      if (currentUser && currentUser.role === 'admin') {
+        html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, 5.5)">✅ Подтвердить КК</button></div>`;
+      } else {
+        html += `<div class="stage-info">Ожидает проверки Руководителя</div>`;
+      }
     }
+    html += `</div>`;
+  }
+
+  // Этап 6: Гальваника
+  if (st > 5.5 && s[5].done && !s[6].done) {
+    html += `<div class="stage ${st===6?'active':''}"><div class="stage-title">6. Гальваника ${st===6?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Норма расхода применится автоматически.</div>`;
+    if (st === 6) html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, 6)">Этап завершён</button></div>`;
+    html += `</div>`;
+  } else if (s[6].done) {
+    html += `<div class="stage done"><div class="stage-title">6. Гальваника <span class="badge badge-done">завершён</span></div><div class="stage-info">Стоимость: ${fmt(b.stageCosts[6])} ₽</div></div>`;
+  }
+
+  // Этап 7: Чернение
+  if (st > 6 && s[6].done && !s[7].done) {
+    html += `<div class="stage ${st===7?'active':''}"><div class="stage-title">7. Чернение ${st===7?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Норма расхода применится автоматически.</div>`;
+    if (st === 7) html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, 7)">Этап завершён</button></div>`;
+    html += `</div>`;
+  } else if (s[7].done) {
+    html += `<div class="stage done"><div class="stage-title">7. Чернение <span class="badge badge-done">завершён</span></div><div class="stage-info">Стоимость: ${fmt(b.stageCosts[7])} ₽</div></div>`;
+  }
+
+  // Этап 7.1: Контроль качества после чернения
+  if (s[7].done && st >= 7.5) {
+    const isActive = st === 7.5;
+    html += `<div class="stage ${isActive?'active':''}"><div class="stage-title">7.1. Контроль качества после чернения ${isActive?'<span class="badge badge-active">активен</span>':''}</div>`;
+    if (isActive) {
+      const currentUser = getCurrentUser();
+      if (currentUser && currentUser.role === 'admin') {
+        html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, 7.5)">✅ Подтвердить КК</button></div>`;
+      } else {
+        html += `<div class="stage-info">Ожидает проверки Руководителя</div>`;
+      }
+    }
+    html += `</div>`;
+  }
+
+  // Этап 8: Упаковка
+  if (st > 7.5 && s[7].done && !s[8].done) {
+    html += `<div class="stage ${st===8?'active':''}"><div class="stage-title">8. Упаковка ${st===8?'<span class="badge badge-active">активен</span>':''}</div><div class="stage-info">Норма расхода применится автоматически.</div>`;
+    if (st === 8) html += `<div class="row"><button class="action ok" onclick="completeStageN(${b.id}, 8)">Этап завершён</button></div>`;
+    html += `</div>`;
+  } else if (s[8].done) {
+    html += `<div class="stage done"><div class="stage-title">8. Упаковка <span class="badge badge-done">завершён</span></div><div class="stage-info">Стоимость: ${fmt(b.stageCosts[8])} ₽</div></div>`;
   }
 
   html += `<div class="stage-info"><b>Себестоимость партии: ${fmt(Object.values(b.stageCosts).reduce((a,x)=>a+x,0))} ₽</b></div></div>`;
@@ -4240,6 +4396,23 @@ function finishGroup(groupId) {
   if (calTask) {
     calTask.done = true;
     calTask.updatedAt = new Date().toISOString();
+    
+    // Уведомление о завершении производственного задания
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      const admins = (data.employees || []).filter(e => e.role === 'admin');
+      admins.forEach(admin => {
+        if (String(admin.id) !== String(currentUser.id)) {
+          addNotification(
+            admin.id,
+            'production_completed',
+            'Производственное задание завершено',
+            `${currentUser.name} завершил(а) задание "${group.title}"`,
+            `batch:${groupId}`
+          );
+        }
+      });
+    }
   }
 
   save(); 
@@ -4404,7 +4577,13 @@ function getFilteredArchive() {
 }
 function renderArchive() {
   const list = getFilteredArchive();
-  document.getElementById("archive_table").innerHTML = list.slice().reverse().map(a => {
+  const sortedArchive = [...list].sort((a, b) => {
+    const da = a.dateIso || "";
+    const db = b.dateIso || "";
+    if (da !== db) return db.localeCompare(da); // новые сверху
+    return sortByArticle(a, b);
+  });
+  document.getElementById("archive_table").innerHTML = sortedArchive.map(a => {
     const profitCls = a.profit >= 0 ? "profit" : "loss";
     return `<tr><td>${escapeHtml(a.date)}</td><td>${escapeHtml(a.productName)} <small>(#${a.batchId})</small></td><td>${a.qty}</td><td>${fmt(a.price)} ₽</td><td>${fmt(a.sum)} ₽</td><td>${fmt(a.cost)} ₽</td><td class="${profitCls}">${fmt(a.profit)} ₽</td><td>${escapeHtml(a.channel)}</td><td>${escapeHtml(a.note) || "—"}</td><td><button class="action danger master-hidden" onclick="delArchive(${a.id})">×</button></td></tr>`;
   }).join("");
@@ -4529,8 +4708,9 @@ async function renderWbStocks() {
       if (!cur || (item.date || '') > (cur.date || '')) uniqueStocks[key] = item;
     });
 
+    const sortedStocks = Object.values(uniqueStocks).sort(sortByArticle);
     let html = '';
-    Object.values(uniqueStocks).forEach(wbItem => {
+    sortedStocks.forEach(wbItem => {
       const card = cardMap[String(wbItem.nm_id)];
       
       // БЕРЕМ НАЗВАНИЕ И АРТИКУЛ ИЗ КАРТОЧКИ
@@ -5139,7 +5319,8 @@ async function renderContractors(categoryId = null) {
             return;
         }
         
-        tableEl.innerHTML = contractors.map(contractor => {
+        const sortedContractors = [...contractors].sort(sortByArticle);
+        tableEl.innerHTML = sortedContractors.map(contractor => {
             const category = contractor.contractor_categories;
             const statusClass = contractor.status === 'active' ? 'badge-done' : 
                               contractor.status === 'inactive' ? 'badge-wait' : 'badge-active';
@@ -5570,7 +5751,7 @@ function saveShiftEmpSettings() {
     checklist: document.getElementById("shift_emp_checklist").value.split(",").map(s => s.trim()).filter(Boolean)
   };
 
-  save();
+  save(true);
   renderShiftSettingsEmployees();
   document.getElementById("shift_emp_modal").style.display = "none";
   showToast("✅ Настройки смены обновлены", "success");
@@ -5593,11 +5774,16 @@ function checkShiftStart() {
   if (existingShift) return;
 
   const ss = user.shift_settings || {};
-  if (ss.enabled === false) return;
+  if (ss.enabled === false) return; // Если контроль выключен — ничего не показываем
   const workStart = ss.work_start || "09:30";
   const now = new Date();
   const currentTime = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
   
+  if (currentTime < workStart) {
+     showToast("⏰ Рано! Ваша смена начинается в " + workStart, "warn");
+     return; // Не показываем модалку начала
+  }
+
   let statusText = "";
   if (currentTime > workStart) {
     const [h1, m1] = currentTime.split(':').map(Number);
@@ -5659,10 +5845,13 @@ setInterval(() => {
   const currentTime = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
   const today = now.toISOString().slice(0,10);
 
+  // Проверяем, что смена открыта
+  const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
+  if (!myShift) return; // Если смена не открыта, не показываем напоминания
+
   // --- ОБЕД ---
   if (currentTime >= st.lunch_start && currentTime < st.lunch_end) {
-    const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
-    if (myShift && !myShift.lunch_done) {
+    if (!myShift.lunch_done) {
       const lunchModal = document.getElementById("lunch_modal");
       if (lunchModal && lunchModal.style.display !== "flex") {
         lunchModal.style.display = "flex";
@@ -5673,8 +5862,7 @@ setInterval(() => {
 
   // --- КОНЕЦ ДНЯ ---
   if (currentTime >= st.work_end) {
-    const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
-    if (myShift && !myShift.end_day_done) {
+    if (!myShift.end_day_done) {
       const endModal = document.getElementById("end_day_modal");
       if (endModal && endModal.style.display !== "flex") {
         endModal.style.display = "flex";
@@ -5824,6 +6012,7 @@ function askEnigma() {
    СИСТЕМА ПОСТАВОК
    ============================================================ */
 let _pendingSupplyPdf = null;
+let _pendingSupplyPhotos = [];
 
 // Обновляем функцию инициализации приложения для загрузки категорий
 const originalInitApp = initApp;
@@ -5858,6 +6047,24 @@ async function uploadSupplyPDF(input) {
     statusEl.textContent = "✅ PDF готов к созданию поставки: " + file.name; 
     statusEl.style.color = "#2f855a";
   } catch (e) { console.error(e); statusEl.textContent = "❌ Ошибка загрузки PDF"; statusEl.style.color = "#c53030"; }
+}
+
+async function uploadSupplyPhotos(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const sb = await initCloud(); if (!sb) return;
+  const urls = [];
+  for (const file of files) {
+    const ext = file.name.split('.').pop();
+    const fileName = `supply_${Date.now()}_${Math.random().toString(36).substr(2,5)}.${ext}`;
+    const { error } = await sb.storage.from('product-photos').upload(fileName, file);
+    if (!error) {
+      const { data } = sb.storage.from('product-photos').getPublicUrl(fileName);
+      urls.push(data.publicUrl);
+    }
+  }
+  _pendingSupplyPhotos = (_pendingSupplyPhotos || []).concat(urls);
+  showToast(`✅ Загружено фото: ${urls.length}`, "success");
 }
 
 async function addSupply() {
@@ -5900,6 +6107,7 @@ async function addSupply() {
     items: items,
     pdfUrl: _pendingSupplyPdf ? _pendingSupplyPdf.url : null,
     pdfName: _pendingSupplyPdf ? _pendingSupplyPdf.name : null,
+    photos: _pendingSupplyPhotos || [],
     photoBox: null, 
     photoSent: null, 
     note: '',
@@ -5942,6 +6150,7 @@ async function addSupply() {
   document.getElementById("sup_pdf").value = "";
   document.getElementById("sup_pdf_status").textContent = "";
   _pendingSupplyPdf = null;
+  _pendingSupplyPhotos = [];
   document.getElementById("supply_items_rows").innerHTML = `<div class="row supply-item-row"><select class="supply-stock-select" style="min-width:250px"></select><input class="supply-qty" type="number" value="1" min="1" style="width:100px"></div>`;
   renderSupplyStockSelect();
   
@@ -6102,8 +6311,8 @@ function renderSupplies() {
   renderSupplyStockSelect();
 
   const supplies = data.supplies || [];
-  const active = supplies.filter(s => s.status !== 'done');
-  const archive = supplies.filter(s => s.status === 'done');
+  const active = [...supplies.filter(s => s.status !== 'done')].sort(sortByArticle);
+  const archive = [...supplies.filter(s => s.status === 'done')].sort(sortByArticle);
 
   if (active.length === 0) {
     listEl.innerHTML = `<p class="hint">Нет активных поставок</p>`;
@@ -6136,6 +6345,7 @@ function renderSupplies() {
           </div>
         </div>
         <div style="margin-top:10px; display:flex; gap:12px; align-items:center;">
+          ${(s.photos || []).map(url => `<img src="${url}" style="height:60px; border-radius:4px; margin-right:4px; cursor:pointer;" onclick="window.open('${url}','_blank')">`).join('')}
           ${s.photoBox ? `<div style="text-align:center;"><img src="${escapeHtml(s.photoBox)}" style="height:60px; border-radius:4px;"><div style="font-size:10px; color:#888;">Фото коробки</div></div>` : ''}
           ${s.photoSent ? `<div style="text-align:center;"><img src="${escapeHtml(s.photoSent)}" style="height:60px; border-radius:4px;"><div style="font-size:10px; color:#888;">Фото отправки</div></div>` : ''}
         </div>
@@ -6324,6 +6534,12 @@ function openArchivedSupply(supplyId) {
       </div>
       ${pdfHtml}
       ${photosHtml}
+      ${(s.photos && s.photos.length > 0) ? `
+        <div style="margin-top:12px;">
+          <strong>Фото поставки:</strong><br>
+          ${(s.photos || []).map(url => `<img src="${url}" style="max-height:200px; border-radius:4px; margin:4px; cursor:pointer;" onclick="window.open('${url}','_blank')">`).join('')}
+        </div>
+      ` : ''}
       ${s.note ? `<div style="margin-top:12px;"><strong>Примечание:</strong> ${escapeHtml(s.note)}</div>` : ""}
     </div>
   `;
@@ -6366,8 +6582,29 @@ function finishSupply(id) {
   s.status = 'done';
   s.updatedAt = new Date().toISOString();
   
+  // Автозакрытие связанной задачи
   const calTask = (data.tasks || []).find(t => String(t.supplyId) === String(id));
-  if (calTask) { calTask.done = true; calTask.updatedAt = new Date().toISOString(); }
+  if (calTask) { 
+    calTask.done = true; 
+    calTask.updatedAt = new Date().toISOString(); 
+    
+    // Уведомление о завершении задачи поставки
+    const currentUser = getCurrentUser();
+    if (currentUser) {
+      const admins = (data.employees || []).filter(e => e.role === 'admin');
+      admins.forEach(admin => {
+        if (String(admin.id) !== String(currentUser.id)) {
+          addNotification(
+            admin.id,
+            'supply_completed',
+            'Поставка завершена',
+            `${currentUser.name} завершил(а) поставку "${s.title}"`,
+            `supply:${id}`
+          );
+        }
+      });
+    }
+  }
   
   if (s.items && s.items.length > 0) {
     s.items.forEach(item => {
@@ -6438,11 +6675,15 @@ function endLunch() {
   const today = new Date().toISOString().slice(0,10);
   const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
   
-  if (myShift) {
-    myShift.lunch_done = true;
-    myShift.lunch_end_time = new Date().toLocaleTimeString("ru-RU", { hour: '2-digit', minute: '2-digit' });
-    save();
+  if (!myShift) {
+    // Если смены нет, просто закрываем модалку без записи
+    document.getElementById("lunch_modal").style.display = "none";
+    return;
   }
+  
+  myShift.lunch_done = true;
+  myShift.lunch_end_time = new Date().toLocaleTimeString("ru-RU", { hour: '2-digit', minute: '2-digit' });
+  save(true);
   document.getElementById("lunch_modal").style.display = "none";
 }
 
@@ -6453,11 +6694,15 @@ function acknowledgeEndDay() {
   const today = new Date().toISOString().slice(0,10);
   const myShift = (data.shifts || []).find(s => s.employee_id === user.id && s.date === today && s.status === "active");
   
-  if (myShift) {
-    myShift.end_day_done = true;
-    myShift.end_day_ack_time = new Date().toLocaleTimeString("ru-RU", { hour: '2-digit', minute: '2-digit' });
-    save();
+  if (!myShift) {
+    // Если смены нет, просто закрываем модалку без записи
+    document.getElementById("end_day_modal").style.display = "none";
+    return;
   }
+  
+  myShift.end_day_done = true;
+  myShift.end_day_ack_time = new Date().toLocaleTimeString("ru-RU", { hour: '2-digit', minute: '2-digit' });
+  save(true);
   document.getElementById("end_day_modal").style.display = "none";
   
   // Автоматически открываем окно закрытия смены

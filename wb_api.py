@@ -121,7 +121,9 @@ def save_to_supabase(nm_ids, fbs_stocks, fbo_stocks):
                 "date": current_date
             })
         if rows:
-            supabase.table("wb_stocks").insert(rows).execute()
+            # Если в таблице wb_stocks нет уникального индекса по (nm_id, date), создайте его с помощью:
+            # CREATE UNIQUE INDEX IF NOT EXISTS wb_stocks_nm_id_date_key ON wb_stocks (nm_id, date);
+            supabase.table("wb_stocks").upsert(rows, on_conflict="nm_id,date").execute()
             print(f"✅ Остатки сохранены! Строк: {len(rows)}")
     except Exception as e:
         print(f"❌ Ошибка Supabase: {e}")
