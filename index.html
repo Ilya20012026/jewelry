@@ -1488,6 +1488,7 @@ const EMPTY_DATA = {
 
 let data = JSON.parse(JSON.stringify(EMPTY_DATA));
 let writeOffStockId = null;
+let chartFunnel = null;
 
 function load() { return EMPTY_DATA; }
 
@@ -4800,6 +4801,13 @@ function loadWbReports() {
     content.innerHTML = '<p style="color:#888;text-align:center;">Отчеты по продажам появятся в следующем обновлении</p>';
   }
 }
+
+function _toDateStr(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
+}
+
 
 async function renderSeoDashboard() {
   const table = document.getElementById('seo-dashboard-table');
