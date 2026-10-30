@@ -2877,7 +2877,7 @@ function previewEditEmployeeAvatar(input) {
 
 function getAvatarHtml(employee, size) {
   if (employee.avatar_url) {
-    return `<img src="${escapeHtml(employee.avatar_url)}" class="avatar" style="width:${size}px;height:${size}px">`;
+    return `<img src="${employee.avatar_url}" class="avatar" style="width:${size}px;height:${size}px">`;
   } else {
     // Генерируем инициалы
     const names = employee.name.split(' ');
@@ -3654,7 +3654,7 @@ function renderProducts() {
   const sortedProducts = [...filtered].sort(sortByArticle);
   document.getElementById("p_table").innerHTML = sortedProducts.map(p => `
     <tr>
-      <td>${(p && p.photo) ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "—"}</td>
+      <td>${(p && p.photo) ? `<img src="${p.photo}" alt="" style="width:50px;height:50px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${p.photo}','_blank')">` : "—"}</td>
       <td>${escapeHtml(p.article) || "—"}</td>
       <td>${escapeHtml(p.name)}</td>
       <td>${escapeHtml(p.category) || "—"}</td>
@@ -4179,7 +4179,7 @@ function renderBatchCard(b) {
   if (typeof renderAllMaterialSelects === 'function') renderAllMaterialSelects();
   const p = data.products.find(x => x.id === b.productId); if (!p) return "";
   const s = b.stages; const st = b.stage;
-  const photoHtml = (p && p.photo) ? `<img src="${escapeHtml(p.photo)}" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:pointer;" onclick="window.open('${escapeHtml(p.photo)}','_blank')">` : "";
+  const photoHtml = (p && p.photo) ? `<img src="${p.photo}" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:pointer;" onclick="window.open('${p.photo}','_blank')">` : "";
 
   let progressHtml = '<div class="progress-track">';
   for (let i = 1; i <= 8; i++) {
@@ -4494,8 +4494,8 @@ function renderBatches() {
         <div><b>Чернение:</b> ${fmt(b.stageCosts[7])} ₽</div>
         <div><b>Упаковка:</b> ${fmt(b.stageCosts[8])} ₽</div>
       </div>
-      ${b.photoWax ? `<div style="margin-top:12px;"><b>Фото восковки:</b><br><img src="${escapeHtml(b.photoWax)}" style="max-height:100px; border-radius:4px; margin-top:4px;"></div>` : ''}
-      ${b.photoMetal ? `<div style="margin-top:12px;"><b>Фото литья:</b><br><img src="${escapeHtml(b.photoMetal)}" style="max-height:100px; border-radius:4px; margin-top:4px;"></div>` : ''}
+      ${b.photoWax ? `<div style="margin-top:12px;"><b>Фото восковки:</b><br><img src="${b.photoWax}" style="max-height:100px; border-radius:4px; margin-top:4px;"></div>` : ''}
+      ${b.photoMetal ? `<div style="margin-top:12px;"><b>Фото литья:</b><br><img src="${b.photoMetal}" style="max-height:100px; border-radius:4px; margin-top:4px;"></div>` : ''}
       <div style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px;">
         <button class="action danger master-hidden" onclick="deleteBatch('${b.id}')" style="width:auto;">Удалить</button>
       </div>
@@ -4628,7 +4628,19 @@ function clearAll() {
 function renderAll() {
   renderMaterials(); renderAllMaterialSelects(); renderProducts(); renderBatchProductSelect(); renderBatchResponsibleSelect();
   renderCycles(); renderOpokas(); renderBatches(); renderStock();
-  if (typeof renderChats === "function") renderChats(); renderArchive();
+  if (typeof renderChats === "function") renderChats();
+  if (typeof renderCategories === "function") renderCategories();
+  if (typeof renderContractors === "function") renderContractors();
+  if (typeof renderSupplies === "function") renderSupplies();
+  renderArchive();
+
+  // Правка 4: подгрузка категорий/контрагентов в селекты при полном ре-рендере
+  if (typeof loadCategoriesToSelects === 'function') {
+    loadCategoriesToSelects().catch(e => console.warn('loadCategoriesToSelects:', e));
+  }
+  if (typeof loadCategoriesToSupplySelect === 'function') {
+    loadCategoriesToSupplySelect().catch(e => console.warn('loadCategoriesToSupplySelect:', e));
+  }
 }
 
 function setSyncStatus(msg, color) {
@@ -4771,18 +4783,7 @@ function updateWbStock(productName) {
 
 
 
-let chartFunnel = null;
-
-function _toDateStr(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-
 function loadWbSeo() {
-  // Теперь вызываем renderSeoDashboard вместо заглушки
   renderSeoDashboard();
 }
 
@@ -4798,15 +4799,6 @@ function loadWbReports() {
   if (content) {
     content.innerHTML = '<p style="color:#888;text-align:center;">Отчеты по продажам появятся в следующем обновлении</p>';
   }
-}
-
-let chartFunnel = null;
-
-function _toDateStr(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
 }
 
 async function renderSeoDashboard() {
@@ -5098,7 +5090,16 @@ async function initApp() {
       }
     }, 1500);
 
+    // Загружаем категории контрагентов при старте
+    if (typeof loadCategoriesToSelects === 'function') {
+        await loadCategoriesToSelects();
+    }
+    if (typeof loadCategoriesToSupplySelect === 'function') {
+        await loadCategoriesToSupplySelect();
+    }
+
     console.log("✅ Приложение запущено.");
+
   } catch (e) {
     console.error("Критическая ошибка инициализации:", e);
     showToast("⚠️ Ошибка облака, работаем локально", "warn");
@@ -5130,7 +5131,7 @@ async function addCategory() {
             name: name
         };
         
-        const { data, error } = await sb
+               const { data: newCategoryRow, error } = await sb
             .from('contractor_categories')
             .insert(newCategory)
             .select()
@@ -5140,7 +5141,7 @@ async function addCategory() {
         
         // Добавляем в локальные данные
         if (!data.contractor_categories) data.contractor_categories = [];
-        data.contractor_categories.push(data);
+        data.contractor_categories.push(newCategoryRow);
         
         document.getElementById("category_name").value = "";
         save();
@@ -5196,7 +5197,7 @@ async function addContractor() {
             notes: notes
         };
         
-        const { data, error } = await sb
+                const { data: newContractorRow, error } = await sb
             .from('contractors')
             .insert(newContractor)
             .select()
@@ -5206,7 +5207,7 @@ async function addContractor() {
         
         // Добавляем в локальные данные
         if (!data.contractors) data.contractors = [];
-        data.contractors.push(data);
+        data.contractors.push(newContractorRow);
         
         // Очищаем форму
         document.getElementById("contractor_name").value = "";
@@ -5528,38 +5529,6 @@ async function deleteContractor(contractorId) {
     }
 }
 
-async function deleteContractor(contractorId) {
-    if (!confirm('Удалить этого контрагента?')) return;
-    
-    const user = getCurrentUser();
-    if (!user || user.role !== 'admin') {
-        showToast('Только администратор может удалять контрагентов', 'error');
-        return;
-    }
-    
-    try {
-        const sb = await initCloud();
-        if (!sb) throw new Error('Нет подключения к Supabase');
-        
-        const { error } = await sb
-            .from('contractors')
-            .delete()
-            .eq('id', contractorId);
-            
-        if (error) throw error;
-        
-        // Удаляем из локальных данных
-        data.contractors = (data.contractors || []).filter(c => c.id !== contractorId);
-        
-        save();
-        renderContractors();
-        showToast('✅ Контрагент удален', 'success');
-        
-    } catch (error) {
-        console.error('Ошибка удаления контрагента:', error);
-        showToast('❌ Ошибка удаления контрагента: ' + error.message, 'error');
-    }
-}
 
 async function editContractor(contractorId) {
     const contractor = data.contractors.find(c => String(c.id) === String(contractorId));
@@ -5638,18 +5607,6 @@ async function saveContractorFromModal() {
     }
 }
 
-// Обновляем функцию рендеринга всех данных
-const originalRenderAll = renderAll;
-renderAll = function() {
-    originalRenderAll();
-    if (typeof renderCategories === 'function') {
-        renderCategories();
-        loadCategoriesToSelects();
-    }
-    if (typeof renderContractors === 'function') {
-        renderContractors();
-    }
-};
 
 // --- СИСТЕМА СМЕН ---
 
@@ -5773,64 +5730,131 @@ function checkShiftStart() {
   if (!user) return;
   const today = new Date().toISOString().slice(0,10);
   
-  // Проверяем, не начинали ли уже смену сегодня
+  // Проверяем, есть ли уже запись о смене на сегодня
   const existingShift = (data.shifts || []).find(s => String(s.employee_id) === String(user.id) && s.date === today);
-  if (existingShift) return;
-
+  
+  // Если уже открыта (active) или закрыта (closed) — ничего не показываем
+  if (existingShift && (existingShift.status === "active" || existingShift.status === "closed")) return;
+  
   const ss = user.shift_settings || {};
   if (ss.enabled === false) return; // Если контроль выключен — ничего не показываем
+  
   const workStart = ss.work_start || "09:30";
   const now = new Date();
   const currentTime = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
   
+  // --- СЦЕНАРИЙ 1: ЗАШЕЛ РАНО ---
   if (currentTime < workStart) {
-     showToast("⏰ Рано! Ваша смена начинается в " + workStart, "warn");
-     return; // Не показываем модалку начала
+    const [h1, m1] = currentTime.split(':').map(Number);
+    const [h2, m2] = workStart.split(':').map(Number);
+    const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    
+    document.getElementById("shift_greeting").textContent = `Здравствуйте, ${user.name}!`;
+    document.getElementById("shift_status_text").textContent = `До начала смены осталось ${diff} минут (в ${workStart}). Вы можете зайти в приложение.`;
+    
+    // Меняем кнопку на "Понятно"
+    const btnContainer = document.querySelector("#shift_start_modal button");
+    btnContainer.textContent = "Понятно, зайти";
+    btnContainer.onclick = () => {
+      document.getElementById("shift_start_modal").style.display = "none";
+    };
+    
+    // Показываем список задач на сегодня
+    const myTasks = (data.tasks || []).filter(t => t.responsible === user.name && t.date_start === today);
+    document.getElementById("shift_tasks_list").innerHTML = myTasks.map(t => `
+      <div style="padding:8px; border-bottom:1px solid #333;">
+        <b>${escapeHtml(t.title)}</b> ${t.done ? '✅' : '⏳'}
+      </div>
+    `).join("") || "<p>Задач на сегодня нет.</p>";
+    
+    document.getElementById("shift_start_modal").style.display = "flex";
+    return;
   }
-
-  let statusText = "";
-  if (currentTime > workStart) {
+  
+  // --- СЦЕНАРИЙ 2: ЗАШЕЛ ВОВРЕМЯ ИЛИ С ОПОЗДАНИЕМ (ДО 2 ЧАСОВ) ---
+  if (currentTime >= workStart) {
     const [h1, m1] = currentTime.split(':').map(Number);
     const [h2, m2] = workStart.split(':').map(Number);
     const diff = (h1 * 60 + m1) - (h2 * 60 + m2);
-    statusText = `Вы опоздали на ${diff} минут.`;
-  } else {
-    statusText = `Вы успели вовремя!`;
+    
+    let statusText = "";
+    if (diff <= 0) {
+      statusText = "Вы успели вовремя!";
+    } else if (diff <= 120) { // Опоздание до 2 часов
+      statusText = `Вы опоздали на ${diff} минут.`;
+    } else { // Опоздание больше 2 часов
+      statusText = `Вы зашли в ${currentTime}, смена началась в ${workStart}.`;
+    }
+    
+    document.getElementById("shift_greeting").textContent = `Здравствуйте, ${user.name}!`;
+    document.getElementById("shift_status_text").textContent = statusText;
+    
+    // Показываем список задач
+    const myTasks = (data.tasks || []).filter(t => t.responsible === user.name && t.date_start === today);
+    document.getElementById("shift_tasks_list").innerHTML = myTasks.map(t => `
+      <div style="padding:8px; border-bottom:1px solid #333;">
+        <b>${escapeHtml(t.title)}</b> ${t.done ? '✅' : '⏳'}
+      </div>
+    `).join("") || "<p>Задач на сегодня нет.</p>";
+    
+    // Если опоздание больше 2 часов — показываем две кнопки
+    const btnContainer = document.querySelector("#shift_start_modal button");
+    if (diff > 120) {
+      btnContainer.textContent = "Начать смену";
+      btnContainer.onclick = () => startWorkDay(false);
+      
+      // Добавляем вторую кнопку "Просто зашел"
+      let secondBtn = document.getElementById("shift_pass_btn");
+      if (!secondBtn) {
+        secondBtn = document.createElement("button");
+        secondBtn.id = "shift_pass_btn";
+        secondBtn.className = "action";
+        secondBtn.style.cssText = "width:100%; margin-top:10px; background:transparent; border:1px solid rgba(255,255,255,0.2);";
+        secondBtn.textContent = "Просто зашел";
+        secondBtn.onclick = () => startWorkDay(true);
+        document.querySelector("#shift_start_modal div:last-child").appendChild(secondBtn);
+      }
+      secondBtn.style.display = "block";
+    } else {
+      btnContainer.textContent = "Начать рабочий день";
+      btnContainer.onclick = () => startWorkDay(false);
+      const secondBtn = document.getElementById("shift_pass_btn");
+      if (secondBtn) secondBtn.style.display = "none";
+    }
+    
+    document.getElementById("shift_start_modal").style.display = "flex";
   }
-
-  // Выводим задачи на сегодня
-  const myTasks = (data.tasks || []).filter(t => t.responsible === user.name && t.date_start === today);
-  document.getElementById("shift_tasks_list").innerHTML = myTasks.map(t => `
-    <div style="padding:8px; border-bottom:1px solid #333;">
-      <b>${escapeHtml(t.title)}</b> ${t.done ? '✅' : '⏳'}
-    </div>
-  `).join("") || "<p>Задач на сегодня нет.</p>";
-
-  document.getElementById("shift_greeting").textContent = `Здравствуйте, ${user.name}!`;
-  document.getElementById("shift_status_text").textContent = statusText;
-  document.getElementById("shift_start_modal").style.display = "flex";
 }
 
-function startWorkDay() {
+function startWorkDay(isPassing = false) {
   const user = getCurrentUser();
   const today = new Date().toISOString().slice(0,10);
   const now = new Date();
   const timeStr = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
   
   data.shifts = data.shifts || [];
+  
+  // Удаляем старую запись на сегодня (если была)
+  data.shifts = data.shifts.filter(s => !(s.employee_id === user.id && s.date === today));
+  
   data.shifts.push({
     id: uid(),
     employee_id: user.id,
     employee_name: user.name,
     date: today,
     start_time: timeStr,
-    status: "active",
+    status: isPassing ? "passing" : "active",
     updatedAt: new Date().toISOString()
   });
   
   save();
   document.getElementById("shift_start_modal").style.display = "none";
-  showToast("🚀 Рабочий день начат!", "success");
+  
+  if (isPassing) {
+    showToast("👀 Вы зашли просто посмотреть. Смена не открыта.", "info");
+  } else {
+    showToast("🚀 Рабочий день начат!", "success");
+  }
 }
 
 // 4. Логика напоминаний (Обед и Конец дня) - НОВАЯ БЛОКИРУЮЩАЯ СИСТЕМА
@@ -5849,9 +5873,9 @@ setInterval(() => {
   const currentTime = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
   const today = now.toISOString().slice(0,10);
 
-  // Проверяем, что смена открыта
+  // Проверяем, что смена ОТКРЫТА (status === "active")
   const myShift = (data.shifts || []).find(s => String(s.employee_id) === String(user.id) && s.date === today && s.status === "active");
-  if (!myShift) return; // Если смена не открыта, не показываем напоминания
+  if (!myShift) return; // Если смена не открыта — ничего не показываем
 
   // --- ОБЕД ---
   if (currentTime >= st.lunch_start && currentTime < st.lunch_end) {
@@ -6019,20 +6043,7 @@ let _pendingSupplyPdf = null;
 let _pendingSupplyPhotos = [];
 
 // Обновляем функцию инициализации приложения для загрузки категорий
-const originalInitApp = initApp;
-initApp = async function() {
-    await originalInitApp();
-    
-    // Загружаем категории контрагентов при старте
-    if (typeof loadCategoriesToSelects === 'function') {
-        await loadCategoriesToSelects();
-    }
-    
-    // Загружаем категории для селекта поставок
-    if (typeof loadCategoriesToSupplySelect === 'function') {
-        await loadCategoriesToSupplySelect();
-    }
-};
+
 
 async function uploadSupplyPDF(input) {
   const file = input.files[0]; if (!file) return;
@@ -6338,7 +6349,7 @@ function renderSupplies() {
             <div style="font-size:13px; margin-bottom:8px; color: #09090b;">
               <b>Состав:</b> ${(s.items || []).map(i => `${escapeHtml(i.productName)} × ${i.qty}`).join(', ')}
             </div>
-            ${s.pdfUrl ? `<a href="${escapeHtml(s.pdfUrl)}" target="_blank" style="font-size:12px; color:#2b6cb0;">📎 Скачать PDF</a>` : ''}
+            ${s.pdfUrl ? `<a href="${s.pdfUrl}" target="_blank" style="font-size:12px; color:#2b6cb0;">📎 Скачать PDF</a>` : ''}
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button class="action" style="background: var(--accent); color: #fff; border: none;" onclick="openSupplyChat('${s.id}', '${escapeHtml(s.title)}')">💬 Чат</button>
@@ -6536,7 +6547,7 @@ function openArchivedSupply(supplyId) {
 
   const pdfHtml = s.pdfUrl ? `
     <div style="margin-top:12px;">
-      <strong>PDF:</strong> <a href="${escapeHtml(s.pdfUrl)}" target="_blank">${escapeHtml(s.pdfName || "Скачать")}</a>
+      <strong>PDF:</strong> <a href="${s.pdfUrl}" target="_blank">${escapeHtml(s.pdfName || "Скачать")}</a>
     </div>
   ` : "";
 
@@ -6660,12 +6671,6 @@ function finishSupply(id) {
   showToast("✅ Поставка завершена, товары списаны", "success");
 }
 
-// Подключаем отрисовку к общей функции
-const _originalRenderAll = renderAll;
-renderAll = function() {
-  _originalRenderAll();
-  renderSupplies();
-};
 
 // Инициализация уведомлений при загрузке
 initApp();
