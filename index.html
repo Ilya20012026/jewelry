@@ -5109,16 +5109,6 @@ async function renderFinanceDashboard() {
 }
 
 </script>
-<script src="db.js"></script>
-<script src="cloud.js"></script>
-<script src="autosync.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').then(reg => console.log('✅ SW зарегистрирован:', reg.scope)).catch(err => console.error('❌ Ошибка SW:', err));
-    });
-  }
-</script>
 </body>
 </html>
 
