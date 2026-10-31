@@ -202,23 +202,33 @@ def fetch_promotions():
 def fetch_prices():
     print("💰 Получение данных о ценах...")
     url = "https://discounts-prices-api.wildberries.ru/api/v2/list/goods/filter"
-    payload = {"limit": 1000, "offset": 0}
+    params = {"limit": 1000, "offset": 0}
     try:
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.get(url, headers=headers, params=params)
         if response.status_code == 200:
             data = response.json()
-            goods = data.get("data", {}).get("goods", [])
+            # ВОТ ЗДЕСЬ ИСПРАВЛЕНИЕ: ищем listGoods, а не goods
+            goods = data.get("data", {}).get("listGoods", [])
+            
+            if not goods:
+                print("ℹ️ В ответе нет данных о ценах (список пуст)")
+                return
+            
             supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
             rows = []
             for good in goods:
+                # Берем цену из первого размера (sizes)
+                size = good.get("sizes", [{}])[0] if good.get("sizes") else {}
+                
                 rows.append({
-                    "nm_id": good.get("nmID"),
-                    "price": good.get("price"),
-                    "discount": good.get("discount"),
-                    "discounted_price": good.get("discountedPrice"),
-                    "club_discount": good.get("clubDiscount"),
-                    "quarantine": good.get("quarantine")
+                    "nm_id": str(good.get("nmID")),
+                    "price": size.get("price", 0),
+                    "discount": good.get("discount", 0),
+                    "discounted_price": size.get("discountedPrice", 0),
+                    "club_discount": good.get("clubDiscount", 0),
+                    "quarantine": False # В этом ответе нет поля quarantine, ставим False
                 })
+                
             if rows:
                 supabase.table("wb_prices").upsert(rows, on_conflict="nm_id").execute()
                 print(f"✅ Цены сохранены: {len(rows)} записей")
@@ -274,6 +284,39 @@ if __name__ == "__main__":
     print("СТАРТ ПРОГРАММЫ")
     
     supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    
+    # 1. Сначала обновляем список карточек с WB
+    print("🔄 Обновление списка карточек с WB...")
+    try:
+        url = "https://content-api.wildberries.ru/content/v2/get/cards/list"
+        payload = {
+            "settings": {
+                "cursor": {"limit": 100},
+                "filter": {"withPhoto": -1}
+            }
+        }
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            data = response.json()
+            cards = data.get("cards", [])
+            rows = []
+            for card in cards:
+                rows.append({
+                    "nm_id": str(card.get("nmID")),
+                    "vendor_code": card.get("vendorCode"),
+                    "title": card.get("title"),
+                    "description": card.get("description"),
+                    "characteristics": card.get("characteristics", [])
+                })
+            if rows:
+                supabase.table("wb_cards").upsert(rows, on_conflict="nm_id").execute()
+                print(f"✅ Карточки обновлены: {len(rows)} записей")
+        else:
+            print(f"⚠️ Ошибка обновления карточек: {response.status_code} - {response.text[:200]}")
+    except Exception as e:
+        print(f"❌ Ошибка карточек: {e}")
+
+    # 2. Теперь читаем актуальный список nm_ids из базы
     try:
         res = supabase.table("wb_cards").select("nm_id").execute()
         nm_ids = [item["nm_id"] for item in res.data] if res.data else []
