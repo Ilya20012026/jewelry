@@ -897,6 +897,14 @@
 
           <div style="margin-top: 20px;">
             <h5>Продажи</h5>
+            <div class="row" style="margin-bottom:16px; align-items:center;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label style="font-size:12px; color:rgba(255,255,255,0.6);">С:</label>
+                <input type="date" id="fin_date_from" onchange="renderFinanceDashboard()" style="width:auto; padding:8px;">
+                <label style="font-size:12px; color:rgba(255,255,255,0.6);">По:</label>
+                <input type="date" id="fin_date_to" onchange="renderFinanceDashboard()" style="width:auto; padding:8px;">
+              </div>
+            </div>
             <div style="overflow-x:auto;">
               <table>
                 <thead>
@@ -4992,7 +5000,7 @@ async function renderFinanceDashboard() {
     } else {
       table.innerHTML = tableArray.map(row => {
         const avgPrice = row.order_count > 0 ? (row.order_sum / row.order_count) : 0;
-        const buyoutPercent = row.order_count > 0 ? ((row.buyout_count / row.order_count) * 100).toFixed(1) : 0;
+        const buyoutPercent = row.buyout_percent || ((row.order_count > 0 ? (row.buyout_count / row.order_count) * 100 : 0).toFixed(1));
         
         return `<tr>
           <td>${escapeHtml(cardMap[String(row.nm_id)]?.vendor_code || row.nm_id || '—')}</td>

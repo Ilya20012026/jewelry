@@ -57,6 +57,10 @@ def fetch_funnel(nm_ids):
                         stats = item.get("statistic", {}).get("selected", {})
                         if not product_info or not stats: continue
                         
+                        # Получаем проценты конверсий из stats
+                        conversions = stats.get("conversions", {})
+                        buyout_percent = conversions.get("buyoutPercent", 0)
+                        
                         rows.append({
                             "nm_id": str(product_info.get("nmId")),
                             "view_count": stats.get("viewCount", 0),
@@ -68,6 +72,7 @@ def fetch_funnel(nm_ids):
                             "avg_price": stats.get("avgPrice", 0),
                             "cancel_count": stats.get("cancelCount", 0),
                             "cancel_sum": stats.get("cancelSum", 0),
+                            "buyout_percent": buyout_percent,
                             "date": day_str
                         })
                     
