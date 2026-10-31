@@ -4945,18 +4945,24 @@ async function renderFinanceDashboard() {
     // 2. Загрузка Цен (wb_prices)
     const { data: prices, error: pricesError } = await sb.from('wb_prices').select('*').order('nm_id');
     if (!pricesError && prices) {
-      const pricesTable = document.getElementById('finance-prices-table');
+            const pricesTable = document.getElementById('finance-prices-table');
       if (prices.length > 0) {
-        pricesTable.innerHTML = prices.map(price => `
-          <tr>
-            <td>${escapeHtml(price.nm_id || '—')}</td>
-            <td>${price.price ? price.price.toFixed(2) + ' ₽' : '—'}</td>
-            <td>${price.discount ? price.discount + '%' : '—'}</td>
-            <td>${price.discounted_price ? price.discounted_price.toFixed(2) + ' ₽' : '—'}</td>
-            <td>${price.club_discount ? price.club_discount + '%' : '—'}</td>
-            <td>${price.quarantine ? 'Да' : 'Нет'}</td>
-          </tr>
-        `).join('');
+        pricesTable.innerHTML = prices.map(price => {
+          // Берем артикул продавца из карточки, если она есть в cardMap
+          const card = cardMap[String(price.nm_id)];
+          const article = card?.vendor_code || price.nm_id || '—';
+          
+          return `
+            <tr>
+              <td>${escapeHtml(article)}</td>
+              <td>${price.price ? price.price.toFixed(2) + ' ₽' : '—'}</td>
+              <td>${price.discount ? price.discount + '%' : '—'}</td>
+              <td>${price.discounted_price ? price.discounted_price.toFixed(2) + ' ₽' : '—'}</td>
+              <td>${price.club_discount ? price.club_discount + '%' : '—'}</td>
+              <td>${price.quarantine ? 'Да' : 'Нет'}</td>
+            </tr>
+          `;
+        }).join('');
       } else {
         pricesTable.innerHTML = '<tr><td colspan="6" style="text-align:center;">Нет данных о ценах</td></tr>';
       }
