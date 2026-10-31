@@ -167,7 +167,8 @@ def fetch_promotions():
     params = {
         "startDateTime": (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%dT00:00:00Z'),
         "endDateTime": (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%dT23:59:59Z'),
-        "allPromo": "true"
+        "allPromo": True, # Важно: boolean, а не строка!
+        "limit": 1000
     }
     try:
         response = requests.get(url, headers=headers, params=params)
@@ -189,16 +190,16 @@ def fetch_promotions():
                 supabase.table("wb_promotions").upsert(rows, on_conflict="id").execute()
                 print(f"✅ Промоакции сохранены: {len(rows)} записей")
         else:
-            print(f"⚠️ Промоакции: {response.status_code} - {response.text[:200]}")
+            print(f"⚠️ Акции: {response.status_code} - {response.text[:500]}")
     except Exception as e:
         print(f"❌ Ошибка промоакций: {e}")
 
 def fetch_prices():
     print("💰 Получение данных о ценах...")
     url = "https://discounts-prices-api.wildberries.ru/api/v2/list/goods/filter"
-    params = {"limit": 1000, "offset": 0}
+    payload = {"limit": 1000, "offset": 0}
     try:
-        response = requests.get(url, headers=headers, params=params)
+        response = requests.post(url, headers=headers, json=payload)
         if response.status_code == 200:
             data = response.json()
             goods = data.get("data", {}).get("goods", [])
@@ -217,7 +218,7 @@ def fetch_prices():
                 supabase.table("wb_prices").upsert(rows, on_conflict="nm_id").execute()
                 print(f"✅ Цены сохранены: {len(rows)} записей")
         else:
-            print(f"⚠️ Цены: {response.status_code} - {response.text[:200]}")
+            print(f"⚠️ Цены: {response.status_code} - {response.text[:500]}")
     except Exception as e:
         print(f"❌ Ошибка цен: {e}")
 
