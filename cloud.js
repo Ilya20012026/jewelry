@@ -160,6 +160,13 @@ async function pushAll(localData) {
 
   const summary = {};
   for (const table of TABLES) {
+    // Пропускаем таблицы Wildberries (начинающиеся с "wb_")
+    if (table.startsWith('wb_')) {
+      console.log(`⏭️ Пропуск таблицы ${table} (Wildberries)`);
+      summary[table] = 'пропущено (Wildberries)';
+      continue;
+    }
+    
     const rows = (localData[table] || []).map(cleanRow);
     if (rows.length === 0) { summary[table] = 0; continue; }
 
