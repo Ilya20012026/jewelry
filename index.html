@@ -4923,6 +4923,46 @@ async function renderFinanceDashboard() {
     if (fromEl && !fromEl.value) fromEl.value = fromDate;
     if (toEl && !toEl.value) toEl.value = toDate;
 
+        // 1. Загрузка Акций (wb_promotions)
+    const { data: promos, error: promoError } = await sb.from('wb_promotions').select('*').order('start_date', { ascending: false });
+    if (!promoError && promos) {
+      const promoTable = document.getElementById('finance-promotions-table');
+      if (promos.length > 0) {
+        promoTable.innerHTML = promos.map(p => `
+          <tr>
+            <td>${escapeHtml(p.name || '—')}</td>
+            <td>${p.start_date ? new Date(p.start_date).toLocaleDateString('ru-RU') : '—'}</td>
+            <td>${p.end_date ? new Date(p.end_date).toLocaleDateString('ru-RU') : '—'}</td>
+            <td><span class="badge ${p.in_action ? 'badge-active' : 'badge-wait'}">${p.in_action ? 'Идёт' : 'Запланирована'}</span></td>
+            <td>${escapeHtml(p.description || '—')}</td>
+          </tr>
+        `).join('');
+      } else {
+        promoTable.innerHTML = '<tr><td colspan="5" style="text-align:center;">Нет данных об акциях</td></tr>';
+      }
+    }
+
+    // 2. Загрузка Цен (wb_prices)
+    const { data: prices, error: pricesError } = await sb.from('wb_prices').select('*').order('nm_id');
+    if (!pricesError && prices) {
+      const pricesTable = document.getElementById('finance-prices-table');
+      if (prices.length > 0) {
+        pricesTable.innerHTML = prices.map(price => `
+          <tr>
+            <td>${escapeHtml(price.nm_id || '—')}</td>
+            <td>${price.price ? price.price.toFixed(2) + ' ₽' : '—'}</td>
+            <td>${price.discount ? price.discount + '%' : '—'}</td>
+            <td>${price.discounted_price ? price.discounted_price.toFixed(2) + ' ₽' : '—'}</td>
+            <td>${price.club_discount ? price.club_discount + '%' : '—'}</td>
+            <td>${price.quarantine ? 'Да' : 'Нет'}</td>
+          </tr>
+        `).join('');
+      } else {
+        pricesTable.innerHTML = '<tr><td colspan="6" style="text-align:center;">Нет данных о ценах</td></tr>';
+      }
+    }
+
+
     const qFunnel = sb.from('wb_funnel').select('*').gte('date', fromDate).lte('date', toDate).order('date', { ascending: true });
     const qCards  = sb.from('wb_cards').select('nm_id, title, vendor_code');
 
