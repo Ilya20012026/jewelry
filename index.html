@@ -850,8 +850,113 @@
 </div>
         
         <div id="wb-prices" class="tab">
-          <p class="hint">Мониторинг цен и акционных предложений</p>
-          <div id="wb-prices-content"></div>
+          <h4>Финансовый дашборд Wildberries</h4>
+          <p class="hint">Мониторинг цен, акций, продаж, удержаний и рекламы</p>
+          <button class="action" onclick="renderFinanceDashboard()" style="width:auto; background: #cb11ab; border-color: #cb11ab; color: white; box-shadow: 0 4px 12px rgba(203, 17, 171, 0.3);">🔄 Обновить данные</button>
+          
+          <div style="margin-top: 20px;">
+            <h5>Акции</h5>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Название</th>
+                    <th>Дата начала</th>
+                    <th>Дата окончания</th>
+                    <th>Статус</th>
+                    <th>Описание</th>
+                  </tr>
+                </thead>
+                <tbody id="finance-promotions-table">
+                  <tr><td colspan="5" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Данные загружаются...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <h5>Цены</h5>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Артикул</th>
+                    <th>Цена</th>
+                    <th>Скидка</th>
+                    <th>Цена со скидкой</th>
+                    <th>Клубная скидка</th>
+                    <th>Карантин</th>
+                  </tr>
+                </thead>
+                <tbody id="finance-prices-table">
+                  <tr><td colspan="6" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Данные загружаются...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <h5>Продажи</h5>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Артикул</th>
+                    <th>Название</th>
+                    <th>Выручка (₽)</th>
+                    <th>Заказы (шт)</th>
+                    <th>Средняя цена (₽)</th>
+                    <th>Выкупы (шт)</th>
+                    <th>Отказы (шт)</th>
+                    <th>% Выкупа</th>
+                  </tr>
+                </thead>
+                <tbody id="finance-sales-table">
+                  <tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Данные загружаются...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <h5>Удержания</h5>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Тип штрафа</th>
+                    <th>Сумма</th>
+                    <th>Причина</th>
+                    <th>Дата</th>
+                  </tr>
+                </thead>
+                <tbody id="finance-penalties-table">
+                  <tr><td colspan="4" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Данные загружаются...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <h5>Реклама</h5>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID кампании</th>
+                    <th>Дата</th>
+                    <th>Потрачено</th>
+                    <th>Заказы</th>
+                    <th>Выручка</th>
+                    <th>ДРР (%)</th>
+                  </tr>
+                </thead>
+                <tbody id="finance-ads-table">
+                  <tr><td colspan="6" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Данные загружаются...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
         
         <div id="wb-reports" class="tab">
@@ -4788,11 +4893,183 @@ function loadWbSeo() {
   renderSeoDashboard();
 }
 
-function loadWbPrices() {
-  const content = document.getElementById('wb-prices-content');
-  if (content) {
-    content.innerHTML = '<p style="color:#888;text-align:center;">Мониторинг цен находится в разработке</p>';
+async function renderFinanceDashboard() {
+  const table = document.getElementById('finance-sales-table');
+  const filterSelect = document.getElementById('fin_filter_product');
+  if (!table) return;
+  
+  table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Загрузка данных...</td></tr>';
+  
+  try {
+    const sb = await initCloud();
+    if (!sb) throw new Error("Нет подключения к облаку");
+    
+    const fromEl = document.getElementById('fin_date_from');
+    const toEl = document.getElementById('fin_date_to');
+    
+    const today = new Date();
+    const monthAgo = new Date(Date.now() - 29 * 86400000);
+    let fromDate = fromEl?.value || _toDateStr(monthAgo);
+    let toDate = toEl?.value || _toDateStr(today);
+
+    if (fromEl && !fromEl.value) fromEl.value = fromDate;
+    if (toEl && !toEl.value) toEl.value = toDate;
+
+    const qFunnel = sb.from('wb_funnel').select('*').gte('date', fromDate).lte('date', toDate).order('date', { ascending: true });
+    const qCards  = sb.from('wb_cards').select('nm_id, title, vendor_code');
+
+    const [funnelRes, cardsRes] = await Promise.all([qFunnel, qCards]);
+
+    if (funnelRes.error) throw new Error('wb_funnel: ' + funnelRes.error.message);
+    if (cardsRes.error)  throw new Error('wb_cards: '  + cardsRes.error.message);
+
+    const funnel = funnelRes.data || [];
+    const cards  = cardsRes.data  || [];
+
+    const cardMap = {};
+    cards.forEach(c => { cardMap[String(c.nm_id)] = c; });
+
+    // Убираем дубликаты
+    const uniqueFunnelMap = new Map();
+    funnel.forEach(item => {
+      const key = `${item.nm_id}_${item.date}`;
+      uniqueFunnelMap.set(key, item); 
+    });
+    const uniqueFunnel = Array.from(uniqueFunnelMap.values());
+
+    const selectedNmId = filterSelect?.value || 'all';
+    let filteredFunnel = uniqueFunnel;
+    if (selectedNmId !== 'all') {
+      filteredFunnel = uniqueFunnel.filter(x => String(x.nm_id) === String(selectedNmId));
+    }
+
+    if (filterSelect) {
+      const currentVal = filterSelect.value;
+      const uniqueProducts = {};
+      uniqueFunnel.forEach(item => {
+        const card = cardMap[String(item.nm_id)];
+        if (!uniqueProducts[item.nm_id]) {
+          uniqueProducts[item.nm_id] = card?.title || item.nm_id;
+        }
+      });
+      
+      filterSelect.innerHTML = '<option value="all">— Все товары (общая сумма) —</option>' + 
+        Object.entries(uniqueProducts).map(([id, name]) => 
+          `<option value="${id}">${escapeHtml(name)}</option>`
+        ).join('');
+      
+      if (currentVal && (currentVal === 'all' || uniqueProducts[currentVal])) {
+        filterSelect.value = currentVal;
+      }
+    }
+
+    const tableMap = new Map();
+    filteredFunnel.forEach(item => {
+      const nmId = item.nm_id;
+      if (!tableMap.has(nmId)) {
+        const card = cardMap[String(nmId)];
+        tableMap.set(nmId, {
+          nm_id: nmId,
+          title: card?.title || 'Название не найдено',
+          order_sum: 0,
+          order_count: 0,
+          buyout_count: 0,
+          cancel_count: 0
+        });
+      }
+      const row = tableMap.get(nmId);
+      row.order_sum += Number(item.order_sum) || 0;
+      row.order_count += Number(item.order_count) || 0;
+      row.buyout_count += Number(item.buyout_count) || 0;
+      row.cancel_count += Number(item.cancel_count) || 0;
+    });
+
+    const tableArray = Array.from(tableMap.values());
+    tableArray.sort((a, b) => b.order_sum - a.order_sum);
+
+    if (tableArray.length === 0) {
+      table.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:rgba(255,255,255,0.5);">Нет данных за выбранный период</td></tr>';
+    } else {
+      table.innerHTML = tableArray.map(row => {
+        const avgPrice = row.order_count > 0 ? (row.order_sum / row.order_count) : 0;
+        const buyoutPercent = row.order_count > 0 ? ((row.buyout_count / row.order_count) * 100).toFixed(1) : 0;
+        
+        return `<tr>
+          <td>${escapeHtml(cardMap[String(row.nm_id)]?.vendor_code || row.nm_id || '—')}</td>
+          <td>${escapeHtml(row.title)}</td>
+          <td style="color: #4ade80; font-weight: 600;">${row.order_sum.toFixed(2)} ₽</td>
+          <td>${row.order_count}</td>
+          <td>${avgPrice.toFixed(2)} ₽</td>
+          <td>${row.buyout_count}</td>
+          <td>${row.cancel_count}</td>
+          <td style="color: #fbbf24; font-weight: 600;">${buyoutPercent}%</td>
+        </tr>`;
+      }).join('');
+    }
+
+    const allDates = [];
+    let d = new Date(fromDate);
+    const end = new Date(toDate);
+    while (d <= end) {
+      allDates.push(_toDateStr(d));
+      d.setDate(d.getDate() + 1);
+    }
+    
+    const revenues = allDates.map(dateStr => {
+      return filteredFunnel
+        .filter(x => x.date === dateStr)
+        .reduce((sum, x) => sum + (Number(x.order_sum) || 0), 0);
+    });
+    
+    const orders = allDates.map(dateStr => {
+      return filteredFunnel
+        .filter(x => x.date === dateStr)
+        .reduce((sum, x) => sum + (Number(x.order_count) || 0), 0);
+    });
+
+    if (window.chartFinance) { window.chartFinance.destroy(); window.chartFinance = null; }
+    const ctxFinance = document.getElementById('chart_finance');
+    
+    if (ctxFinance && allDates.length > 0) {
+      window.chartFinance = new Chart(ctxFinance, {
+        type: 'line',
+        data: {
+          labels: allDates,
+          datasets: [
+            { label: 'Выручка (₽)', data: revenues, borderColor: '#4ade80', backgroundColor: 'rgba(74, 222, 128, 0.1)', tension: 0.3, fill: true, yAxisID: 'y' },
+            { label: 'Заказы (шт)', data: orders, borderColor: '#60a5fa', tension: 0.3, fill: false, yAxisID: 'y1' }
+          ]
+        },
+        options: { 
+          responsive: true, 
+          interaction: { mode: 'index', intersect: false },
+          plugins: { 
+            legend: { labels: { color: '#fff' } }
+          }, 
+          scales: { 
+            x: { ticks: { color: '#888' } }, 
+            y: { 
+              type: 'linear', display: true, position: 'left', ticks: { color: '#888' },
+              beginAtZero: true, title: { display: true, text: 'Выручка (₽)', color: '#4ade80' }
+            },
+            y1: { 
+              type: 'linear', display: true, position: 'right', ticks: { color: '#888' },
+              beginAtZero: true, grid: { drawOnChartArea: false }, title: { display: true, text: 'Заказы (шт)', color: '#60a5fa' }
+            }
+          } 
+        }
+      });
+    }
+    
+  } catch (error) {
+    console.error('Ошибка финансов:', error);
+    table.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:20px;color:#f87171;">Ошибка: ${escapeHtml(error.message)}</td></tr>`;
   }
+}
+
+function loadWbPrices() {
+  // Теперь при загрузке вкладки автоматически рендерим дашборд
+  renderFinanceDashboard();
 }
 
 function loadWbReports() {
