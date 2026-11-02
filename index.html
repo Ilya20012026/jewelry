@@ -5108,6 +5108,44 @@ async function renderFinanceDashboard() {
   }
 }
 
+/* ============================================================
+   ЗАПУСК ПРИЛОЖЕНИЯ
+   ============================================================ */
+async function initApp() {
+  try {
+    let loaded = await migrateFromLocalStorage();
+    if (!loaded) loaded = await loadData();
+    data = loaded || JSON.parse(JSON.stringify(EMPTY_DATA));
+    if (typeof ensureDeletedStruct === 'function') ensureDeletedStruct(data);
+    if (typeof stampUpdatedAt === 'function') stampUpdatedAt(data);
+    
+    renderAll();
+    renderEmployees();
+    renderCalendar();
+    checkScheduledTasks();
+    renderNotifications();
+    renderResponsibleSelect();
+    
+    if (typeof scheduleAutosync === 'function') {
+      window.__scheduleAutosync = () => scheduleAutosync(() => data, (d) => { data = d; });
+    }
+    
+    if (typeof initRealtime === 'function') {
+      initRealtime((table, payload) => {
+        console.log(`Realtime: ${table}`, payload.eventType);
+      });
+    }
+    
+    checkSession();
+  } catch (e) {
+    console.error("Критическая ошибка initApp:", e);
+    checkSession();
+  }
+}
+
+// Запуск
+initApp();
+
 </script>
 </body>
 </html>
